@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AUDAZ BI - Central de Intelig√™ncia Imobili√°ria</title>
+    <title>AUDAZ BI - Central de Intelig&#234;ncia Imobili&#225;ria</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -28,7 +28,7 @@
             }
         }
     </script>
-    <!-- FontAwesome para √çcones -->
+    <!-- FontAwesome para &#205;cones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -80,7 +80,7 @@
         <!-- Sidebar Esquerda -->
         <aside class="w-full lg:w-72 bg-slate-950/80 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 flex flex-col justify-between backdrop-blur-premium shrink-0">
             <div>
-                <!-- Cabe√ßalho da Marca -->
+                <!-- Cabe&#231;alho da Marca -->
                 <div class="flex items-center gap-3 mb-8">
                     <div class="h-10 w-10 bg-gradient-to-tr from-brand-600 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
                         <i class="fa-solid fa-chart-line text-white text-xl"></i>
@@ -89,11 +89,11 @@
                         <h1 class="text-xl font-extrabold tracking-wider bg-gradient-to-r from-white via-slate-200 to-brand-500 bg-clip-text text-transparent">
                             AUDAZ BI
                         </h1>
-                        <p class="text-xs text-slate-500 font-medium tracking-widest uppercase">MINDSET IMOBILI√ÅRIO</p>
+                        <p class="text-xs text-slate-500 font-medium tracking-widest uppercase">MINDSET IMOBILI&#193;RIO</p>
                     </div>
                 </div>
 
-                <!-- Painel de Conex√£o de Dados -->
+                <!-- Painel de Conex&#227;o de Dados -->
                 <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 mb-6">
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Origem dos Dados</span>
@@ -102,14 +102,14 @@
                         </span>
                     </div>
                     <p class="text-xs text-slate-400 mb-4 leading-relaxed">
-                        Ligue diretamente a folha de c√°lculo p√∫blica do Google Sheets para sincronizar a sua equipa em tempo real.
+                        Ligue diretamente a folha de c&#225;lculo p&#250;blica do Google Sheets para sincronizar a sua equipa em tempo real.
                     </p>
                     <button onclick="toggleConnectionModal()" class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150">
                         <i class="fa-solid fa-link text-brand-500"></i>
                         Configurar Planilha
                     </button>
 
-                    <!-- Seletor de Intervalo de Auto-Atualiza√ß√£o -->
+                    <!-- Seletor de Intervalo de Auto-Atualiza&#231;&#227;o -->
                     <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                         <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-brand-500"></i> Atualizar a cada:</span>
                         <select id="autoRefreshSelect" onchange="changeRefreshRate(this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
@@ -122,9 +122,9 @@
                     </div>
                 </div>
 
-                <!-- Links R√°pidos de Navega√ß√£o -->
+                <!-- Links R&#225;pidos de Navega&#231;&#227;o -->
                 <nav class="space-y-1">
-                    <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest pl-3 mb-2">Vis√µes Gerais</p>
+                    <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest pl-3 mb-2">Vis&#245;es Gerais</p>
                     
                     <button onclick="switchView('dashboard')" id="linkDashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-100 border border-slate-800 transition">
                         <i class="fa-solid fa-cube text-brand-500"></i>
@@ -133,7 +133,7 @@
                     
                     <button onclick="switchView('calendar')" id="linkCalendar" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
                         <i class="fa-solid fa-calendar-days text-emerald-400"></i>
-                        Calend√°rio de Produ√ß√£o
+                        Calend&#225;rio de Produ&#231;&#227;o
                     </button>
 
                     <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#rankingsSection'; }, 100);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition text-left">
@@ -143,12 +143,12 @@
                     
                     <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#intelSection'; }, 100);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition text-left">
                         <i class="fa-solid fa-brain text-indigo-400"></i>
-                        Intelig√™ncia & Insights
+                        Intelig&#234;ncia & Insights
                     </button>
                 </nav>
             </div>
 
-            <!-- Rodap√© da Sidebar -->
+            <!-- Rodap&#233; da Sidebar -->
             <div class="pt-6 border-t border-slate-800 mt-6 lg:mt-0">
                 <div class="flex items-center gap-3">
                     <div class="h-9 w-9 bg-slate-800 rounded-full flex items-center justify-center">
@@ -162,7 +162,7 @@
             </div>
         </aside>
 
-        <!-- √Årea de Conte√∫do Principal -->
+        <!-- &#193;rea de Conte&#250;do Principal -->
         <main class="flex-1 flex flex-col min-w-0">
             
             <!-- Header Superior -->
@@ -178,27 +178,27 @@
                     </div>
                 </div>
 
-                <!-- Per√≠odo de Ativa√ß√£o do Dashboard -->
+                <!-- Per&#237;odo de Ativa&#231;&#227;o do Dashboard -->
                 <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
                     <button onclick="setPeriod('hoje')" id="btn-hoje" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Hoje</button>
                     <button onclick="setPeriod('semana')" id="btn-semana" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Semana</button>
-                    <button onclick="setPeriod('mes')" id="btn-mes" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">M√™s</button>
+                    <button onclick="setPeriod('mes')" id="btn-mes" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">M&#234;s</button>
                     <button onclick="setPeriod('ano')" id="btn-ano" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Ano</button>
                 </div>
             </header>
 
-            <!-- Filtros Din√¢micos Fixos/Topo -->
+            <!-- Filtros Din&#226;micos Fixos/Topo -->
             <section class="bg-slate-950/20 border-b border-slate-800 px-6 lg:px-8 py-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
                     <h2 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                        <i class="fa-solid fa-filter text-brand-500"></i> Filtros de Intelig√™ncia Avan√ßada
+                        <i class="fa-solid fa-filter text-brand-500"></i> Filtros de Intelig&#234;ncia Avan&#231;ada
                     </h2>
                     <button onclick="clearAllFilters()" class="text-xs text-slate-400 hover:text-brand-500 flex items-center gap-1.5 transition">
                         <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
                     </button>
                 </div>
 
-                <!-- Grid de Sele√ß√µes Din√¢micas -->
+                <!-- Grid de Sele&#231;&#245;es Din&#226;micas -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
                     <!-- Filtro Corretor -->
                     <div>
@@ -228,9 +228,9 @@
                             <option value="">Todos</option>
                         </select>
                     </div>
-                    <!-- Filtro M√™s -->
+                    <!-- Filtro M&#234;s -->
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">M√™s</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">M&#234;s</label>
                         <select id="filterMes" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
                             <option value="">Todos</option>
                         </select>
@@ -244,7 +244,7 @@
                     </div>
                     <!-- Filtro Semana -->
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Semana do M√™s</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Semana do M&#234;s</label>
                         <select id="filterSemana" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
                             <option value="">Todas</option>
                             <option value="1">Semana 1</option>
@@ -257,7 +257,7 @@
                 </div>
             </section>
 
-            <!-- Painel de Notifica√ß√µes / Toasts -->
+            <!-- Painel de Notifica&#231;&#245;es / Toasts -->
             <div id="toastNotification" class="hidden mx-6 lg:mx-8 mt-4 p-4 rounded-xl border bg-slate-950/80 backdrop-blur border-brand-500/20 text-brand-400 flex items-center justify-between shadow-lg shadow-brand-500/5">
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-circle-check text-brand-500"></i>
@@ -274,15 +274,15 @@
                 <!-- 1. GRID DE CARDS EXECUTIVOS (INDICADORES PRINCIPAIS) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="dashboardSection">
                     
-                    <!-- Card An√°lises -->
+                    <!-- Card An&#225;lises -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex items-start justify-between relative overflow-hidden transition-all hover:scale-[1.01] hover:border-slate-700">
                         <div class="space-y-2">
                             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                An√°lises Enviadas
+                                An&#225;lises Enviadas
                             </span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-3xl font-extrabold" id="kpiAnalises">0</span>
-                                <span class="text-[10px] font-bold text-slate-500" id="kpiAnalisesLabel">este per√≠odo</span>
+                                <span class="text-[10px] font-bold text-slate-500" id="kpiAnalisesLabel">este per&#237;odo</span>
                             </div>
                             <p class="text-[11px] text-slate-400" id="kpiAnalisesMeta">Propostas em curso</p>
                         </div>
@@ -292,17 +292,17 @@
                         <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-blue-500/5 rounded-full blur-xl"></div>
                     </div>
 
-                    <!-- Card Aprova√ß√µes -->
+                    <!-- Card Aprova&#231;&#245;es -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex items-start justify-between relative overflow-hidden transition-all hover:scale-[1.01] hover:border-slate-700">
                         <div class="space-y-2">
                             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                Aprova√ß√µes
+                                Aprova&#231;&#245;es
                             </span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-3xl font-extrabold text-amber-500" id="kpiAprovacoes">0</span>
-                                <span class="text-[10px] font-bold text-amber-500" id="kpiAprovacoesLabel">este per√≠odo</span>
+                                <span class="text-[10px] font-bold text-amber-500" id="kpiAprovacoesLabel">este per&#237;odo</span>
                             </div>
-                            <p class="text-[11px] text-slate-400" id="kpiAprovacoesTaxa">Convers√£o envio ‚Üí aprova√ß√£o: 0%</p>
+                            <p class="text-[11px] text-slate-400" id="kpiAprovacoesTaxa">Convers&#227;o envio &#8594; aprova&#231;&#227;o: 0%</p>
                         </div>
                         <div class="h-12 w-12 bg-amber-500/10 rounded-xl border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-sm">
                             <i class="fa-solid fa-circle-check text-xl"></i>
@@ -318,7 +318,7 @@
                             </span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-3xl font-extrabold text-brand-500" id="kpiVendas">0</span>
-                                <span class="text-[10px] font-bold text-brand-500" id="kpiVendasLabel">este per√≠odo</span>
+                                <span class="text-[10px] font-bold text-brand-500" id="kpiVendasLabel">este per&#237;odo</span>
                             </div>
                             <p class="text-[11px] text-slate-400" id="kpiVendasTaxa">Taxa de fecho final: 0%</p>
                         </div>
@@ -336,9 +336,9 @@
                             </span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-2xl font-extrabold text-indigo-400" id="kpiVgv">R$ 0M</span>
-                                <span class="text-[10px] font-bold text-indigo-500" id="kpiVgvLabel">este per√≠odo</span>
+                                <span class="text-[10px] font-bold text-indigo-500" id="kpiVgvLabel">este per&#237;odo</span>
                             </div>
-                            <p class="text-[11px] text-slate-400" id="kpiVgvTicket">Ticket M√©dio: R$ 0k</p>
+                            <p class="text-[11px] text-slate-400" id="kpiVgvTicket">Ticket M&#233;dio: R$ 0k</p>
                         </div>
                         <div class="h-12 w-12 bg-indigo-500/10 rounded-xl border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-sm">
                             <i class="fa-solid fa-coins text-xl"></i>
@@ -348,7 +348,7 @@
 
                 </div>
 
-                <!-- 2. FUNIL DE CONVERS√ÉO & INTELIG√äNCIA COMERCIAL (ROW) -->
+                <!-- 2. FUNIL DE CONVERS&#195;O & INTELIG&#202;NCIA COMERCIAL (ROW) -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
                     <!-- Funil Visual de Vendas -->
@@ -356,16 +356,16 @@
                         <div>
                             <div class="flex items-center justify-between mb-6">
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                                    <i class="fa-solid fa-filter text-brand-500"></i> Funil de Convers√£o Imobili√°ria
+                                    <i class="fa-solid fa-filter text-brand-500"></i> Funil de Convers&#227;o Imobili&#225;ria
                                 </h3>
-                                <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Efici√™ncia Geral</span>
+                                <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Efici&#234;ncia Geral</span>
                             </div>
 
                             <div class="space-y-4">
-                                <!-- Etapa 1: An√°lises -->
+                                <!-- Etapa 1: An&#225;lises -->
                                 <div>
                                     <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
-                                        <span>1. An√°lises Enviadas</span>
+                                        <span>1. An&#225;lises Enviadas</span>
                                         <span id="funnelAnalisesQty" class="font-bold">0</span>
                                     </div>
                                     <div class="w-full bg-slate-800 h-8 rounded-lg relative overflow-hidden flex items-center justify-center border border-slate-700/50">
@@ -374,7 +374,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Convers√£o Interna 1 -->
+                                <!-- Convers&#227;o Interna 1 -->
                                 <div class="flex justify-center -my-2 relative z-10">
                                     <div class="bg-slate-800 border border-slate-700 text-[10px] text-slate-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
                                         <i class="fa-solid fa-arrow-down text-teal-400"></i>
@@ -382,19 +382,19 @@
                                     </div>
                                 </div>
 
-                                <!-- Etapa 2: Aprova√ß√µes -->
+                                <!-- Etapa 2: Aprova&#231;&#245;es -->
                                 <div>
                                     <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
-                                        <span>2. An√°lises Aprovadas</span>
+                                        <span>2. An&#225;lises Aprovadas</span>
                                         <span id="funnelAprovacoesQty" class="font-bold">0</span>
                                     </div>
                                     <div class="w-full bg-slate-800 h-8 rounded-lg relative overflow-hidden flex items-center justify-center border border-slate-700/50">
                                         <div id="funnelAprovacoesBar" class="bg-gradient-to-r from-amber-600 to-amber-500 h-full absolute left-0 top-0 transition-all duration-500" style="width: 0%"></div>
-                                        <span class="relative z-10 text-[10px] font-bold text-white uppercase tracking-wider">Aprova√ß√£o de Cr√©dito</span>
+                                        <span class="relative z-10 text-[10px] font-bold text-white uppercase tracking-wider">Aprova&#231;&#227;o de Cr&#233;dito</span>
                                     </div>
                                 </div>
 
-                                <!-- Convers√£o Interna 2 -->
+                                <!-- Convers&#227;o Interna 2 -->
                                 <div class="flex justify-center -my-2 relative z-10">
                                     <div class="bg-slate-800 border border-slate-700 text-[10px] text-slate-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
                                         <i class="fa-solid fa-arrow-down text-brand-400"></i>
@@ -422,24 +422,24 @@
                         </div>
                     </div>
 
-                    <!-- Bloco de Intelig√™ncia Comercial (Insights R√°pidos) -->
+                    <!-- Bloco de Intelig&#234;ncia Comercial (Insights R&#225;pidos) -->
                     <div id="intelSection" class="lg:col-span-7 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between mb-6">
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                                    <i class="fa-solid fa-brain text-indigo-400"></i> Intelig√™ncia Comercial & Destaques
+                                    <i class="fa-solid fa-brain text-indigo-400"></i> Intelig&#234;ncia Comercial & Destaques
                                 </h3>
-                                <span class="text-[10px] bg-indigo-500/10 text-indigo-400 px-2.5 py-0.5 rounded-full font-semibold">An√°lise de Dados IA</span>
+                                <span class="text-[10px] bg-indigo-500/10 text-indigo-400 px-2.5 py-0.5 rounded-full font-semibold">An&#225;lise de Dados IA</span>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Melhor Corretor do M√™s -->
+                                <!-- Melhor Corretor do M&#234;s -->
                                 <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/60 flex items-center gap-3">
                                     <div class="h-10 w-10 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl flex items-center justify-center">
                                         <i class="fa-solid fa-crown text-base"></i>
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Top Vendedor do M√™s</p>
+                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Top Vendedor do M&#234;s</p>
                                         <p class="text-xs font-bold text-slate-200 truncate" id="intelTopCorretorMes">A aguardar dados...</p>
                                         <p class="text-[10px] text-brand-400" id="intelTopCorretorMesVgv">VGV: R$ 0</p>
                                     </div>
@@ -451,7 +451,7 @@
                                         <i class="fa-solid fa-people-group text-base"></i>
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Equipa L√≠der</p>
+                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Equipa L&#237;der</p>
                                         <p class="text-xs font-bold text-slate-200 truncate" id="intelTopEquipe">A aguardar dados...</p>
                                         <p class="text-[10px] text-brand-400" id="intelTopEquipeVgv">VGV: R$ 0</p>
                                     </div>
@@ -469,15 +469,15 @@
                                     </div>
                                 </div>
 
-                                <!-- Convers√µes Destacadas -->
+                                <!-- Convers&#245;es Destacadas -->
                                 <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/60 flex items-center gap-3">
                                     <div class="h-10 w-10 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-xl flex items-center justify-center">
                                         <i class="fa-solid fa-chart-pie text-base"></i>
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Melhor Convers√£o de Vendas</p>
+                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Melhor Convers&#227;o de Vendas</p>
                                         <p class="text-xs font-bold text-slate-200 truncate" id="intelBestConversion">A aguardar dados...</p>
-                                        <p class="text-[10px] text-teal-400" id="intelBestConversionRate">Convers√£o: 0%</p>
+                                        <p class="text-[10px] text-teal-400" id="intelBestConversionRate">Convers&#227;o: 0%</p>
                                     </div>
                                 </div>
                             </div>
@@ -490,14 +490,14 @@
                                     <div class="h-6 w-6 bg-indigo-500/10 text-indigo-400 rounded-lg flex items-center justify-center animate-pulse">
                                         <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
                                     </div>
-                                    <p class="text-xs font-bold text-slate-200">‚ú® Copilot de Intelig√™ncia Audaz IA</p>
+                                    <p class="text-xs font-bold text-slate-200">&#10024; Copilot de Intelig&#234;ncia Audaz IA</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button onclick="generateAIIconicInsights()" id="btnGenerateAI" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded text-[10px] font-bold flex items-center gap-1.5 transition">
-                                        <i class="fa-solid fa-arrows-rotate"></i> ‚ú® Atualizar Insights
+                                        <i class="fa-solid fa-arrows-rotate"></i> &#10024; Atualizar Insights
                                     </button>
                                     <button onclick="playAIEngineSpeech()" id="btnPlayTTS" class="hidden px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-bold flex items-center gap-1.5 transition">
-                                        <i class="fa-solid fa-volume-high"></i> ‚ú® Ouvir Relat√≥rio
+                                        <i class="fa-solid fa-volume-high"></i> &#10024; Ouvir Relat&#243;rio
                                     </button>
                                 </div>
                             </div>
@@ -510,7 +510,7 @@
                                 </div>
                                 <div class="max-h-40 overflow-y-auto pr-1">
                                     <p class="text-xs text-slate-400 leading-relaxed" id="narrativeInsight">
-                                        O sistema est√° a gerar an√°lises comerciais cruzadas. Clique em <strong>‚ú® Atualizar Insights</strong> para acionar a Intelig√™ncia Artificial do Gemini e obter um diagn√≥stico executivo em tempo real sobre o seu funil imobili√°rio.
+                                        O sistema est&#225; a gerar an&#225;lises comerciais cruzadas. Clique em <strong>&#10024; Atualizar Insights</strong> para acionar a Intelig&#234;ncia Artificial do Gemini e obter um diagn&#243;stico executivo em tempo real sobre o seu funil imobili&#225;rio.
                                     </p>
                                 </div>
                             </div>
@@ -519,7 +519,7 @@
                             <div class="flex gap-2">
                                 <input type="text" id="aiUserQuestion" placeholder="Pergunte ao Copilot (ex: 'Como acelerar a equipa Vanguard?')..." class="flex-1 bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition placeholder-slate-600">
                                 <button onclick="askAIGeminiQuestion()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                    <span>‚ú® Enviar</span>
+                                    <span>&#10024; Enviar</span>
                                 </button>
                             </div>
                         </div>
@@ -528,15 +528,15 @@
 
                 </div>
 
-                <!-- 3. SE√á√ÉO GR√ÅFICOS PROFISSIONAIS (CHART.JS) -->
+                <!-- 3. SE&#199;&#195;O GR&#193;FICOS PROFISSIONAIS (CHART.JS) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     
-                    <!-- Gr√°fico 1: Evolu√ß√£o Operacional -->
+                    <!-- Gr&#225;fico 1: Evolu&#231;&#227;o Operacional -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolu√ß√£o Mensal de Opera√ß√µes</h3>
-                                <p class="text-[10px] text-slate-500">Acompanhamento temporal de An√°lises, Aprova√ß√µes e Vendas</p>
+                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolu&#231;&#227;o Mensal de Opera&#231;&#245;es</h3>
+                                <p class="text-[10px] text-slate-500">Acompanhamento temporal de An&#225;lises, Aprova&#231;&#245;es e Vendas</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-chart-line text-xs"></i>
@@ -547,12 +547,12 @@
                         </div>
                     </div>
 
-                    <!-- Gr√°fico 2: Evolu√ß√£o de VGV -->
+                    <!-- Gr&#225;fico 2: Evolu&#231;&#227;o de VGV -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolu√ß√£o Hist√≥rica do VGV</h3>
-                                <p class="text-[10px] text-slate-500">Volume de vendas l√≠quidas convertidas em Reais (R$)</p>
+                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolu&#231;&#227;o Hist&#243;rica do VGV</h3>
+                                <p class="text-[10px] text-slate-500">Volume de vendas l&#237;quidas convertidas em Reais (R$)</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-money-bill-trend-up text-xs"></i>
@@ -563,12 +563,12 @@
                         </div>
                     </div>
 
-                    <!-- Gr√°fico 3: Performance por Corretor -->
+                    <!-- Gr&#225;fico 3: Performance por Corretor -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Performance por Corretor</h3>
-                                <p class="text-[10px] text-slate-500">Compara√ß√µes diretas de funil por corretor</p>
+                                <p class="text-[10px] text-slate-500">Compara&#231;&#245;es diretas de funil por corretor</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-users-viewfinder text-xs"></i>
@@ -579,12 +579,12 @@
                         </div>
                     </div>
 
-                    <!-- Gr√°fico 4: Performance por Equipe -->
+                    <!-- Gr&#225;fico 4: Performance por Equipe -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Desempenho por Equipa</h3>
-                                <p class="text-[10px] text-slate-500">Participa√ß√£o de mercado das frentes comerciais imobili√°rias</p>
+                                <p class="text-[10px] text-slate-500">Participa&#231;&#227;o de mercado das frentes comerciais imobili&#225;rias</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-shield-halved text-xs"></i>
@@ -624,10 +624,10 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Corretor</th>
-                                            <th class="pb-3 text-center">An√°lises</th>
+                                            <th class="pb-3 text-center">An&#225;lises</th>
                                             <th class="pb-3 text-center">Aprovs</th>
                                             <th class="pb-3 text-center">Vendas</th>
-                                            <th class="pb-3 text-center">Convers√£o</th>
+                                            <th class="pb-3 text-center">Convers&#227;o</th>
                                             <th class="pb-3 text-right pr-2">VGV</th>
                                         </tr>
                                     </thead>
@@ -647,7 +647,7 @@
                                     <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                         <i class="fa-solid fa-people-group text-blue-500"></i> Ranking Geral de Equipas
                                     </h3>
-                                    <p class="text-[10px] text-slate-500">Medi√ß√£o consolidada de sinergia e entrega comercial</p>
+                                    <p class="text-[10px] text-slate-500">Medi&#231;&#227;o consolidada de sinergia e entrega comercial</p>
                                 </div>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500">
@@ -663,10 +663,10 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Equipa</th>
-                                            <th class="pb-3 text-center">An√°lises</th>
+                                            <th class="pb-3 text-center">An&#225;lises</th>
                                             <th class="pb-3 text-center">Aprovs</th>
                                             <th class="pb-3 text-center">Vendas</th>
-                                            <th class="pb-3 text-center">Convers√£o</th>
+                                            <th class="pb-3 text-center">Convers&#227;o</th>
                                             <th class="pb-3 text-right pr-2">VGV</th>
                                         </tr>
                                     </thead>
@@ -680,16 +680,16 @@
 
                 </div>
 
-                <!-- 5. PAINEL DE ALERTAS AUTOM√ÅTICOS & PREDITIVOS -->
+                <!-- 5. PAINEL DE ALERTAS AUTOM&#193;TICOS & PREDITIVOS -->
                 <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                     <div class="flex items-center justify-between mb-6">
                         <div>
                             <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                 <i class="fa-solid fa-bell text-rose-500 animate-bounce"></i> Alertas de Risco & Alinhamento de Metas
                             </h3>
-                            <p class="text-[10px] text-slate-500">Algoritmo em tempo real de inatividade, convers√£o cr√≠tica e metas corporativas</p>
+                            <p class="text-[10px] text-slate-500">Algoritmo em tempo real de inatividade, convers&#227;o cr&#237;tica e metas corporativas</p>
                         </div>
-                        <span class="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full font-bold">Diagn√≥stico Ativo</span>
+                        <span class="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full font-bold">Diagn&#243;stico Ativo</span>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="alertsGrid">
@@ -699,16 +699,16 @@
 
             </div>
 
-            <!-- VIEW 2: CALEND√ÅRIO DE PRODU√á√ÉO COM HEATMAP -->
+            <!-- VIEW 2: CALEND&#193;RIO DE PRODU&#199;&#195;O COM HEATMAP -->
             <div id="calendarView" class="hidden flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
                 
-                <!-- Cabe√ßalho Informativo do Calend√°rio -->
+                <!-- Cabe&#231;alho Informativo do Calend&#225;rio -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h2 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-                            <i class="fa-solid fa-calendar-days text-emerald-400"></i> Calend√°rio de Produ√ß√£o Di√°ria
+                            <i class="fa-solid fa-calendar-days text-emerald-400"></i> Calend&#225;rio de Produ&#231;&#227;o Di&#225;ria
                         </h2>
-                        <p class="text-xs text-slate-400">Matriz anal√≠tica de const√¢ncia operacional para monitorizar a frequ√™ncia de envio de an√°lises por corretor.</p>
+                        <p class="text-xs text-slate-400">Matriz anal&#237;tica de const&#226;ncia operacional para monitorizar a frequ&#234;ncia de envio de an&#225;lises por corretor.</p>
                     </div>
                     
                     <!-- Legenda do Heatmap -->
@@ -732,47 +732,47 @@
                     </div>
                 </div>
 
-                <!-- INDICADORES EXCLUSIVOS DO CALEND√ÅRIO -->
+                <!-- INDICADORES EXCLUSIVOS DO CALEND&#193;RIO -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Dia de Maior Produ√ß√£o</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Dia de Maior Produ&#231;&#227;o</p>
                         <h4 class="text-base font-extrabold text-white" id="calKpiDiaMaior">A aguardar dados...</h4>
-                        <p class="text-[10px] text-emerald-400 mt-1" id="calKpiDiaMaiorQtd">0 an√°lises enviadas</p>
+                        <p class="text-[10px] text-emerald-400 mt-1" id="calKpiDiaMaiorQtd">0 an&#225;lises enviadas</p>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Mais Constante (M√™s)</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Mais Constante (M&#234;s)</p>
                         <h4 class="text-base font-extrabold text-slate-200" id="calKpiCorrMes">A aguardar dados...</h4>
-                        <p class="text-[10px] text-indigo-400 mt-1" id="calKpiCorrMesQtd">0 an√°lises</p>
+                        <p class="text-[10px] text-indigo-400 mt-1" id="calKpiCorrMesQtd">0 an&#225;lises</p>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Destaque da Semana</p>
                         <h4 class="text-base font-extrabold text-slate-200" id="calKpiCorrSemana">A aguardar dados...</h4>
-                        <p class="text-[10px] text-teal-400 mt-1" id="calKpiCorrSemanaQtd">0 an√°lises na semana</p>
+                        <p class="text-[10px] text-teal-400 mt-1" id="calKpiCorrSemanaQtd">0 an&#225;lises na semana</p>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">M√©dia Di√°ria por Corretor</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">M&#233;dia Di&#225;ria por Corretor</p>
                         <h4 class="text-lg font-extrabold text-white" id="calKpiMedia">0.00</h4>
                         <p class="text-[10px] text-slate-400 mt-1">Envios / dia ativo</p>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Dias sem Produ√ß√£o</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Dias sem Produ&#231;&#227;o</p>
                         <h4 class="text-lg font-extrabold text-rose-400" id="calKpiDiasZero">0</h4>
-                        <p class="text-[10px] text-rose-500/80 mt-1">Frequ√™ncia zerada</p>
+                        <p class="text-[10px] text-rose-500/80 mt-1">Frequ&#234;ncia zerada</p>
                     </div>
 
                 </div>
 
-                <!-- CONT√äINER DA MATRIZ DO CALEND√ÅRIO COM ROLAGEM HORIZONTAL -->
+                <!-- CONT&#202;INER DA MATRIZ DO CALEND&#193;RIO COM ROLAGEM HORIZONTAL -->
                 <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div>
                             <h3 class="text-sm font-bold tracking-wider text-slate-300 uppercase">Mapa de Calor Operacional</h3>
-                            <p class="text-[10px] text-slate-500">Mapeamento din√¢mico di√°rio do m√™s corrente (Clique em qualquer c√©lula para detalhes ricos).</p>
+                            <p class="text-[10px] text-slate-500">Mapeamento din&#226;mico di&#225;rio do m&#234;s corrente (Clique em qualquer c&#233;lula para detalhes ricos).</p>
                         </div>
                         <span class="text-xs bg-slate-800 text-slate-300 font-bold px-3 py-1 rounded-lg" id="calMonthLabel">Junho/2026</span>
                     </div>
@@ -782,11 +782,11 @@
                         <table class="w-full text-center border-collapse">
                             <thead>
                                 <tr class="bg-slate-950/80 border-b border-slate-800 text-[10px] text-slate-400 font-bold uppercase tracking-wider" id="calendarHeaderRow">
-                                    <!-- Din√¢mico via JS -->
+                                    <!-- Din&#226;mico via JS -->
                                 </tr>
                             </thead>
                             <tbody id="calendarTableBody" class="divide-y divide-slate-800/40">
-                                <!-- Din√¢mico via JS -->
+                                <!-- Din&#226;mico via JS -->
                             </tbody>
                         </table>
                     </div>
@@ -796,9 +796,9 @@
                 <div class="p-4 bg-slate-950/25 rounded-xl border border-slate-800/60 flex items-start gap-3">
                     <i class="fa-solid fa-circle-info text-emerald-400 mt-0.5 text-base"></i>
                     <div>
-                        <p class="text-xs font-bold text-slate-300">Como analisar a const√¢ncia di√°ria?</p>
+                        <p class="text-xs font-bold text-slate-300">Como analisar a const&#226;ncia di&#225;ria?</p>
                         <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                            Uma equipa constante evita o ac√∫mulo de propostas e garante aprova√ß√µes escalonadas. Dias de cor azul mais forte indicam pico operacional. C√©lulas a vermelho representam oportunidades de interven√ß√£o estrat√©gica de lideran√ßa para corretores inativos.
+                            Uma equipa constante evita o ac&#250;mulo de propostas e garante aprova&#231;&#245;es escalonadas. Dias de cor azul mais forte indicam pico operacional. C&#233;lulas a vermelho representam oportunidades de interven&#231;&#227;o estrat&#233;gica de lideran&#231;a para corretores inativos.
                         </p>
                     </div>
                 </div>
@@ -809,7 +809,7 @@
 
     </div>
 
-    <!-- MODAL DE DRILL-DOWN / DETALHES DE PRODU√á√ÉO DI√ÅRIA -->
+    <!-- MODAL DE DRILL-DOWN / DETALHES DE PRODU&#199;&#195;O DI&#193;RIA -->
     <div id="calendarDetailModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 relative shadow-2xl">
             <button onclick="closeCalendarCellDetail()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
@@ -821,12 +821,12 @@
                     <i class="fa-solid fa-clipboard-user text-lg"></i>
                 </div>
                 <div>
-                    <h4 class="text-base font-bold text-slate-200" id="detailModalTitle">Detalhamento de Produ√ß√£o</h4>
+                    <h4 class="text-base font-bold text-slate-200" id="detailModalTitle">Detalhamento de Produ&#231;&#227;o</h4>
                     <p class="text-xs text-slate-400" id="detailModalSubtitle">Corretor e Data selecionados</p>
                 </div>
             </div>
 
-            <!-- Corpo de Informa√ß√µes -->
+            <!-- Corpo de Informa&#231;&#245;es -->
             <div class="space-y-4">
                 <div class="grid grid-cols-3 gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
                     <div>
@@ -838,7 +838,7 @@
                         <p class="text-xs font-bold text-slate-200" id="detailCorrDate">-</p>
                     </div>
                     <div>
-                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Total de An√°lises</p>
+                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Total de An&#225;lises</p>
                         <p class="text-xs font-bold text-emerald-400" id="detailCorrTotal">0 propostas</p>
                     </div>
                 </div>
@@ -853,7 +853,7 @@
                                     <th class="p-2">Cliente</th>
                                     <th class="p-2">Construtora</th>
                                     <th class="p-2">Empreendimento</th>
-                                    <th class="p-2">Situa√ß√£o</th>
+                                    <th class="p-2">Situa&#231;&#227;o</th>
                                     <th class="p-2 text-right pr-3">VGV</th>
                                 </tr>
                             </thead>
@@ -871,7 +871,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE CONEX√ÉO GOOGLE SHEETS -->
+    <!-- MODAL DE CONEX&#195;O GOOGLE SHEETS -->
     <div id="connectionModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 relative shadow-2xl">
             <button onclick="toggleConnectionModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
@@ -883,19 +883,19 @@
                     <i class="fa-solid fa-database text-lg"></i>
                 </div>
                 <div>
-                    <h4 class="text-base font-bold text-slate-200">Integra√ß√£o Direta com Google Sheets</h4>
-                    <p class="text-xs text-slate-500">Aceda aos seus dados e mantenha-os totalmente din√¢micos</p>
+                    <h4 class="text-base font-bold text-slate-200">Integra&#231;&#227;o Direta com Google Sheets</h4>
+                    <p class="text-xs text-slate-500">Aceda aos seus dados e mantenha-os totalmente din&#226;micos</p>
                 </div>
             </div>
 
-            <!-- Passos de Configura√ß√£o -->
+            <!-- Passos de Configura&#231;&#227;o -->
             <div class="space-y-4 mb-6">
                 <div class="text-xs text-slate-400 space-y-2 leading-relaxed">
-                    <p class="font-semibold text-slate-200">Instru√ß√µes para publicar a sua folha de c√°lculo do Google Sheets:</p>
+                    <p class="font-semibold text-slate-200">Instru&#231;&#245;es para publicar a sua folha de c&#225;lculo do Google Sheets:</p>
                     <ol class="list-decimal list-inside space-y-1">
-                        <li>Abra a sua folha de c√°lculo comercial do Google Sheets.</li>
+                        <li>Abra a sua folha de c&#225;lculo comercial do Google Sheets.</li>
                         <li>Clique em <strong class="text-slate-200">Arquivo</strong> &gt; <strong class="text-slate-200">Compartilhar</strong> &gt; <strong class="text-slate-200">Publicar na Web</strong>.</li>
-                        <li>Selecione o documento inteiro e altere o formato de exporta√ß√£o para <strong class="text-emerald-400 font-semibold">Valores separados por v√≠rgula (.csv)</strong>.</li>
+                        <li>Selecione o documento inteiro e altere o formato de exporta&#231;&#227;o para <strong class="text-emerald-400 font-semibold">Valores separados por v&#237;rgula (.csv)</strong>.</li>
                         <li>Clique em Publicar, copie o link gerado e cole no campo abaixo!</li>
                     </ol>
                 </div>
@@ -907,7 +907,7 @@
 
                 <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1">
                     <p class="font-bold text-slate-300">As colunas da folha devem ser EXATAMENTE:</p>
-                    <p class="font-mono text-emerald-500">ID | Data Cadastro | M√™s Cadastro | Corretor | Equipe | Cliente | Construtora | Empreendimento | Data Aprova√ß√£o | M√™s Aprova√ß√£o | Situa√ß√£o - An√°lise | Data Ganho | M√™s Ganho | Ganho | Situa√ß√£o - Ganho | VGV</p>
+                    <p class="font-mono text-emerald-500">ID | Data Cadastro | M&#234;s Cadastro | Corretor | Equipe | Cliente | Construtora | Empreendimento | Data Aprova&#231;&#227;o | M&#234;s Aprova&#231;&#227;o | Situa&#231;&#227;o - An&#225;lise | Data Ganho | M&#234;s Ganho | Ganho | Situa&#231;&#227;o - Ganho | VGV</p>
                 </div>
             </div>
 
@@ -920,16 +920,16 @@
                 </button>
             </div>
             
-            <!-- Bot√£o de Restaurar Padr√£o -->
+            <!-- Bot&#227;o de Restaurar Padr&#227;o -->
             <button onclick="useMockData()" class="w-full mt-3 py-2 text-xs font-semibold text-slate-400 hover:text-white border border-dashed border-slate-800 rounded-lg hover:border-slate-700 transition">
-                Usar Dados de Demonstra√ß√£o (Default)
+                Usar Dados de Demonstra&#231;&#227;o (Default)
             </button>
         </div>
     </div>
 
-    <!-- C√ìDIGO JS PRINCIPAL: PROCESSAMENTO DE DADOS, REGRA DE NEG√ìCIO E RENDERIZA√á√ÉO -->
+    <!-- C&#211;DIGO JS PRINCIPAL: PROCESSAMENTO DE DADOS, REGRA DE NEG&#211;CIO E RENDERIZA&#199;&#195;O -->
     <script>
-        // CONFIGURA√á√ïES GERAIS E BASE DE DADOS DE DEMONSTRA√á√ÉO (120 Lan√ßamentos Realistas para Junho 2026)
+        // CONFIGURA\u00c7\u00d5ES GERAIS E BASE DE DADOS DE DEMONSTRA\u00c7\u00c3O (120 Lan\u00e7amentos Realistas para Junho 2026)
         let dataset = [];
         let filteredDataset = [];
         let currentPeriod = 'mes'; // hoje, semana, mes, ano
@@ -938,24 +938,24 @@
         let activeView = 'dashboard'; // dashboard, calendar
         let lastAIResponseText = ""; // Cache para funcionalidade TTS
 
-        // Motores de Sincroniza√ß√£o Autom√°tica em Tempo Real
-        let autoRefreshInterval = 30; // padr√£o: 30 segundos
+        // Motores de Sincroniza\u00e7\u00e3o Autom\u00e1tica em Tempo Real
+        let autoRefreshInterval = 30; // padr\u00e3o: 30 segundos
         let countdownTimerId = null;
         let secondsLeft = 30;
 
-        // Chave de API vazia - o ambiente injeta automaticamente em tempo de execu√ß√£o
+        // Chave de API vazia - o ambiente injeta automaticamente em tempo de execu\u00e7\u00e3o
         const apiKey = ""; 
 
         // Constantes do ID do App
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'audaz-bi-v1';
 
-        // Gera√ß√£o inteligente de dados fict√≠cios de alta fidelidade
+        // Gera\u00e7\u00e3o inteligente de dados fict\u00edcios de alta fidelidade
         function generateMockData() {
-            const corretores = ['Carlos Silva', 'Ana Paula', 'Ricardo Santos', 'Bruna Oliveira', 'Felipe Costa', 'Juliana Lima', 'Mateus Almeida', 'Patr√≠cia Rocha'];
+            const corretores = ['Carlos Silva', 'Ana Paula', 'Ricardo Santos', 'Bruna Oliveira', 'Felipe Costa', 'Juliana Lima', 'Mateus Almeida', 'Patr\u00edcia Rocha'];
             const equipes = ['Alpha', 'Vanguard', 'Titanium'];
             const construtoras = ['Cyrela', 'MRV', 'Even', 'Gafisa', 'Direcional'];
-            const empreendimentos = ['Residencial Splendor', 'Breeze Condom√≠nio', 'Neo Smart Living', 'Urban Park Club', 'Horizon Corporate', 'Prime View'];
-            const situacoesAnalise = ['Aprovado', 'Em An√°lise', 'Reprovado', 'Pend√™ncia Documental'];
+            const empreendimentos = ['Residencial Splendor', 'Breeze Condom\u00ednio', 'Neo Smart Living', 'Urban Park Club', 'Horizon Corporate', 'Prime View'];
+            const situacoesAnalise = ['Aprovado', 'Em An\u00e1lise', 'Reprovado', 'Pend\u00eancia Documental'];
             
             let data = [];
             
@@ -983,7 +983,7 @@
 
                 const corretor = corretores[Math.floor(Math.random() * corretores.length)];
                 let equipe = equipes[0];
-                if (['Ana Paula', 'Bruna Oliveira', 'Patr√≠cia Rocha'].includes(corretor)) equipe = equipes[1];
+                if (['Ana Paula', 'Bruna Oliveira', 'Patr\u00edcia Rocha'].includes(corretor)) equipe = equipes[1];
                 if (['Ricardo Santos', 'Mateus Almeida'].includes(corretor)) equipe = equipes[2];
 
                 const cliente = `Cliente ${i}`;
@@ -996,7 +996,7 @@
                 let mesAprovacao = '';
                 let dataGanho = '';
                 let mesGanho = '';
-                let ganho = 'N√£o';
+                let ganho = 'N\u00e3o';
                 let situacaoGanho = 'Perdido';
                 
                 if (situacaoAnalise === 'Aprovado') {
@@ -1020,19 +1020,19 @@
                 data.push({
                     ID: id,
                     'Data Cadastro': formatDate(dateCadastro),
-                    'M√™s Cadastro': getMesName(dateCadastro.getMonth() + 1),
+                    'M\u00eas Cadastro': getMesName(dateCadastro.getMonth() + 1),
                     Corretor: corretor,
                     Equipe: equipe,
                     Cliente: cliente,
                     Construtora: construtora,
                     Empreendimento: empreendimento,
-                    'Data Aprova√ß√£o': dataAprovacao,
-                    'M√™s Aprova√ß√£o': mesAprovacao,
-                    'Situa√ß√£o - Analise': situacaoAnalise,
+                    'Data Aprova\u00e7\u00e3o': dataAprovacao,
+                    'M\u00eas Aprova\u00e7\u00e3o': mesAprovacao,
+                    'Situa\u00e7\u00e3o - Analise': situacaoAnalise,
                     'Data Ganho': dataGanho,
-                    'M√™s Ganho': mesGanho,
+                    'M\u00eas Ganho': mesGanho,
                     'Ganho': ganho,
-                    'Situa√ß√£o - Ganho': situacaoGanho,
+                    'Situa\u00e7\u00e3o - Ganho': situacaoGanho,
                     VGV: vgv
                 });
             }
@@ -1048,27 +1048,27 @@
 
         function getMesName(monthNum) {
             const meses = [
-                'Janeiro', 'Fevereiro', 'Mar√ßo', 'Abril', 'Maio', 'Junho',
+                'Janeiro', 'Fevereiro', 'Mar\u00e7o', 'Abril', 'Maio', 'Junho',
                 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
             ];
             return meses[monthNum - 1];
         }
 
-        // Normaliza formatos como 'junho/2026' ou 'junho' ‚Üí 'Junho'
+        // Normaliza formatos como 'junho/2026' ou 'junho' \u2192 'Junho'
         function normalizeMes(str) {
             if (!str) return '';
             const base = str.split('/')[0].trim();
             return base.charAt(0).toUpperCase() + base.slice(1).toLowerCase();
         }
 
-        // Extrai o ano de 'junho/2026' ‚Üí 2026
+        // Extrai o ano de 'junho/2026' \u2192 2026
         function getMesAno(str) {
             if (!str) return null;
             const parts = str.split('/');
             return parts.length === 2 ? parseInt(parts[1]) : null;
         }
 
-        // Verifica se um campo 'M√™s Xxx' (ex: 'junho/2026') bate com o per√≠odo atual
+        // Verifica se um campo 'M\u00eas Xxx' (ex: 'junho/2026') bate com o per\u00edodo atual
         function checkMesPeriodMatch(mesStr, period, referenceDate) {
             if (!mesStr) return false;
             const mesNome = normalizeMes(mesStr);
@@ -1080,12 +1080,12 @@
             return true; // hoje/semana tratados por data real
         }
 
-        // Considera venda/ganho quando Ganho = 'Sim' OU Situa√ß√£o-Ganho cont√©m 'Ganho'
+        // Considera venda/ganho quando Ganho = 'Sim' OU Situa\u00e7\u00e3o-Ganho cont\u00e9m 'Ganho'
         function isGanho(row) {
-            return row['Ganho'] === 'Sim' || (row['Situa√ß√£o - Ganho'] || '').includes('Ganho');
+            return row['Ganho'] === 'Sim' || (row['Situa\u00e7\u00e3o - Ganho'] || '').includes('Ganho');
         }
 
-        // Retorna VGV num√©rico de uma linha
+        // Retorna VGV num\u00e9rico de uma linha
         function getVGV(row) {
             const v = row['VGV'];
             if (!v) return 0;
@@ -1144,7 +1144,7 @@
             document.getElementById('sourceBadge').innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span> DEMO`;
             document.getElementById('sourceBadge').className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 flex items-center gap-1";
             
-            showToast("Dados de Demonstra√ß√£o (Ano de 2026) carregados com sucesso!");
+            showToast("Dados de Demonstra\u00e7\u00e3o (Ano de 2026) carregados com sucesso!");
             document.getElementById('connectionModal').classList.add('hidden');
             
             processData();
@@ -1159,7 +1159,7 @@
         function connectGoogleSheets() {
             const urlInput = document.getElementById('sheetUrlInput').value.trim();
             if (!urlInput) {
-                showToast("Por favor, insira um link de publica√ß√£o v√°lido.", true);
+                showToast("Por favor, insira um link de publica\u00e7\u00e3o v\u00e1lido.", true);
                 return;
             }
 
@@ -1171,7 +1171,7 @@
         function processSheetCSV(csvText) {
             const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
             if (!results.data || results.data.length === 0 || results.data[0].ID === undefined) {
-                showToast("Erro: estrutura de colunas inv√°lida.", true);
+                showToast("Erro: estrutura de colunas inv\u00e1lida.", true);
                 showEmptyState();
                 return;
             }
@@ -1181,7 +1181,7 @@
         function fetchFromGoogleSheets(url) {
             showToast("A sincronizar com o Google Sheets...");
 
-            // M√©todo 1: PapaParse download direto (funciona na maioria dos contextos)
+            // M\u00e9todo 1: PapaParse download direto (funciona na maioria dos contextos)
             Papa.parse(url, {
                 download: true,
                 header: true,
@@ -1239,7 +1239,7 @@
                     console.warn("Proxy falhou:", proxyUrl, e);
                 }
             }
-            showToast("Erro de liga√ß√£o. Verifique se a planilha est√° publicada na web.", true);
+            showToast("Erro de liga\u00e7\u00e3o. Verifique se a planilha est\u00e1 publicada na web.", true);
             showEmptyState();
         }
 
@@ -1253,7 +1253,7 @@
         }
 
         // =========================================================================
-        // ‚ú® NOVO: ENGINE DE AUTO-ATUALIZA√á√ÉO EM TEMPO REAL (REAL-TIME SYNC) ‚ú®
+        // \u2728 NOVO: ENGINE DE AUTO-ATUALIZA\u00c7\u00c3O EM TEMPO REAL (REAL-TIME SYNC) \u2728
         // =========================================================================
         function startAutoRefreshTimer() {
             clearInterval(countdownTimerId);
@@ -1312,18 +1312,18 @@
                                     return row;
                                 });
                                 applyFilters();
-                                showToast("Folha de c√°lculo atualizada automaticamente com sucesso!");
+                                showToast("Folha de c\u00e1lculo atualizada automaticamente com sucesso!");
                             }
                         }
                         updateSyncStatusUI("counting");
                     },
                     error: function(err) {
-                        console.error("Erro na auto-atualiza√ß√£o silenciosa:", err);
+                        console.error("Erro na auto-atualiza\u00e7\u00e3o silenciosa:", err);
                         updateSyncStatusUI("error");
                     }
                 });
             } catch (e) {
-                console.error("Erro cr√≠tico na auto-atualiza√ß√£o silenciosa:", e);
+                console.error("Erro cr\u00edtico na auto-atualiza\u00e7\u00e3o silenciosa:", e);
                 updateSyncStatusUI("error");
             }
         }
@@ -1335,29 +1335,29 @@
 
             if (isMockDataActive) {
                 indicator.className = "h-2 w-2 rounded-full bg-amber-500 animate-pulse";
-                text.textContent = "Modo de Demonstra√ß√£o Ativo (Simula√ß√£o)";
+                text.textContent = "Modo de Demonstra\u00e7\u00e3o Ativo (Simula\u00e7\u00e3o)";
                 return;
             }
 
             const rate = parseInt(document.getElementById('autoRefreshSelect').value);
             if (rate === 0) {
                 indicator.className = "h-2 w-2 rounded-full bg-slate-500";
-                text.textContent = "Auto-atualiza√ß√£o desativada";
+                text.textContent = "Auto-atualiza\u00e7\u00e3o desativada";
                 return;
             }
 
             if (status === "counting") {
                 indicator.className = "h-2 w-2 rounded-full bg-brand-500 animate-pulse";
-                text.textContent = `Sincronizado. Nova verifica√ß√£o em ${secondsLeft}s`;
+                text.textContent = `Sincronizado. Nova verifica\u00e7\u00e3o em ${secondsLeft}s`;
             } else if (status === "error") {
                 indicator.className = "h-2 w-2 rounded-full bg-rose-500 animate-bounce";
-                text.textContent = "Falha ao conectar √† folha de c√°lculo";
+                text.textContent = "Falha ao conectar \u00e0 folha de c\u00e1lculo";
             }
         }
 
         function changeRefreshRate(val) {
             startAutoRefreshTimer();
-            showToast(`Frequ√™ncia de atualiza√ß√£o alterada para ${val}s`);
+            showToast(`Frequ\u00eancia de atualiza\u00e7\u00e3o alterada para ${val}s`);
         }
         // =========================================================================
 
@@ -1379,9 +1379,9 @@
                 if (row.Equipe) equipes.add(row.Equipe);
                 if (row.Construtora) construtoras.add(row.Construtora);
                 if (row.Empreendimento) empreendimentos.add(row.Empreendimento);
-                if (row['M√™s Cadastro']) meses.add(row['M√™s Cadastro']);
-                if (row['M√™s Aprova√ß√£o']) meses.add(row['M√™s Aprova√ß√£o']);
-                if (row['M√™s Ganho']) meses.add(row['M√™s Ganho']);
+                if (row['M\u00eas Cadastro']) meses.add(row['M\u00eas Cadastro']);
+                if (row['M\u00eas Aprova\u00e7\u00e3o']) meses.add(row['M\u00eas Aprova\u00e7\u00e3o']);
+                if (row['M\u00eas Ganho']) meses.add(row['M\u00eas Ganho']);
                 
                 const dateCad = parseDate(row['Data Cadastro']);
                 if (dateCad) {
@@ -1452,16 +1452,16 @@
             const selAno = document.getElementById('filterAno').value;
             const selSemana = document.getElementById('filterSemana').value;
 
-            // Se filtro de m√™s ativo, usa esse m√™s como refer√™ncia para KPIs
+            // Se filtro de m\u00eas ativo, usa esse m\u00eas como refer\u00eancia para KPIs
             let referenceDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             if (selMes) {
                 const mesNomeRef = normalizeMes(selMes);
                 const anoRef = getMesAno(selMes) || referenceDate.getFullYear();
-                const monthMap = { 'Janeiro':0,'Fevereiro':1,'Mar√ßo':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
+                const monthMap = { 'Janeiro':0,'Fevereiro':1,'Mar\u00e7o':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
                 const monthIdx = monthMap[mesNomeRef];
                 if (monthIdx !== undefined) referenceDate = new Date(anoRef, monthIdx, 15);
             }
-            // Guarda globalmente para drawTables() (chamado tamb√©m pela busca) usar a mesma refer√™ncia
+            // Guarda globalmente para drawTables() (chamado tamb\u00e9m pela busca) usar a mesma refer\u00eancia
             currentRefDate = referenceDate;
 
             filteredDataset = dataset.filter(row => {
@@ -1470,14 +1470,14 @@
                 if (selConstrutora && row.Construtora !== selConstrutora) return false;
                 if (selEmpreendimento && row.Empreendimento !== selEmpreendimento) return false;
 
-                // Inclui linha se M√™s Cadastro OU M√™s Ganho bate com o filtro selecionado
+                // Inclui linha se M\u00eas Cadastro OU M\u00eas Ganho bate com o filtro selecionado
                 if (selMes) {
-                    const bateCadastro = row['M√™s Cadastro'] === selMes;
-                    const bateGanho = isGanho(row) && row['M√™s Ganho'] === selMes;
+                    const bateCadastro = row['M\u00eas Cadastro'] === selMes;
+                    const bateGanho = isGanho(row) && row['M\u00eas Ganho'] === selMes;
                     if (!bateCadastro && !bateGanho) return false;
                 }
 
-                const anoRow = getMesAno(row['M√™s Cadastro']);
+                const anoRow = getMesAno(row['M\u00eas Cadastro']);
                 if (selAno && anoRow && anoRow.toString() !== selAno.toString()) return false;
 
                 const dateCad = parseDate(row['Data Cadastro']);
@@ -1531,7 +1531,7 @@
         }
 
         let kpiValues = { analyses: 0, approvals: 0, sales: 0, vgv: 0 };
-        let currentRefDate = new Date(); // refer√™ncia de per√≠odo partilhada (definida em applyFilters)
+        let currentRefDate = new Date(); // refer\u00eancia de per\u00edodo partilhada (definida em applyFilters)
 
         function calculateKPIs(refDate) {
             let analysesCount = 0;
@@ -1542,19 +1542,19 @@
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
 
             filteredDataset.forEach(row => {
-                // An√°lises: refer√™ncia = M√™s Cadastro
+                // An\u00e1lises: refer\u00eancia = M\u00eas Cadastro
                 const analisesMatch = useMesRef
-                    ? checkMesPeriodMatch(row['M√™s Cadastro'], currentPeriod, refDate)
+                    ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDate)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDate);
                 if (analisesMatch) {
                     analysesCount++;
-                    if ((row['Situa√ß√£o - Analise'] || '').includes('Aprovado')) approvalsCount++;
+                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) approvalsCount++;
                 }
 
-                // Vendas e VGV: refer√™ncia = M√™s Ganho
+                // Vendas e VGV: refer\u00eancia = M\u00eas Ganho
                 if (isGanho(row)) {
                     const ganhoMatch = useMesRef
-                        ? checkMesPeriodMatch(row['M√™s Ganho'], currentPeriod, refDate)
+                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDate)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDate);
                     if (ganhoMatch) {
                         salesCount++;
@@ -1573,7 +1573,7 @@
             document.getElementById('kpiVendas').textContent = salesCount;
             document.getElementById('kpiVgv').textContent = formatCurrencyMillions(totalVgv);
 
-            const periodLabel = `este ${currentPeriod === 'mes' ? 'm√™s' : currentPeriod === 'ano' ? 'ano' : currentPeriod}`;
+            const periodLabel = `este ${currentPeriod === 'mes' ? 'm\u00eas' : currentPeriod === 'ano' ? 'ano' : currentPeriod}`;
             document.getElementById('kpiAnalisesLabel').textContent = periodLabel;
             document.getElementById('kpiAprovacoesLabel').textContent = periodLabel;
             document.getElementById('kpiVendasLabel').textContent = periodLabel;
@@ -1583,9 +1583,9 @@
             const taxaConvTotal = analysesCount > 0 ? ((salesCount / analysesCount) * 100).toFixed(1) : '0';
             const ticketMedio = salesCount > 0 ? (totalVgv / salesCount) : 0;
 
-            document.getElementById('kpiAprovacoesTaxa').textContent = `Convers√£o envio ‚Üí aprova√ß√£o: ${taxaAprov}%`;
+            document.getElementById('kpiAprovacoesTaxa').textContent = `Convers\u00e3o envio \u2192 aprova\u00e7\u00e3o: ${taxaAprov}%`;
             document.getElementById('kpiVendasTaxa').textContent = `Taxa final de fecho: ${taxaConvTotal}%`;
-            document.getElementById('kpiVgvTicket').textContent = `Ticket M√©dio: ${formatCurrency(ticketMedio)}`;
+            document.getElementById('kpiVgvTicket').textContent = `Ticket M\u00e9dio: ${formatCurrency(ticketMedio)}`;
         }
 
         function formatCurrencyMillions(val) {
@@ -1612,8 +1612,8 @@
             const conv2 = approvals > 0 ? ((sales / approvals) * 100).toFixed(1) : 0;
             const taxaFinal = analyses > 0 ? ((sales / analyses) * 100).toFixed(1) : 0;
 
-            document.getElementById('convAnaliseParaAprovacao').textContent = `${conv1}% de convers√£o`;
-            document.getElementById('convAprovacaoParaGanho').textContent = `${conv2}% de convers√£o`;
+            document.getElementById('convAnaliseParaAprovacao').textContent = `${conv1}% de convers\u00e3o`;
+            document.getElementById('convAprovacaoParaGanho').textContent = `${conv2}% de convers\u00e3o`;
             document.getElementById('funnelTaxaFinal').textContent = `${taxaFinal}%`;
 
             document.getElementById('funnelAnalisesBar').style.width = '100%';
@@ -1631,9 +1631,9 @@
                 const equipe = row.Equipe;
                 const vgv = getVGV(row);
 
-                // An√°lises: M√™s Cadastro
+                // An\u00e1lises: M\u00eas Cadastro
                 const analisesMatch = useMes
-                    ? checkMesPeriodMatch(row['M√™s Cadastro'], currentPeriod, refDate)
+                    ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDate)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDate);
 
                 if (analisesMatch) {
@@ -1643,10 +1643,10 @@
                     equipesVolume[equipe].analises++;
                 }
 
-                // Vendas e VGV: M√™s Ganho
+                // Vendas e VGV: M\u00eas Ganho
                 if (isGanho(row)) {
                     const ganhoMatch = useMes
-                        ? checkMesPeriodMatch(row['M√™s Ganho'], currentPeriod, refDate)
+                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDate)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDate);
                     if (ganhoMatch) {
                         if (!corretoresVolume[corretor]) corretoresVolume[corretor] = { vgv: 0, vendas: 0, analises: 0 };
@@ -1674,8 +1674,8 @@
 
             filteredDataset.forEach(row => {
                 if (isGanho(row)) {
-                    const mesGanhoNorm = normalizeMes(row['M√™s Ganho']);
-                    const anoGanho = getMesAno(row['M√™s Ganho']);
+                    const mesGanhoNorm = normalizeMes(row['M\u00eas Ganho']);
+                    const anoGanho = getMesAno(row['M\u00eas Ganho']);
                     if (mesGanhoNorm === mesAtualNome && (anoGanho === null || anoGanho === mesAtualAno)) {
                         if (!corretoresMes[row.Corretor]) corretoresMes[row.Corretor] = 0;
                         corretoresMes[row.Corretor] += getVGV(row);
@@ -1723,14 +1723,14 @@
             document.getElementById('intelTopCorretorAnoVgv').textContent = `VGV: ${formatCurrency(bestCorretorAnoVgv)}`;
 
             document.getElementById('intelBestConversion').textContent = bestConversionCorretor;
-            document.getElementById('intelBestConversionRate').textContent = `Convers√£o: ${bestConversionRate.toFixed(1)}%`;
+            document.getElementById('intelBestConversionRate').textContent = `Convers\u00e3o: ${bestConversionRate.toFixed(1)}%`;
         }
 
         // =========================================================================
-        // ‚ú® INTEGRA√á√ïES DE INTELIG√äNCIA ARTIFICIAL: GEMINI API E TEXT-TO-SPEECH ‚ú®
+        // \u2728 INTEGRA\u00c7\u00d5ES DE INTELIG\u00caNCIA ARTIFICIAL: GEMINI API E TEXT-TO-SPEECH \u2728
         // =========================================================================
 
-        async function callGemini(promptText, systemPrompt = "Voc√™ √© um assistente de intelig√™ncia comercial especialista no mercado imobili√°rio do Brasil.") {
+        async function callGemini(promptText, systemPrompt = "Voc\u00ea \u00e9 um assistente de intelig\u00eancia comercial especialista no mercado imobili\u00e1rio do Brasil.") {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: promptText }] }],
@@ -1754,7 +1754,7 @@
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2;
             }
-            throw new Error("Falha ao comunicar com o Gemini ap√≥s v√°rias tentativas de retrocesso (backoff).");
+            throw new Error("Falha ao comunicar com o Gemini ap\u00f3s v\u00e1rias tentativas de retrocesso (backoff).");
         }
 
         async function generateAIIconicInsights() {
@@ -1785,9 +1785,9 @@
                     }
                 };
 
-                const prompt = `Analise os seguintes dados comerciais da imobili√°ria:\n${JSON.stringify(statsContext, null, 2)}\n\nEscreva um diagn√≥stico executivo em portugu√™s resumido e focado (m√°ximo de 3 par√°grafos). Destaque os pontos fortes, gargalos de convers√£o de an√°lises para aprova√ß√µes, e prescreva exatamente duas a√ß√µes t√°ticas imediatas de melhoria de faturamento.`;
+                const prompt = `Analise os seguintes dados comerciais da imobili\u00e1ria:\n${JSON.stringify(statsContext, null, 2)}\n\nEscreva um diagn\u00f3stico executivo em portugu\u00eas resumido e focado (m\u00e1ximo de 3 par\u00e1grafos). Destaque os pontos fortes, gargalos de convers\u00e3o de an\u00e1lises para aprova\u00e7\u00f5es, e prescreva exatamente duas a\u00e7\u00f5es t\u00e1ticas imediatas de melhoria de faturamento.`;
 
-                const systemPrompt = "Voc√™ √© o consultor de BI com IA do Audaz BI imobili√°rio. Seja corporativo, refinado, objetivo e estrat√©gico.";
+                const systemPrompt = "Voc\u00ea \u00e9 o consultor de BI com IA do Audaz BI imobili\u00e1rio. Seja corporativo, refinado, objetivo e estrat\u00e9gico.";
 
                 const responseText = await callGemini(prompt, systemPrompt);
                 
@@ -1808,7 +1808,7 @@
             const userQuestionInput = document.getElementById('aiUserQuestion');
             const question = userQuestionInput.value.trim();
             if (!question) {
-                showToast("Por favor, introduza a sua d√∫vida antes de enviar.", true);
+                showToast("Por favor, introduza a sua d\u00favida antes de enviar.", true);
                 return;
             }
 
@@ -1830,12 +1830,12 @@
                     topEquipe: document.getElementById('intelTopEquipe').textContent,
                 };
 
-                const prompt = `Considere o contexto imobili√°rio ativo:\n${JSON.stringify(statsContext)}\n\nPergunta do gestor: "${question}"\n\nResponda de forma √°gil, precisa e estrat√©gica em portugu√™s para este gestor imobili√°rio.`;
+                const prompt = `Considere o contexto imobili\u00e1rio ativo:\n${JSON.stringify(statsContext)}\n\nPergunta do gestor: "${question}"\n\nResponda de forma \u00e1gil, precisa e estrat\u00e9gica em portugu\u00eas para este gestor imobili\u00e1rio.`;
 
                 const responseText = await callGemini(prompt);
                 if (responseText) {
                     lastAIResponseText = responseText;
-                    outputBox.innerHTML = `<strong>D√∫vida:</strong> "${question}"<br><br><strong>‚ú® Resposta Audaz IA:</strong><br>${responseText.replace(/\n/g, '<br>')}`;
+                    outputBox.innerHTML = `<strong>D\u00favida:</strong> "${question}"<br><br><strong>\u2728 Resposta Audaz IA:</strong><br>${responseText.replace(/\n/g, '<br>')}`;
                     userQuestionInput.value = "";
                     btnTTS.classList.remove('hidden');
                     showToast("Resposta do Copilot IA carregada!");
@@ -1887,7 +1887,7 @@
             if (currentAudio) {
                 currentAudio.pause();
                 currentAudio = null;
-                btnPlay.innerHTML = `<i class="fa-solid fa-volume-high"></i> ‚ú® Ouvir Relat√≥rio`;
+                btnPlay.innerHTML = `<i class="fa-solid fa-volume-high"></i> \u2728 Ouvir Relat\u00f3rio`;
                 return;
             }
 
@@ -1900,7 +1900,7 @@
 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
                 const payload = {
-                    contents: [{ parts: [{ text: `Diga de forma muito profissional e executiva em portugu√™s: ${cleanSpeechText}` }] }],
+                    contents: [{ parts: [{ text: `Diga de forma muito profissional e executiva em portugu\u00eas: ${cleanSpeechText}` }] }],
                     generationConfig: {
                         responseModalalities: ["AUDIO"],
                         speechConfig: {
@@ -1930,7 +1930,7 @@
                 }
 
                 if (!response || !response.ok) {
-                    throw new Error("N√£o foi poss√≠vel gerar a locu√ß√£o de √°udio.");
+                    throw new Error("N\u00e3o foi poss\u00edvel gerar a locu\u00e7\u00e3o de \u00e1udio.");
                 }
 
                 const result = await response.json();
@@ -1949,7 +1949,7 @@
                     const audioUrl = pcmToWav(base64Audio, sampleRate);
                     currentAudio = new Audio(audioUrl);
                     
-                    btnPlay.innerHTML = `<i class="fa-solid fa-circle-stop text-rose-500"></i> ‚ú® Parar √Åudio`;
+                    btnPlay.innerHTML = `<i class="fa-solid fa-circle-stop text-rose-500"></i> \u2728 Parar \u00c1udio`;
                     btnPlay.disabled = false;
                     loader.classList.add('hidden');
 
@@ -1957,11 +1957,11 @@
 
                     currentAudio.onended = function() {
                         currentAudio = null;
-                        btnPlay.innerHTML = `<i class="fa-solid fa-volume-high"></i> ‚ú® Ouvir Relat√≥rio`;
+                        btnPlay.innerHTML = `<i class="fa-solid fa-volume-high"></i> \u2728 Ouvir Relat\u00f3rio`;
                     };
                 }
             } catch (err) {
-                showToast("Erro de locu√ß√£o: " + err.message, true);
+                showToast("Erro de locu\u00e7\u00e3o: " + err.message, true);
                 btnPlay.disabled = false;
                 loader.classList.add('hidden');
             }
@@ -1980,20 +1980,20 @@
             filteredDataset.forEach(row => {
                 const c = row.Corretor;
 
-                // An√°lises: M√™s Cadastro
+                // An\u00e1lises: M\u00eas Cadastro
                 const analisesMatch = useMesTables
-                    ? checkMesPeriodMatch(row['M√™s Cadastro'], currentPeriod, refDateTables)
+                    ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDateTables)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDateTables);
                 if (analisesMatch) {
                     if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     corretoresMap[c].analises++;
-                    if ((row['Situa√ß√£o - Analise'] || '').includes('Aprovado')) corretoresMap[c].aprovacoes++;
+                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) corretoresMap[c].aprovacoes++;
                 }
 
-                // Vendas e VGV: M√™s Ganho
+                // Vendas e VGV: M\u00eas Ganho
                 if (isGanho(row)) {
                     const ganhoMatch = useMesTables
-                        ? checkMesPeriodMatch(row['M√™s Ganho'], currentPeriod, refDateTables)
+                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDateTables)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDateTables);
                     if (ganhoMatch) {
                         if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
@@ -2022,7 +2022,7 @@
 
                     const rowHtml = `
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
-                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}¬∫</td>
+                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}\u00ba</td>
                             <td class="py-3 font-semibold text-slate-200">${c.corretor}</td>
                             <td class="py-3 text-center text-slate-400">${c.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold">${c.aprovacoes}</td>
@@ -2040,20 +2040,20 @@
                 const eq = row.Equipe;
                 if (!eq) return;
 
-                // An√°lises: M√™s Cadastro
+                // An\u00e1lises: M\u00eas Cadastro
                 const analisesMatch = useMesTables
-                    ? checkMesPeriodMatch(row['M√™s Cadastro'], currentPeriod, refDateTables)
+                    ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDateTables)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDateTables);
                 if (analisesMatch) {
                     if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].analises++;
-                    if ((row['Situa√ß√£o - Analise'] || '').includes('Aprovado')) equipesMap[eq].aprovacoes++;
+                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) equipesMap[eq].aprovacoes++;
                 }
 
-                // Vendas e VGV: M√™s Ganho
+                // Vendas e VGV: M\u00eas Ganho
                 if (isGanho(row)) {
                     const ganhoMatch = useMesTables
-                        ? checkMesPeriodMatch(row['M√™s Ganho'], currentPeriod, refDateTables)
+                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDateTables)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDateTables);
                     if (ganhoMatch) {
                         if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
@@ -2081,7 +2081,7 @@
 
                     const rowHtml = `
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
-                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}¬∫</td>
+                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}\u00ba</td>
                             <td class="py-3 font-semibold text-slate-200">Equipa ${eq.equipe}</td>
                             <td class="py-3 text-center text-slate-400">${eq.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold">${eq.aprovacoes}</td>
@@ -2103,21 +2103,21 @@
             if (charts.performanceCorretor) charts.performanceCorretor.destroy();
             if (charts.performanceEquipe) charts.performanceEquipe.destroy();
 
-            const mesesOrdem = ['Janeiro', 'Fevereiro', 'Mar√ßo', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const mesesOrdem = ['Janeiro', 'Fevereiro', 'Mar\u00e7o', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             let evolucaoMes = {};
             mesesOrdem.forEach(m => {
                 evolucaoMes[m] = { analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
             });
 
             filteredDataset.forEach(row => {
-                const mesCad = normalizeMes(row['M√™s Cadastro']);
-                const mesAprov = normalizeMes(row['M√™s Aprova√ß√£o']);
-                const mesGanho = normalizeMes(row['M√™s Ganho']);
+                const mesCad = normalizeMes(row['M\u00eas Cadastro']);
+                const mesAprov = normalizeMes(row['M\u00eas Aprova\u00e7\u00e3o']);
+                const mesGanho = normalizeMes(row['M\u00eas Ganho']);
 
                 if (mesCad && evolucaoMes[mesCad]) {
                     evolucaoMes[mesCad].analises++;
                 }
-                if ((row['Situa√ß√£o - Analise'] || '').includes('Aprovado') && mesAprov && evolucaoMes[mesAprov]) {
+                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado') && mesAprov && evolucaoMes[mesAprov]) {
                     evolucaoMes[mesAprov].aprovacoes++;
                 }
                 if (isGanho(row) && mesGanho && evolucaoMes[mesGanho]) {
@@ -2133,7 +2133,7 @@
             let dataVendas = activeLabels.map(m => evolucaoMes[m].vendas);
             let dataVgv = activeLabels.map(m => evolucaoMes[m].vgv);
 
-            // 1. Gr√°fico de Evolu√ß√£o Operacional - Otimiza√ß√£o de Contraste e Espessura
+            // 1. Gr\u00e1fico de Evolu\u00e7\u00e3o Operacional - Otimiza\u00e7\u00e3o de Contraste e Espessura
             const ctxEvol = document.getElementById('chartEvolucaoMensal').getContext('2d');
             charts.evolucaoMensal = new Chart(ctxEvol, {
                 type: 'line',
@@ -2141,7 +2141,7 @@
                     labels: activeLabels,
                     datasets: [
                         {
-                            label: 'An√°lises Enviadas',
+                            label: 'An\u00e1lises Enviadas',
                             data: dataAnalises,
                             borderColor: '#38bdf8', 
                             backgroundColor: 'rgba(56, 189, 248, 0.08)',
@@ -2155,7 +2155,7 @@
                             fill: true
                         },
                         {
-                            label: 'Aprova√ß√µes',
+                            label: 'Aprova\u00e7\u00f5es',
                             data: dataAprovacoes,
                             borderColor: '#fb923c', 
                             backgroundColor: 'rgba(251, 146, 60, 0.05)',
@@ -2209,7 +2209,7 @@
                 }
             });
 
-            // 2. Gr√°fico de Evolu√ß√£o de VGV - Refor√ßo de Cor e Contraste
+            // 2. Gr\u00e1fico de Evolu\u00e7\u00e3o de VGV - Refor\u00e7o de Cor e Contraste
             const ctxVgv = document.getElementById('chartEvolucaoVgv').getContext('2d');
             charts.evolucaoVgv = new Chart(ctxVgv, {
                 type: 'bar',
@@ -2252,7 +2252,7 @@
                 const c = row.Corretor;
                 if (!corrData[c]) corrData[c] = { analises: 0, aprovacoes: 0, vendas: 0 };
                 corrData[c].analises++;
-                if ((row['Situa√ß√£o - Analise'] || '').includes('Aprovado')) corrData[c].aprovacoes++;
+                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) corrData[c].aprovacoes++;
                 if (isGanho(row)) corrData[c].vendas++;
             });
 
@@ -2261,7 +2261,7 @@
                 ...corrData[k]
             })).sort((a,b)=> b.vendas - a.vendas).slice(0, 5);
 
-            // 3. Gr√°fico de Performance por Corretor - Uniformidade de Cores e Alto Contraste
+            // 3. Gr\u00e1fico de Performance por Corretor - Uniformidade de Cores e Alto Contraste
             const ctxCorr = document.getElementById('chartPerformanceCorretor').getContext('2d');
             charts.performanceCorretor = new Chart(ctxCorr, {
                 type: 'bar',
@@ -2269,13 +2269,13 @@
                     labels: topCorretores.map(t => t.name),
                     datasets: [
                         {
-                            label: 'An√°lises',
+                            label: 'An\u00e1lises',
                             data: topCorretores.map(t => t.analises),
                             backgroundColor: '#38bdf8', 
                             borderRadius: 4
                         },
                         {
-                            label: 'Aprova√ß√µes',
+                            label: 'Aprova\u00e7\u00f5es',
                             data: topCorretores.map(t => t.aprovacoes),
                             backgroundColor: '#fb923c', 
                             borderRadius: 4
@@ -2396,9 +2396,9 @@
                 alerts.push({
                     type: 'danger',
                     icon: 'fa-user-clock text-rose-400',
-                    title: 'Inatividade Comercial Cr√≠tica',
-                    desc: `<strong>${topInativo.name}</strong> est√° h√° <strong>${topInativo.dias} dias</strong> sem fechar novos contratos na carteira imobili√°ria.`,
-                    action: 'Reuni√£o de Alinhamento'
+                    title: 'Inatividade Comercial Cr\u00edtica',
+                    desc: `<strong>${topInativo.name}</strong> est\u00e1 h\u00e1 <strong>${topInativo.dias} dias</strong> sem fechar novos contratos na carteira imobili\u00e1ria.`,
+                    action: 'Reuni\u00e3o de Alinhamento'
                 });
             }
 
@@ -2407,8 +2407,8 @@
                 alerts.push({
                     type: 'warning',
                     icon: 'fa-folder-open text-amber-400',
-                    title: 'Falta de Prospec√ß√£o Recente',
-                    desc: `<strong>${topInativoCad.name}</strong> est√° h√° <strong>${topInativoCad.dias} dias</strong> sem dar entrada em propostas de an√°lise documental.`,
+                    title: 'Falta de Prospec\u00e7\u00e3o Recente',
+                    desc: `<strong>${topInativoCad.name}</strong> est\u00e1 h\u00e1 <strong>${topInativoCad.dias} dias</strong> sem dar entrada em propostas de an\u00e1lise documental.`,
                     action: 'Reavaliar Pipeline de Leads'
                 });
             }
@@ -2438,8 +2438,8 @@
                         type: 'info',
                         icon: 'fa-chart-pie text-sky-400',
                         title: `Desempenho Equipa ${eq}`,
-                        desc: `Faturamento abaixo da m√©dia da empresa de ${formatCurrency(mediaVgv)}. Atual acumulado: ${formatCurrency(equipesSoma[eq])}.`,
-                        action: 'Mentoria com L√≠der'
+                        desc: `Faturamento abaixo da m\u00e9dia da empresa de ${formatCurrency(mediaVgv)}. Atual acumulado: ${formatCurrency(equipesSoma[eq])}.`,
+                        action: 'Mentoria com L\u00edder'
                     });
                 }
             });
@@ -2460,7 +2460,7 @@
                     type: 'success',
                     icon: 'fa-award text-emerald-400',
                     title: 'Meta Mensal Superada!',
-                    desc: `Parab√©ns √† equipa! A meta de R$ 5.0M foi batida. VGV Consolidado: <strong>${formatCurrency(kpiValues.vgv)}</strong>.`,
+                    desc: `Parab\u00e9ns \u00e0 equipa! A meta de R$ 5.0M foi batida. VGV Consolidado: <strong>${formatCurrency(kpiValues.vgv)}</strong>.`,
                     action: 'Criar Nova Meta'
                 });
             }
@@ -2502,7 +2502,7 @@
             document.getElementById('calMonthLabel').textContent = `${activeMonth}/${activeYear}`;
 
             const monthMap = {
-                'Janeiro': 1, 'Fevereiro': 2, 'Mar√ßo': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
+                'Janeiro': 1, 'Fevereiro': 2, 'Mar\u00e7o': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
                 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
             };
 
@@ -2528,8 +2528,8 @@
             });
 
             filteredDataset.forEach(row => {
-                const mesCad = normalizeMes(row['M√™s Cadastro']);
-                const anoCad = getMesAno(row['M√™s Cadastro']) || yearNum;
+                const mesCad = normalizeMes(row['M\u00eas Cadastro']);
+                const anoCad = getMesAno(row['M\u00eas Cadastro']) || yearNum;
                 if (mesCad !== activeMonth || anoCad !== yearNum) return;
 
                 const dateCad = parseDate(row['Data Cadastro']);
@@ -2565,7 +2565,7 @@
             let totalDiarioList = Array(daysInMonth + 1).fill(0); 
 
             if (activeCorretores.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor com produ√ß√£o cadastrada neste per√≠odo.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor com produ\u00e7\u00e3o cadastrada neste per\u00edodo.</td></tr>`;
             } else {
                 activeCorretores.forEach(c => {
                     let corretorRowHtml = `<tr class="hover:bg-slate-900/10 transition">`;
@@ -2648,7 +2648,7 @@
 
             if (maxDiaProduction > 0) {
                 document.getElementById('calKpiDiaMaior').textContent = `Dia ${String(maxDiaNum).padStart(2, '0')}/${mesNome}`;
-                document.getElementById('calKpiDiaMaiorQtd').textContent = `${maxDiaProduction} an√°lises enviadas`;
+                document.getElementById('calKpiDiaMaiorQtd').textContent = `${maxDiaProduction} an\u00e1lises enviadas`;
             } else {
                 document.getElementById('calKpiDiaMaior').textContent = "Sem envios";
                 document.getElementById('calKpiDiaMaiorQtd').textContent = "A aguardar dados...";
@@ -2671,7 +2671,7 @@
             });
 
             document.getElementById('calKpiCorrMes').textContent = bestCorretor;
-            document.getElementById('calKpiCorrMesQtd').textContent = `${bestCorretorSoma} an√°lises enviadas`;
+            document.getElementById('calKpiCorrMesQtd').textContent = `${bestCorretorSoma} an\u00e1lises enviadas`;
 
             const referenceDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             let corretoresSemanaMap = {};
@@ -2693,7 +2693,7 @@
             }
 
             document.getElementById('calKpiCorrSemana').textContent = bestCorretorSemana;
-            document.getElementById('calKpiCorrSemanaQtd').textContent = `${bestCorretorSemanaQtd} an√°lises na semana`;
+            document.getElementById('calKpiCorrSemanaQtd').textContent = `${bestCorretorSemanaQtd} an\u00e1lises na semana`;
 
             const numCorretores = corretoresList.length;
             if (numCorretores > 0 && daysCount > 0) {
@@ -2713,20 +2713,20 @@
 
             document.getElementById('detailCorrName').textContent = corretor;
             document.getElementById('detailCorrDate').textContent = dataStr;
-            document.getElementById('detailCorrTotal').textContent = `${rows.length} ${rows.length === 1 ? 'an√°lise' : 'an√°lises'}`;
+            document.getElementById('detailCorrTotal').textContent = `${rows.length} ${rows.length === 1 ? 'an\u00e1lise' : 'an\u00e1lises'}`;
 
             const tableBody = document.getElementById('detailTableBody');
             tableBody.innerHTML = '';
 
             if (rows.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhuma produ√ß√£o registrada nesta data para este corretor.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhuma produ\u00e7\u00e3o registrada nesta data para este corretor.</td></tr>`;
             } else {
                 rows.forEach(r => {
                     const idText = r.ID || '-';
                     const clienteText = r.Cliente || '-';
                     const construtoraText = r.Construtora || '-';
                     const empText = r.Empreendimento || '-';
-                    const sitText = r['Situa√ß√£o - Analise'] || '-';
+                    const sitText = r['Situa\u00e7\u00e3o - Analise'] || '-';
                     const vgvText = formatCurrency(parseFloat(r.VGV) || 0);
 
                     let situationClass = "text-slate-400";
