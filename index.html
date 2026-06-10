@@ -1132,26 +1132,71 @@
                 return;
             }
 
-            list.innerHTML = ranking.map((r, i) => {
-                let pos = `${i + 1}\u00ba`;
-                let posClass = 'text-slate-500';
-                if (i === 0 && r.qtd > 0) posClass = 'text-amber-400 font-extrabold';
-                else if (i === 1 && r.qtd > 0) posClass = 'text-slate-300 font-bold';
-                else if (i === 2 && r.qtd > 0) posClass = 'text-amber-600 font-bold';
+            const produziram = ranking.filter(r => r.qtd > 0).length;
+            const zerados = ranking.length - produziram;
+            const iniciais = (nome) => nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+            const medalhas = ['\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49'];
+
+            // Cabe\u00e7alho-resumo: quantos produziram x zerados
+            let html = `
+                <div class="flex items-center gap-3 mb-3 text-[11px]">
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+                        <i class="fa-solid fa-circle-check"></i> ${produziram} produziram hoje
+                    </span>
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full ${zerados > 0 ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-slate-800/40 text-slate-500 border-slate-700/40'} font-bold border">
+                        <i class="fa-solid fa-triangle-exclamation"></i> ${zerados} sem an\u00e1lise
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">`;
+
+            html += ranking.map((r, i) => {
+                const produziu = r.qtd > 0;
                 const barW = (r.qtd / maxQtd) * 100;
                 const contrib = totalHoje > 0 ? ((r.qtd / totalHoje) * 100).toFixed(0) : 0;
-                const qtdColor = r.qtd > 0 ? 'text-brand-400' : 'text-slate-600';
-                return `
-                    <div class="flex items-center gap-3 bg-slate-950/40 rounded-lg px-3 py-2 border border-slate-800/60">
-                        <span class="w-8 text-xs font-bold ${posClass} shrink-0">${pos}</span>
-                        <span class="text-xs font-semibold text-slate-200 w-40 truncate shrink-0">${r.nome}</span>
-                        <div class="flex-1 bg-slate-800/60 h-2 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-brand-600 to-brand-500" style="width: ${barW}%"></div>
-                        </div>
-                        <span class="text-xs font-extrabold ${qtdColor} w-8 text-right shrink-0">${r.qtd}</span>
-                        <span class="text-[10px] text-slate-500 w-10 text-right shrink-0">${contrib}%</span>
-                    </div>`;
+
+                // Posi\u00e7\u00e3o / medalha
+                let badge;
+                if (produziu && i < 3) {
+                    badge = `<span class="text-xl shrink-0 w-7 text-center">${medalhas[i]}</span>`;
+                } else {
+                    const pc = produziu ? 'text-slate-400 bg-slate-800' : 'text-rose-400 bg-rose-500/10';
+                    badge = `<span class="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[11px] font-extrabold ${pc}">${i + 1}</span>`;
+                }
+
+                if (produziu) {
+                    const ring = i === 0 ? 'ring-2 ring-amber-400/40' : '';
+                    return `
+                        <div class="flex items-center gap-3 bg-slate-950/50 rounded-xl px-3 py-2.5 border border-slate-800/70 hover:border-brand-500/40 transition ${ring}">
+                            ${badge}
+                            <div class="h-9 w-9 shrink-0 rounded-full bg-gradient-to-tr from-brand-600 to-emerald-500 flex items-center justify-center text-[11px] font-extrabold text-white">${iniciais(r.nome)}</div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-slate-100 truncate">${r.nome}</p>
+                                <div class="w-full bg-slate-800/60 h-1.5 rounded-full overflow-hidden mt-1">
+                                    <div class="h-full bg-gradient-to-r from-brand-500 to-emerald-400" style="width: ${barW}%"></div>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <p class="text-xl font-extrabold text-brand-400 leading-none">${r.qtd}</p>
+                                <p class="text-[9px] text-slate-500 font-semibold">${contrib}% da meta</p>
+                            </div>
+                        </div>`;
+                } else {
+                    // Zerado no dia -> vermelho
+                    return `
+                        <div class="flex items-center gap-3 bg-rose-500/5 rounded-xl px-3 py-2.5 border border-rose-500/25">
+                            ${badge}
+                            <div class="h-9 w-9 shrink-0 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-[11px] font-extrabold text-rose-400">${iniciais(r.nome)}</div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-xs font-bold text-rose-200/90 truncate">${r.nome}</p>
+                                <p class="text-[10px] text-rose-400/90 font-semibold flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> Sem an\u00e1lise hoje</p>
+                            </div>
+                            <p class="text-xl font-extrabold text-rose-500 leading-none shrink-0">0</p>
+                        </div>`;
+                }
             }).join('');
+
+            html += `</div>`;
+            list.innerHTML = html;
         }
 
         function toggleCorretorModal() {
