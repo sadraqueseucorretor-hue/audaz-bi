@@ -717,18 +717,9 @@
                         <p class="text-xs text-slate-400">Matriz anal&#237;tica de const&#226;ncia operacional para monitorizar a frequ&#234;ncia de envio de an&#225;lises por corretor.</p>
                     </div>
                     
-                    <!-- Legenda das 3 m&#233;tricas empilhadas -->
-                    <div class="flex flex-wrap items-center gap-4 bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-800/80 text-[11px]">
-                        <span class="text-slate-500 font-bold uppercase tracking-wider">Cada c&#233;lula:</span>
-                        <div class="flex items-center gap-1.5">
-                            <span class="h-2.5 w-2.5 rounded-full bg-sky-400"></span><span class="text-slate-300">An&#225;lises <span class="text-slate-500">(data cadastro)</span></span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span><span class="text-slate-300">Aprovados <span class="text-slate-500">(data aprova&#231;&#227;o)</span></span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span><span class="text-slate-300">Vendas <span class="text-slate-500">(data ganho)</span></span>
-                        </div>
+                    <!-- Legenda din&#226;mica (muda conforme a m&#233;trica selecionada) -->
+                    <div class="flex flex-wrap items-center gap-3 bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-800/80 text-[10px]" id="calendarLegend">
+                        <!-- Preenchida via JS -->
                     </div>
                 </div>
 
@@ -769,12 +760,20 @@
 
                 <!-- CONT&#202;INER DA MATRIZ DO CALEND&#193;RIO COM ROLAGEM HORIZONTAL -->
                 <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
                         <div>
                             <h3 class="text-sm font-bold tracking-wider text-slate-300 uppercase">Mapa de Calor Operacional</h3>
-                            <p class="text-[10px] text-slate-500">Mapeamento din&#226;mico di&#225;rio do m&#234;s corrente (Clique em qualquer c&#233;lula para detalhes ricos).</p>
+                            <p class="text-[10px] text-slate-500">Mapeamento din&#226;mico di&#225;rio (Clique em qualquer c&#233;lula para detalhes ricos).</p>
                         </div>
-                        <span class="text-xs bg-slate-800 text-slate-300 font-bold px-3 py-1 rounded-lg" id="calMonthLabel">Junho/2026</span>
+                        <div class="flex items-center gap-3">
+                            <!-- Seletor de m&#233;trica do calend&#225;rio -->
+                            <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                                <button onclick="setCalendarMetric('analises')" id="calBtn-analises" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-sky-500 text-white">An&#225;lises</button>
+                                <button onclick="setCalendarMetric('aprovados')" id="calBtn-aprovados" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovados</button>
+                                <button onclick="setCalendarMetric('vendas')" id="calBtn-vendas" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
+                            </div>
+                            <span class="text-xs bg-slate-800 text-slate-300 font-bold px-3 py-1 rounded-lg" id="calMonthLabel">Junho/2026</span>
+                        </div>
                     </div>
 
                     <!-- Tabela com scroll horizontal suave -->
@@ -2703,6 +2702,28 @@
         let calendarDetailsMap = {};
         let calendarDayDetails = {};
         let calendarMonthDetails = [];
+        let calendarMetric = 'analises'; // 'analises' | 'aprovados' | 'vendas'
+
+        const CAL_METRICS = {
+            analises:  { key: 'a',  label: 'An\u00e1lises',  sub: 'data cadastro',  color: 'sky',     btnBg: 'bg-sky-500' },
+            aprovados: { key: 'ap', label: 'Aprovados', sub: 'data aprova\u00e7\u00e3o', color: 'amber',   btnBg: 'bg-amber-500' },
+            vendas:    { key: 'v',  label: 'Vendas',    sub: 'data ganho',     color: 'emerald', btnBg: 'bg-emerald-500' }
+        };
+
+        function setCalendarMetric(m) {
+            if (!CAL_METRICS[m]) return;
+            calendarMetric = m;
+            ['analises', 'aprovados', 'vendas'].forEach(k => {
+                const btn = document.getElementById('calBtn-' + k);
+                if (!btn) return;
+                if (k === m) {
+                    btn.className = `cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition ${CAL_METRICS[k].btnBg} text-white`;
+                } else {
+                    btn.className = 'cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400';
+                }
+            });
+            drawProductionCalendar();
+        }
 
         function drawProductionCalendar() {
             if (activeView !== 'calendar') return;
@@ -2801,13 +2822,10 @@
             let totalDiaAp = Array(daysInMonth + 1).fill(0);
             let totalDiaV = Array(daysInMonth + 1).fill(0);
 
-            // c\u00e9lula com 3 n\u00fameros empilhados: an\u00e1lise (azul) / aprovado (\u00e2mbar) / venda (verde)
-            const stack = (a, ap, v) => `
-                <div class="flex flex-col items-center leading-none gap-0.5 py-0.5">
-                    <span class="text-[10px] font-bold ${a ? 'text-sky-300' : 'text-slate-700'}">${a || '\u00b7'}</span>
-                    <span class="text-[10px] font-bold ${ap ? 'text-amber-400' : 'text-slate-700'}">${ap || '\u00b7'}</span>
-                    <span class="text-[10px] font-extrabold ${v ? 'text-emerald-400' : 'text-slate-700'}">${v || '\u00b7'}</span>
-                </div>`;
+            // M\u00e9trica selecionada (mostra uma de cada vez, separada)
+            const metricKey = CAL_METRICS[calendarMetric].key; // a | ap | v
+            const cor = CAL_METRICS[calendarMetric].color;     // sky | amber | emerald
+            atualizarLegendaCalendario();
 
             if (activeCorretores.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor ativo neste per\u00edodo.</td></tr>`;
@@ -2816,43 +2834,64 @@
                     let corretorRowHtml = `<tr class="hover:bg-slate-900/10 transition">`;
                     corretorRowHtml += `<td class="p-3 pl-4 text-left font-bold text-slate-300 bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 truncate max-w-[150px]">${c}</td>`;
 
-                    let totA = 0, totAp = 0, totV = 0;
+                    let totMetric = 0;
 
                     for (let d = 1; d <= daysInMonth; d++) {
                         const cell = cellMatrix[`${c}_${d}`] || { a: 0, ap: 0, v: 0 };
-                        totA += cell.a; totAp += cell.ap; totV += cell.v;
-                        totalDiarioList[d] += cell.a;
+                        const val = cell[metricKey];
+                        totMetric += val;
+                        totalDiarioList[d] += cell.a; // KPIs de produ\u00e7\u00e3o continuam por an\u00e1lises
                         totalDiaA[d] += cell.a; totalDiaAp[d] += cell.ap; totalDiaV[d] += cell.v;
 
-                        const bgClass = getHeatmapClass(cell.a);
+                        const bgClass = getHeatmapClass(val);
                         corretorRowHtml += `
-                            <td onclick="openCalendarCellDetail('${c.replace(/'/g, "\\'")}', ${d}, '${activeMonth}', ${yearNum})" class="border-l border-slate-800/40 text-center cursor-pointer transition ${bgClass}">
-                                ${stack(cell.a, cell.ap, cell.v)}
+                            <td onclick="openCalendarCellDetail('${c.replace(/'/g, "\\'")}', ${d}, '${activeMonth}', ${yearNum})" class="p-2 border-l border-slate-800/40 text-center text-[11px] font-bold cursor-pointer transition ${bgClass}">
+                                ${val > 0 ? val : '-'}
                             </td>`;
                     }
 
-                    corretorRowHtml += `<td class="p-2 pr-4 text-right border-l border-slate-800 bg-slate-950/40">${stack(totA, totAp, totV)}</td>`;
+                    corretorRowHtml += `<td class="p-3 pr-4 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40">${totMetric}</td>`;
                     corretorRowHtml += `</tr>`;
                     tableBody.insertAdjacentHTML('beforeend', corretorRowHtml);
                 });
 
+                const totalDiaMetric = (calendarMetric === 'analises') ? totalDiaA : (calendarMetric === 'aprovados' ? totalDiaAp : totalDiaV);
+
                 let totalRowHtml = `<tr class="bg-slate-950 font-bold border-t border-slate-700 text-white">`;
                 totalRowHtml += `<td class="p-3 pl-4 text-left text-xs uppercase font-extrabold tracking-wider bg-slate-950 sticky left-0 border-r border-slate-800 z-10">Total Geral</td>`;
 
-                let somaA = 0, somaAp = 0, somaV = 0;
+                let somaMetric = 0;
                 for (let d = 1; d <= daysInMonth; d++) {
-                    somaA += totalDiaA[d]; somaAp += totalDiaAp[d]; somaV += totalDiaV[d];
-                    const temAlgo = (totalDiaA[d] + totalDiaAp[d] + totalDiaV[d]) > 0;
-                    const clickAttr = temAlgo ? `onclick="openCalendarDayDetail(${d}, '${activeMonth}', ${yearNum})" class="border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition"` : `class="border-l border-slate-800"`;
-                    totalRowHtml += `<td ${clickAttr}>${stack(totalDiaA[d], totalDiaAp[d], totalDiaV[d])}</td>`;
+                    const v = totalDiaMetric[d];
+                    somaMetric += v;
+                    let totalClass = "text-slate-400";
+                    if (v > 5) totalClass = `text-${cor}-400 font-black`;
+                    if (v === 0) totalClass = "text-slate-600 font-normal";
+                    const clickAttr = v > 0 ? `onclick="openCalendarDayDetail(${d}, '${activeMonth}', ${yearNum})" class="p-2 text-center text-xs border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition ${totalClass}"` : `class="p-2 text-center text-xs border-l border-slate-800 ${totalClass}"`;
+                    totalRowHtml += `<td ${clickAttr}>${v}</td>`;
                 }
 
-                totalRowHtml += `<td onclick="openCalendarMonthDetail('${activeMonth}', ${yearNum})" class="p-2 pr-4 text-right bg-slate-950 border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition">${stack(somaA, somaAp, somaV)}</td>`;
+                totalRowHtml += `<td onclick="openCalendarMonthDetail('${activeMonth}', ${yearNum})" class="p-3 pr-4 text-right font-black text-${cor}-400 bg-slate-950 border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition">${somaMetric}</td>`;
                 totalRowHtml += `</tr>`;
                 tableBody.insertAdjacentHTML('beforeend', totalRowHtml);
             }
 
             calculateCalendarKPIs(activeCorretores, daysInMonth, productionMatrix, totalDiarioList, activeMonth);
+        }
+
+        function atualizarLegendaCalendario() {
+            const leg = document.getElementById('calendarLegend');
+            if (!leg) return;
+            const m = CAL_METRICS[calendarMetric];
+            leg.innerHTML = `
+                <span class="text-slate-500 font-bold uppercase tracking-wider">Mostrando:</span>
+                <div class="flex items-center gap-1.5">
+                    <span class="h-2.5 w-2.5 rounded-full bg-${m.color}-400"></span>
+                    <span class="text-slate-200 font-semibold">${m.label}</span>
+                    <span class="text-slate-500">(${m.sub})</span>
+                </div>
+                <span class="text-slate-600">\u2022</span>
+                <span class="text-slate-500">Use os bot\u00f5es acima para alternar entre An\u00e1lises, Aprovados e Vendas.</span>`;
         }
 
         function getHeatmapClass(qty) {
