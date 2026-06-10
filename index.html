@@ -1563,11 +1563,17 @@
             applyParsedRows(results.data);
         }
 
+        // Anexa um par\u00e2metro \u00fanico para furar o cache do navegador/Google (dados sempre frescos)
+        function cacheBust(url) {
+            const sep = url.includes('?') ? '&' : '?';
+            return `${url}${sep}_cb=${Date.now()}`;
+        }
+
         function fetchFromGoogleSheets(url) {
             showToast("A sincronizar com o Google Sheets...");
 
-            // M\u00e9todo 1: PapaParse download direto (funciona na maioria dos contextos)
-            Papa.parse(url, {
+            // M\u00e9todo 1: PapaParse download direto (com cache-buster)
+            Papa.parse(cacheBust(url), {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
@@ -1605,18 +1611,20 @@
             startAutoRefreshTimer();
         }
 
-        async function tryProxyFetch(url) {
+        async function tryProxyFetch(url, silent) {
+            const fresh = cacheBust(url);
             const proxies = [
-                `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+                `https://corsproxy.io/?${encodeURIComponent(fresh)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(fresh)}`
             ];
             for (const proxyUrl of proxies) {
                 try {
-                    const resp = await fetch(proxyUrl);
+                    const resp = await fetch(proxyUrl, { cache: 'no-store' });
                     if (resp.ok) {
                         const text = await resp.text();
                         if (text.includes('ID') && text.includes('Corretor')) {
-                            processSheetCSV(text);
+                            if (silent) { applyRefreshedCSV(text); }
+                            else { processSheetCSV(text); }
                             return;
                         }
                     }
@@ -1624,8 +1632,8 @@
                     console.warn("Proxy falhou:", proxyUrl, e);
                 }
             }
-            showToast("Erro de liga\u00e7\u00e3o. Verifique se a planilha est\u00e1 publicada na web.", true);
-            showEmptyState();
+            if (silent) { updateSyncStatusUI("counting"); }
+            else { showToast("Erro de liga\u00e7\u00e3o. Verifique se a planilha est\u00e1 publicada na web.", true); showEmptyState(); }
         }
 
         function showEmptyState() {
@@ -1663,56 +1671,64 @@
             }, 1000);
         }
 
+        // Aplica um CSV rec\u00e9m-baixado (auto-refresh silencioso): s\u00f3 re-renderiza se mudou
+        function applyRefreshedCSV(csvText) {
+            const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+            if (!results.data || results.data.length === 0 || results.data[0].ID === undefined || results.data[0].Corretor === undefined) {
+                updateSyncStatusUI("counting");
+                return;
+            }
+            const novoDataset = results.data.map(row => {
+                if (row.VGV !== undefined && row.VGV !== null && typeof row.VGV === 'string') {
+                    let cleanVgv = row.VGV.replace(/R\$\s?/, '').replace(/\./g, '').replace(',', '.').trim();
+                    row.VGV = parseFloat(cleanVgv) || 0;
+                } else {
+                    row.VGV = parseFloat(row.VGV) || 0;
+                }
+                return row;
+            });
+
+            const mudou = JSON.stringify(novoDataset) !== JSON.stringify(dataset);
+            dataset = novoDataset;
+            isMockDataActive = false;
+            if (mudou) {
+                populateDynamicFilters();
+                applyFilters();
+                showToast("Dados atualizados automaticamente!");
+            }
+            lastSyncTime = new Date();
+            updateSyncStatusUI("counting");
+        }
+
         function silentFetchFromGoogleSheets() {
             if (!googleSheetsUrl || isMockDataActive) return;
-            
+
             const indicator = document.getElementById('syncIndicator');
             const statusText = document.getElementById('syncStatusText');
-            
             if (indicator && statusText) {
                 indicator.className = "h-2 w-2 rounded-full bg-indigo-500 animate-ping";
                 statusText.textContent = "A atualizar em segundo plano...";
             }
 
+            // M\u00e9todo 1: download direto com cache-buster
             try {
-                Papa.parse(googleSheetsUrl, {
+                Papa.parse(cacheBust(googleSheetsUrl), {
                     download: true,
                     header: true,
                     skipEmptyLines: true,
                     complete: function(results) {
-                        if (results.data && results.data.length > 0) {
-                            const firstRow = results.data[0];
-                            if (firstRow.ID !== undefined && firstRow.Corretor !== undefined) {
-                                const novoDataset = results.data.map(row => {
-                                    if (row.VGV !== undefined && row.VGV !== null && typeof row.VGV === 'string') {
-                                        let cleanVgv = row.VGV.replace(/R\$\s?/, '').replace(/\./g, '').replace(',', '.').trim();
-                                        row.VGV = parseFloat(cleanVgv) || 0;
-                                    } else {
-                                        row.VGV = parseFloat(row.VGV) || 0;
-                                    }
-                                    return row;
-                                });
-
-                                // S\u00f3 re-renderiza/avisa se os dados realmente mudaram (evita spam na TV)
-                                const mudou = JSON.stringify(novoDataset) !== JSON.stringify(dataset);
-                                dataset = novoDataset;
-                                if (mudou) {
-                                    applyFilters();
-                                    showToast("Dados atualizados automaticamente!");
-                                }
-                                lastSyncTime = new Date();
-                            }
+                        if (results.data && results.data.length > 0 && results.data[0].ID !== undefined && results.data[0].Corretor !== undefined) {
+                            applyRefreshedCSV(Papa.unparse(results.data));
+                        } else {
+                            tryProxyFetch(googleSheetsUrl, true); // fallback silencioso
                         }
-                        updateSyncStatusUI("counting");
                     },
-                    error: function(err) {
-                        console.error("Erro na auto-atualiza\u00e7\u00e3o silenciosa:", err);
-                        updateSyncStatusUI("error");
+                    error: function() {
+                        tryProxyFetch(googleSheetsUrl, true); // fallback silencioso
                     }
                 });
             } catch (e) {
-                console.error("Erro cr\u00edtico na auto-atualiza\u00e7\u00e3o silenciosa:", e);
-                updateSyncStatusUI("error");
+                tryProxyFetch(googleSheetsUrl, true);
             }
         }
 
