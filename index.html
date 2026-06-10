@@ -109,6 +109,11 @@
                         Configurar Planilha
                     </button>
 
+                    <button onclick="toggleCorretorModal()" class="w-full mt-2 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150">
+                        <i class="fa-solid fa-users-gear text-indigo-400"></i>
+                        Gerir Corretores
+                    </button>
+
                     <!-- Seletor de Intervalo de Auto-Atualiza&#231;&#227;o -->
                     <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                         <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-brand-500"></i> Atualizar a cada:</span>
@@ -928,6 +933,49 @@
         </div>
     </div>
 
+    <!-- MODAL DE GEST&#195;O DE CORRETORES -->
+    <div id="corretorModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 relative shadow-2xl">
+            <button onclick="toggleCorretorModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-5">
+                <div class="h-10 w-10 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400">
+                    <i class="fa-solid fa-users-gear text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-slate-200">Gerir Corretores</h4>
+                    <p class="text-xs text-slate-500">Ative/desative ou pr&#233;-cadastre corretores (guardado neste navegador)</p>
+                </div>
+            </div>
+
+            <!-- Adicionar corretor -->
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="newCorretorInput" placeholder="Nome do novo corretor..." onkeydown="if(event.key==='Enter')addCorretor()" class="flex-1 bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2.5 text-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition placeholder-slate-600">
+                <button onclick="addCorretor()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Adicionar
+                </button>
+            </div>
+
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Corretores</p>
+            <div id="corretorRosterList" class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                <!-- Preenchido dinamicamente -->
+            </div>
+
+            <div class="mt-4 p-3 bg-slate-950/40 rounded-lg border border-slate-800/60 flex items-start gap-2">
+                <i class="fa-solid fa-circle-info text-indigo-400 mt-0.5 text-xs"></i>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    <strong class="text-slate-300">Desativar</strong> remove o corretor das listas, rankings e filtros individuais (os dados dele continuam somando nos totais executivos). <strong class="text-slate-300">Adicionar</strong> cadastra um nome que aparece com 0 produ&#231;&#227;o at&#233; surgirem fichas dele na planilha.
+                </p>
+            </div>
+
+            <button onclick="toggleCorretorModal()" class="w-full mt-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700">
+                Concluir
+            </button>
+        </div>
+    </div>
+
     <!-- C&#211;DIGO JS PRINCIPAL: PROCESSAMENTO DE DADOS, REGRA DE NEG&#211;CIO E RENDERIZA&#199;&#195;O -->
     <script>
         // CONFIGURA\u00c7\u00d5ES GERAIS E BASE DE DADOS DE DEMONSTRA\u00c7\u00c3O (120 Lan\u00e7amentos Realistas para Junho 2026)
@@ -950,6 +998,131 @@
 
         // Constantes do ID do App
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'audaz-bi-v1';
+
+        // ====== GEST\u00c3O DE CORRETORES (roster persistido no navegador) ======
+        let addedCorretores = [];    // pr\u00e9-cadastrados (aparecem com 0 produ\u00e7\u00e3o)
+        let inactiveCorretores = []; // ocultos das listas/rankings/filtros individuais
+
+        function loadCorretorRoster() {
+            try {
+                addedCorretores = JSON.parse(localStorage.getItem(`${appId}-corretores-added`) || '[]');
+                inactiveCorretores = JSON.parse(localStorage.getItem(`${appId}-corretores-inactive`) || '[]');
+            } catch (e) { addedCorretores = []; inactiveCorretores = []; }
+        }
+        function saveCorretorRoster() {
+            localStorage.setItem(`${appId}-corretores-added`, JSON.stringify(addedCorretores));
+            localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores));
+        }
+        // Todos os nomes conhecidos = os da planilha + os pr\u00e9-cadastrados
+        function getAllKnownCorretores() {
+            const s = new Set();
+            dataset.forEach(r => { if (r.Corretor) s.add(r.Corretor); });
+            addedCorretores.forEach(n => s.add(n));
+            return Array.from(s).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        }
+        // Ativos = conhecidos menos os desativados (estes aparecem nas listas individuais)
+        function getActiveCorretores() {
+            return getAllKnownCorretores().filter(n => !inactiveCorretores.includes(n));
+        }
+        function isCorretorActive(name) {
+            return !inactiveCorretores.includes(name);
+        }
+
+        function toggleCorretorModal() {
+            const m = document.getElementById('corretorModal');
+            m.classList.toggle('hidden');
+            if (!m.classList.contains('hidden')) renderCorretorRoster();
+        }
+
+        function addCorretor() {
+            const input = document.getElementById('newCorretorInput');
+            const nome = (input.value || '').trim();
+            if (!nome) return;
+            const jaExiste = getAllKnownCorretores().some(n => n.toLowerCase() === nome.toLowerCase());
+            if (jaExiste) {
+                showToast("Esse corretor j\u00e1 existe.", true);
+                input.value = '';
+                return;
+            }
+            addedCorretores.push(nome);
+            // Se estava na lista de inativos por algum motivo, garante ativo
+            inactiveCorretores = inactiveCorretores.filter(n => n !== nome);
+            saveCorretorRoster();
+            input.value = '';
+            refreshAfterRosterChange();
+            showToast(`Corretor "${nome}" adicionado.`);
+        }
+
+        function toggleCorretorActive(name) {
+            if (inactiveCorretores.includes(name)) {
+                inactiveCorretores = inactiveCorretores.filter(n => n !== name);
+            } else {
+                inactiveCorretores.push(name);
+            }
+            saveCorretorRoster();
+            refreshAfterRosterChange();
+        }
+
+        function removeAddedCorretor(name) {
+            addedCorretores = addedCorretores.filter(n => n !== name);
+            inactiveCorretores = inactiveCorretores.filter(n => n !== name);
+            saveCorretorRoster();
+            refreshAfterRosterChange();
+            showToast(`Corretor "${name}" removido.`);
+        }
+
+        function refreshAfterRosterChange() {
+            // Se o corretor selecionado no filtro ficou inativo, limpa a sele\u00e7\u00e3o
+            const fc = document.getElementById('filterCorretor');
+            if (fc && fc.value && !isCorretorActive(fc.value)) fc.value = '';
+            if (!isMockDataActive && dataset.length > 0) {
+                populateDynamicFilters();
+                applyFilters();
+            }
+            renderCorretorRoster();
+        }
+
+        function renderCorretorRoster() {
+            const list = document.getElementById('corretorRosterList');
+            if (!list) return;
+            const todos = getAllKnownCorretores();
+            const naPlanilha = new Set();
+            dataset.forEach(r => { if (r.Corretor) naPlanilha.add(r.Corretor); });
+
+            if (todos.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nenhum corretor ainda. Adicione acima ou conecte a planilha.</p>`;
+                return;
+            }
+
+            list.innerHTML = todos.map(nome => {
+                const ativo = isCorretorActive(nome);
+                const ehAdicionado = !naPlanilha.has(nome);
+                const dot = ativo ? 'bg-brand-500' : 'bg-slate-600';
+                const nomeClass = ativo ? 'text-slate-200' : 'text-slate-500 line-through';
+                const tag = ehAdicionado
+                    ? '<span class="text-[9px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Pr\u00e9-cadastrado</span>'
+                    : '';
+                const toggleBtn = ativo
+                    ? `<button onclick="toggleCorretorActive('${nome.replace(/'/g, "\\'")}')" title="Desativar" class="px-2.5 py-1 bg-slate-800 hover:bg-rose-600/20 hover:text-rose-400 text-slate-300 rounded text-[10px] font-bold border border-slate-700 transition">Desativar</button>`
+                    : `<button onclick="toggleCorretorActive('${nome.replace(/'/g, "\\'")}')" title="Ativar" class="px-2.5 py-1 bg-brand-600/20 text-brand-400 hover:bg-brand-600/30 rounded text-[10px] font-bold border border-brand-500/30 transition">Ativar</button>`;
+                const removeBtn = ehAdicionado
+                    ? `<button onclick="removeAddedCorretor('${nome.replace(/'/g, "\\'")}')" title="Remover" class="px-2 py-1 text-slate-500 hover:text-rose-400 rounded text-[10px] transition"><i class="fa-solid fa-trash"></i></button>`
+                    : '';
+                return `
+                    <div class="flex items-center justify-between gap-2 bg-slate-950/40 rounded-lg px-3 py-2 border border-slate-800/60">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="h-2 w-2 rounded-full ${dot} shrink-0"></span>
+                            <span class="text-xs font-semibold truncate ${nomeClass}">${nome}</span>
+                            ${tag}
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            ${toggleBtn}
+                            ${removeBtn}
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+        // ===================================================================
 
         // Gera\u00e7\u00e3o inteligente de dados fict\u00edcios de alta fidelidade
         function generateMockData() {
@@ -1131,6 +1304,7 @@
 
         window.onload = function() {
             restoreRefreshRate();
+            loadCorretorRoster();
             const savedUrl = localStorage.getItem(`${appId}-gsheets-url`) || googleSheetsUrl;
             if (savedUrl) {
                 googleSheetsUrl = savedUrl;
@@ -1431,7 +1605,7 @@
             const selMes = document.getElementById('filterMes').value;
             const selAno = document.getElementById('filterAno').value;
 
-            fillSelect('filterCorretor', Array.from(corretores).sort(), "Todos", selCorretor);
+            fillSelect('filterCorretor', getActiveCorretores(), "Todos", selCorretor);
             fillSelect('filterEquipe', Array.from(equipes).sort(), "Todas", selEquipe);
             fillSelect('filterConstrutora', Array.from(construtoras).sort(), "Todas", selConstrutora);
             fillSelect('filterEmpreendimento', Array.from(empreendimentos).sort(), "Todos", selEmpreendimento);
@@ -1719,6 +1893,7 @@
             });
 
             for (let corr in corretoresMes) {
+                if (!isCorretorActive(corr)) continue; // desativado n\u00e3o vira destaque
                 if (corretoresMes[corr] > bestCorretorMesVgv) {
                     bestCorretorMesVgv = corretoresMes[corr];
                     bestCorretorMes = corr;
@@ -1726,6 +1901,7 @@
             }
 
             for (let corr in corretoresVolume) {
+                if (!isCorretorActive(corr)) continue; // desativado n\u00e3o vira destaque
                 const dataCorr = corretoresVolume[corr];
                 if (dataCorr.vgv > bestCorretorAnoVgv) {
                     bestCorretorAnoVgv = dataCorr.vgv;
@@ -2012,8 +2188,14 @@
             const useMesTables = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
 
             let corretoresMap = {};
+            // Pr\u00e9-cadastra todos os corretores ATIVOS (assim os pr\u00e9-cadastrados aparecem com 0)
+            getActiveCorretores().forEach(nome => {
+                corretoresMap[nome] = { corretor: nome, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+            });
+
             filteredDataset.forEach(row => {
                 const c = row.Corretor;
+                if (!isCorretorActive(c)) return; // corretor desativado: fora das listas individuais
 
                 // An\u00e1lises/Aprova\u00e7\u00f5es: por safra (M\u00eas Cadastro)
                 const safraMatch = useMesTables
@@ -2040,7 +2222,7 @@
 
             let rankingCorretores = Object.values(corretoresMap)
                 .filter(c => c.corretor && c.corretor.toLowerCase().includes(searchCorretorTerm))
-                .sort((a, b) => b.vgv - a.vgv);
+                .sort((a, b) => b.vgv - a.vgv || b.analises - a.analises || a.corretor.localeCompare(b.corretor, 'pt-BR'));
 
             const corrBody = document.getElementById('rankingCorretoresBody');
             corrBody.innerHTML = '';
@@ -2548,11 +2730,8 @@
             
             const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
 
-            const uniqueCorretoresSet = new Set();
-            filteredDataset.forEach(row => {
-                if (row.Corretor) uniqueCorretoresSet.add(row.Corretor);
-            });
-            const activeCorretores = Array.from(uniqueCorretoresSet).sort();
+            // Roster de corretores ativos (inclui pr\u00e9-cadastrados, exclui desativados)
+            const activeCorretores = getActiveCorretores();
 
             let productionMatrix = {};
             calendarDetailsMap = {};
