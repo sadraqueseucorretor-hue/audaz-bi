@@ -603,6 +603,39 @@
 
                 </div>
 
+                <!-- 3.5 RANKING DI&#193;RIO DE AN&#193;LISES (META DA EQUIPE - HOJE) -->
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
+                        <div>
+                            <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-gauge-high text-brand-500"></i> Ranking Di&#225;rio de An&#225;lises &#8212; Hoje
+                            </h3>
+                            <p class="text-[10px] text-slate-500" id="dailyMetaDateLabel">Produ&#231;&#227;o do dia atual por corretor</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Meta da equipa (an&#225;lises/dia):</label>
+                            <input type="number" min="0" id="metaDiariaInput" onchange="setMetaDiaria(this.value)" class="w-20 bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-200 text-center focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition">
+                        </div>
+                    </div>
+
+                    <!-- Barra de progresso da meta da equipe -->
+                    <div class="bg-slate-950/50 rounded-xl border border-slate-800/60 p-4 mb-5">
+                        <div class="flex items-center justify-between mb-2 text-xs">
+                            <span class="text-slate-400 font-semibold">Progresso da meta di&#225;ria da equipa</span>
+                            <span class="font-bold" id="dailyMetaProgressLabel">0 / 0 an&#225;lises</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                            <div id="dailyMetaBar" class="h-full bg-gradient-to-r from-brand-600 to-brand-500 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <p class="text-[11px] mt-2" id="dailyMetaStatus">&#8212;</p>
+                    </div>
+
+                    <!-- Ranking do dia -->
+                    <div id="dailyRankingList" class="space-y-2">
+                        <!-- Populado via JS -->
+                    </div>
+                </section>
+
                 <!-- 4. TABELAS DE RANKINGS EXECUTIVOS -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="rankingsSection">
                     
@@ -1021,6 +1054,106 @@
             return !inactiveCorretores.includes(name);
         }
 
+        // ====== META DI\u00c1RIA DA EQUIPE (an\u00e1lises/dia) ======
+        let metaDiariaEquipe = 10; // padr\u00e3o
+
+        function loadMetaDiaria() {
+            const saved = localStorage.getItem(`${appId}-meta-diaria`);
+            if (saved !== null) metaDiariaEquipe = parseInt(saved) || 0;
+            const input = document.getElementById('metaDiariaInput');
+            if (input) input.value = metaDiariaEquipe;
+        }
+        function setMetaDiaria(val) {
+            metaDiariaEquipe = parseInt(val) || 0;
+            localStorage.setItem(`${appId}-meta-diaria`, metaDiariaEquipe);
+            drawDailyAnalysisRanking();
+            showToast(`Meta di\u00e1ria da equipa: ${metaDiariaEquipe} an\u00e1lises/dia`);
+        }
+
+        // Mesma data (Y/M/D)?
+        function mesmaData(d1, d2) {
+            return d1 && d2 && d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+        }
+
+        function drawDailyAnalysisRanking() {
+            const hoje = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            const dataLabel = hoje.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+            const lbl = document.getElementById('dailyMetaDateLabel');
+            if (lbl) lbl.textContent = `Produ\u00e7\u00e3o de ${dataLabel} por corretor`;
+
+            // Conta an\u00e1lises de HOJE por corretor ativo (pela Data Cadastro)
+            const contagem = {};
+            getActiveCorretores().forEach(n => { contagem[n] = 0; });
+            let totalHoje = 0;
+
+            dataset.forEach(row => {
+                const c = row.Corretor;
+                if (!isCorretorActive(c)) return;
+                const dCad = parseDate(row['Data Cadastro']);
+                if (mesmaData(dCad, hoje)) {
+                    if (contagem[c] === undefined) contagem[c] = 0;
+                    contagem[c]++;
+                    totalHoje++;
+                }
+            });
+
+            const meta = metaDiariaEquipe;
+            const pct = meta > 0 ? Math.min(100, (totalHoje / meta) * 100) : (totalHoje > 0 ? 100 : 0);
+            const bar = document.getElementById('dailyMetaBar');
+            const progLbl = document.getElementById('dailyMetaProgressLabel');
+            const status = document.getElementById('dailyMetaStatus');
+
+            if (bar) {
+                bar.style.width = `${pct}%`;
+                bar.className = `h-full transition-all duration-500 ${totalHoje >= meta && meta > 0 ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-gradient-to-r from-brand-600 to-brand-500'}`;
+            }
+            if (progLbl) progLbl.textContent = `${totalHoje} / ${meta} an\u00e1lises`;
+            if (status) {
+                if (meta > 0 && totalHoje >= meta) {
+                    status.innerHTML = `<span class="text-emerald-400 font-bold"><i class="fa-solid fa-circle-check"></i> Meta batida! ${totalHoje - meta > 0 ? `(+${totalHoje - meta} acima)` : ''}</span>`;
+                } else if (meta > 0) {
+                    status.innerHTML = `<span class="text-amber-400 font-semibold">Faltam <strong>${meta - totalHoje}</strong> an\u00e1lises para bater a meta de hoje (${pct.toFixed(0)}%).</span>`;
+                } else {
+                    status.innerHTML = `<span class="text-slate-500">Defina uma meta acima para acompanhar o progresso.</span>`;
+                }
+            }
+
+            // Ranking ordenado por an\u00e1lises de hoje
+            const ranking = Object.keys(contagem)
+                .map(nome => ({ nome, qtd: contagem[nome] }))
+                .sort((a, b) => b.qtd - a.qtd || a.nome.localeCompare(b.nome, 'pt-BR'));
+
+            const maxQtd = ranking.length ? Math.max(1, ranking[0].qtd) : 1;
+            const list = document.getElementById('dailyRankingList');
+            if (!list) return;
+
+            if (ranking.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nenhum corretor ativo.</p>`;
+                return;
+            }
+
+            list.innerHTML = ranking.map((r, i) => {
+                let pos = `${i + 1}\u00ba`;
+                let posClass = 'text-slate-500';
+                if (i === 0 && r.qtd > 0) posClass = 'text-amber-400 font-extrabold';
+                else if (i === 1 && r.qtd > 0) posClass = 'text-slate-300 font-bold';
+                else if (i === 2 && r.qtd > 0) posClass = 'text-amber-600 font-bold';
+                const barW = (r.qtd / maxQtd) * 100;
+                const contrib = totalHoje > 0 ? ((r.qtd / totalHoje) * 100).toFixed(0) : 0;
+                const qtdColor = r.qtd > 0 ? 'text-brand-400' : 'text-slate-600';
+                return `
+                    <div class="flex items-center gap-3 bg-slate-950/40 rounded-lg px-3 py-2 border border-slate-800/60">
+                        <span class="w-8 text-xs font-bold ${posClass} shrink-0">${pos}</span>
+                        <span class="text-xs font-semibold text-slate-200 w-40 truncate shrink-0">${r.nome}</span>
+                        <div class="flex-1 bg-slate-800/60 h-2 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-brand-600 to-brand-500" style="width: ${barW}%"></div>
+                        </div>
+                        <span class="text-xs font-extrabold ${qtdColor} w-8 text-right shrink-0">${r.qtd}</span>
+                        <span class="text-[10px] text-slate-500 w-10 text-right shrink-0">${contrib}%</span>
+                    </div>`;
+            }).join('');
+        }
+
         function toggleCorretorModal() {
             const m = document.getElementById('corretorModal');
             m.classList.toggle('hidden');
@@ -1298,6 +1431,7 @@
         window.onload = function() {
             restoreRefreshRate();
             loadCorretorRoster();
+            loadMetaDiaria();
             const savedUrl = localStorage.getItem(`${appId}-gsheets-url`) || googleSheetsUrl;
             if (savedUrl) {
                 googleSheetsUrl = savedUrl;
@@ -1695,6 +1829,7 @@
             drawFunnel();
             drawIntelligence(referenceDate);
             drawTables();
+            drawDailyAnalysisRanking();
             renderCharts();
             renderAlerts(referenceDate);
 
