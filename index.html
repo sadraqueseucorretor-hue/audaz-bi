@@ -1380,8 +1380,6 @@
                 if (row.Construtora) construtoras.add(row.Construtora);
                 if (row.Empreendimento) empreendimentos.add(row.Empreendimento);
                 if (row['M\u00eas Cadastro']) meses.add(row['M\u00eas Cadastro']);
-                if (row['M\u00eas Aprova\u00e7\u00e3o']) meses.add(row['M\u00eas Aprova\u00e7\u00e3o']);
-                if (row['M\u00eas Ganho']) meses.add(row['M\u00eas Ganho']);
                 
                 const dateCad = parseDate(row['Data Cadastro']);
                 if (dateCad) {
@@ -1470,12 +1468,8 @@
                 if (selConstrutora && row.Construtora !== selConstrutora) return false;
                 if (selEmpreendimento && row.Empreendimento !== selEmpreendimento) return false;
 
-                // Inclui linha se M\u00eas Cadastro OU M\u00eas Ganho bate com o filtro selecionado
-                if (selMes) {
-                    const bateCadastro = row['M\u00eas Cadastro'] === selMes;
-                    const bateGanho = isGanho(row) && row['M\u00eas Ganho'] === selMes;
-                    if (!bateCadastro && !bateGanho) return false;
-                }
+                // Safra: filtra pelo m\u00eas de entrada (M\u00eas Cadastro)
+                if (selMes && row['M\u00eas Cadastro'] !== selMes) return false;
 
                 const anoRow = getMesAno(row['M\u00eas Cadastro']);
                 if (selAno && anoRow && anoRow.toString() !== selAno.toString()) return false;
@@ -1542,24 +1536,17 @@
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
 
             filteredDataset.forEach(row => {
-                // An\u00e1lises: refer\u00eancia = M\u00eas Cadastro
-                const analisesMatch = useMesRef
+                // SAFRA: tudo ancorado no m\u00eas de entrada (M\u00eas Cadastro)
+                const safraMatch = useMesRef
                     ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDate)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDate);
-                if (analisesMatch) {
-                    analysesCount++;
-                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) approvalsCount++;
-                }
+                if (!safraMatch) return;
 
-                // Vendas e VGV: refer\u00eancia = M\u00eas Ganho
+                analysesCount++;
+                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) approvalsCount++;
                 if (isGanho(row)) {
-                    const ganhoMatch = useMesRef
-                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDate)
-                        : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDate);
-                    if (ganhoMatch) {
-                        salesCount++;
-                        totalVgv += getVGV(row);
-                    }
+                    salesCount++;
+                    totalVgv += getVGV(row);
                 }
             });
 
@@ -1631,31 +1618,22 @@
                 const equipe = row.Equipe;
                 const vgv = getVGV(row);
 
-                // An\u00e1lises: M\u00eas Cadastro
-                const analisesMatch = useMes
+                // SAFRA: tudo ancorado no M\u00eas Cadastro
+                const safraMatch = useMes
                     ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDate)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDate);
+                if (!safraMatch) return;
 
-                if (analisesMatch) {
-                    if (!corretoresVolume[corretor]) corretoresVolume[corretor] = { vgv: 0, vendas: 0, analises: 0 };
-                    if (!equipesVolume[equipe]) equipesVolume[equipe] = { vgv: 0, vendas: 0, analises: 0 };
-                    corretoresVolume[corretor].analises++;
-                    equipesVolume[equipe].analises++;
-                }
+                if (!corretoresVolume[corretor]) corretoresVolume[corretor] = { vgv: 0, vendas: 0, analises: 0 };
+                if (!equipesVolume[equipe]) equipesVolume[equipe] = { vgv: 0, vendas: 0, analises: 0 };
+                corretoresVolume[corretor].analises++;
+                equipesVolume[equipe].analises++;
 
-                // Vendas e VGV: M\u00eas Ganho
                 if (isGanho(row)) {
-                    const ganhoMatch = useMes
-                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDate)
-                        : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDate);
-                    if (ganhoMatch) {
-                        if (!corretoresVolume[corretor]) corretoresVolume[corretor] = { vgv: 0, vendas: 0, analises: 0 };
-                        if (!equipesVolume[equipe]) equipesVolume[equipe] = { vgv: 0, vendas: 0, analises: 0 };
-                        corretoresVolume[corretor].vendas++;
-                        corretoresVolume[corretor].vgv += vgv;
-                        equipesVolume[equipe].vendas++;
-                        equipesVolume[equipe].vgv += vgv;
-                    }
+                    corretoresVolume[corretor].vendas++;
+                    corretoresVolume[corretor].vgv += vgv;
+                    equipesVolume[equipe].vendas++;
+                    equipesVolume[equipe].vgv += vgv;
                 }
             });
 
@@ -1674,9 +1652,10 @@
 
             filteredDataset.forEach(row => {
                 if (isGanho(row)) {
-                    const mesGanhoNorm = normalizeMes(row['M\u00eas Ganho']);
-                    const anoGanho = getMesAno(row['M\u00eas Ganho']);
-                    if (mesGanhoNorm === mesAtualNome && (anoGanho === null || anoGanho === mesAtualAno)) {
+                    // Safra: vendas da safra do m\u00eas de refer\u00eancia (M\u00eas Cadastro)
+                    const mesCadNorm = normalizeMes(row['M\u00eas Cadastro']);
+                    const anoCad = getMesAno(row['M\u00eas Cadastro']);
+                    if (mesCadNorm === mesAtualNome && (anoCad === null || anoCad === mesAtualAno)) {
                         if (!corretoresMes[row.Corretor]) corretoresMes[row.Corretor] = 0;
                         corretoresMes[row.Corretor] += getVGV(row);
                     }
@@ -1980,26 +1959,18 @@
             filteredDataset.forEach(row => {
                 const c = row.Corretor;
 
-                // An\u00e1lises: M\u00eas Cadastro
-                const analisesMatch = useMesTables
+                // SAFRA: tudo ancorado no M\u00eas Cadastro
+                const safraMatch = useMesTables
                     ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDateTables)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDateTables);
-                if (analisesMatch) {
-                    if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
-                    corretoresMap[c].analises++;
-                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) corretoresMap[c].aprovacoes++;
-                }
+                if (!safraMatch) return;
 
-                // Vendas e VGV: M\u00eas Ganho
+                if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                corretoresMap[c].analises++;
+                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) corretoresMap[c].aprovacoes++;
                 if (isGanho(row)) {
-                    const ganhoMatch = useMesTables
-                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDateTables)
-                        : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDateTables);
-                    if (ganhoMatch) {
-                        if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
-                        corretoresMap[c].vendas++;
-                        corretoresMap[c].vgv += getVGV(row);
-                    }
+                    corretoresMap[c].vendas++;
+                    corretoresMap[c].vgv += getVGV(row);
                 }
             });
 
@@ -2040,26 +2011,18 @@
                 const eq = row.Equipe;
                 if (!eq) return;
 
-                // An\u00e1lises: M\u00eas Cadastro
-                const analisesMatch = useMesTables
+                // SAFRA: tudo ancorado no M\u00eas Cadastro
+                const safraMatch = useMesTables
                     ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDateTables)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDateTables);
-                if (analisesMatch) {
-                    if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
-                    equipesMap[eq].analises++;
-                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) equipesMap[eq].aprovacoes++;
-                }
+                if (!safraMatch) return;
 
-                // Vendas e VGV: M\u00eas Ganho
+                if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                equipesMap[eq].analises++;
+                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) equipesMap[eq].aprovacoes++;
                 if (isGanho(row)) {
-                    const ganhoMatch = useMesTables
-                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDateTables)
-                        : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDateTables);
-                    if (ganhoMatch) {
-                        if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
-                        equipesMap[eq].vendas++;
-                        equipesMap[eq].vgv += getVGV(row);
-                    }
+                    equipesMap[eq].vendas++;
+                    equipesMap[eq].vgv += getVGV(row);
                 }
             });
 
