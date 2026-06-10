@@ -717,23 +717,17 @@
                         <p class="text-xs text-slate-400">Matriz anal&#237;tica de const&#226;ncia operacional para monitorizar a frequ&#234;ncia de envio de an&#225;lises por corretor.</p>
                     </div>
                     
-                    <!-- Legenda do Heatmap -->
-                    <div class="flex flex-wrap items-center gap-3 bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-800/80 text-[10px]">
-                        <span class="text-slate-500 font-bold uppercase tracking-wider">Heatmap:</span>
+                    <!-- Legenda das 3 m&#233;tricas empilhadas -->
+                    <div class="flex flex-wrap items-center gap-4 bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-800/80 text-[11px]">
+                        <span class="text-slate-500 font-bold uppercase tracking-wider">Cada c&#233;lula:</span>
                         <div class="flex items-center gap-1.5">
-                            <span class="w-3.5 h-3.5 bg-rose-950/40 border border-rose-900/20 rounded"></span><span>0 Envios</span>
+                            <span class="h-2.5 w-2.5 rounded-full bg-sky-400"></span><span class="text-slate-300">An&#225;lises <span class="text-slate-500">(data cadastro)</span></span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="w-3.5 h-3.5 bg-amber-500/20 border border-amber-500/30 rounded"></span><span>1 Envio</span>
+                            <span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span><span class="text-slate-300">Aprovados <span class="text-slate-500">(data aprova&#231;&#227;o)</span></span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="w-3.5 h-3.5 bg-sky-500/20 border border-sky-500/30 rounded"></span><span>2-3 Envios</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-3.5 h-3.5 bg-blue-600/40 border border-blue-500/40 rounded"></span><span>4-5 Envios</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="w-3.5 h-3.5 bg-blue-800 border border-blue-600 rounded"></span><span>6+ Envios</span>
+                            <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span><span class="text-slate-300">Vendas <span class="text-slate-500">(data ganho)</span></span>
                         </div>
                     </div>
                 </div>
@@ -2733,34 +2727,53 @@
             // Roster de corretores ativos (inclui pr\u00e9-cadastrados, exclui desativados)
             const activeCorretores = getActiveCorretores();
 
-            let productionMatrix = {};
+            // Cada c\u00e9lula guarda 3 m\u00e9tricas: a=an\u00e1lises, ap=aprovados, v=vendas \u2014 cada uma pela sua pr\u00f3pria data
+            let cellMatrix = {};       // `${c}_${d}` -> { a, ap, v }
+            let productionMatrix = {}; // s\u00f3 an\u00e1lises (mant\u00e9m o heatmap e os KPIs de produ\u00e7\u00e3o)
             calendarDetailsMap = {};
-            calendarDayDetails = {};   // agregado por dia (todos os corretores)
+            calendarDayDetails = {};   // agregado por dia (todos os corretores) \u2014 fichas cadastradas no dia
             calendarMonthDetails = []; // agregado do m\u00eas inteiro
+            const activeSet = new Set(activeCorretores);
 
             activeCorretores.forEach(c => {
                 for (let d = 1; d <= daysInMonth; d++) {
+                    cellMatrix[`${c}_${d}`] = { a: 0, ap: 0, v: 0 };
                     productionMatrix[`${c}_${d}`] = 0;
                     calendarDetailsMap[`${c}_${d}`] = [];
                 }
             });
             for (let d = 1; d <= daysInMonth; d++) calendarDayDetails[d] = [];
 
+            const noMes = (mesStr) => normalizeMes(mesStr) === activeMonth && (getMesAno(mesStr) || yearNum) === yearNum;
+            const diaDe = (dataStr) => { const dt = parseDate(dataStr); return dt ? dt.getDate() : 1; };
+
             filteredDataset.forEach(row => {
-                const mesCad = normalizeMes(row['M\u00eas Cadastro']);
-                const anoCad = getMesAno(row['M\u00eas Cadastro']) || yearNum;
-                if (mesCad !== activeMonth || anoCad !== yearNum) return;
-
-                const dateCad = parseDate(row['Data Cadastro']);
                 const corr = row.Corretor;
-                const day = dateCad ? dateCad.getDate() : 1;
-                const key = `${corr}_${day}`;
+                if (!activeSet.has(corr)) return;
 
-                if (productionMatrix[key] !== undefined) {
-                    productionMatrix[key]++;
-                    calendarDetailsMap[key].push(row);
-                    if (calendarDayDetails[day]) calendarDayDetails[day].push(row);
-                    calendarMonthDetails.push(row);
+                // An\u00e1lise -> Data Cadastro / M\u00eas Cadastro
+                if (noMes(row['M\u00eas Cadastro'])) {
+                    const day = diaDe(row['Data Cadastro']);
+                    const key = `${corr}_${day}`;
+                    if (cellMatrix[key]) {
+                        cellMatrix[key].a++;
+                        productionMatrix[key]++;
+                        calendarDetailsMap[key].push(row);
+                        if (calendarDayDetails[day]) calendarDayDetails[day].push(row);
+                        calendarMonthDetails.push(row);
+                    }
+                }
+                // Aprovado -> Data Aprova\u00e7\u00e3o / M\u00eas Aprova\u00e7\u00e3o
+                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado') && noMes(row['M\u00eas Aprova\u00e7\u00e3o'])) {
+                    const day = diaDe(row['Data Aprova\u00e7\u00e3o']);
+                    const key = `${corr}_${day}`;
+                    if (cellMatrix[key]) cellMatrix[key].ap++;
+                }
+                // Venda -> Data Ganho / M\u00eas Ganho
+                if (isGanho(row) && noMes(row['M\u00eas Ganho'])) {
+                    const day = diaDe(row['Data Ganho']);
+                    const key = `${corr}_${day}`;
+                    if (cellMatrix[key]) cellMatrix[key].v++;
                 }
             });
 
@@ -2783,52 +2796,58 @@
             const tableBody = document.getElementById('calendarTableBody');
             tableBody.innerHTML = '';
 
-            let totalDiarioList = Array(daysInMonth + 1).fill(0); 
+            let totalDiarioList = Array(daysInMonth + 1).fill(0);       // total an\u00e1lises (heatmap/KPIs)
+            let totalDiaA = Array(daysInMonth + 1).fill(0);
+            let totalDiaAp = Array(daysInMonth + 1).fill(0);
+            let totalDiaV = Array(daysInMonth + 1).fill(0);
+
+            // c\u00e9lula com 3 n\u00fameros empilhados: an\u00e1lise (azul) / aprovado (\u00e2mbar) / venda (verde)
+            const stack = (a, ap, v) => `
+                <div class="flex flex-col items-center leading-none gap-0.5 py-0.5">
+                    <span class="text-[10px] font-bold ${a ? 'text-sky-300' : 'text-slate-700'}">${a || '\u00b7'}</span>
+                    <span class="text-[10px] font-bold ${ap ? 'text-amber-400' : 'text-slate-700'}">${ap || '\u00b7'}</span>
+                    <span class="text-[10px] font-extrabold ${v ? 'text-emerald-400' : 'text-slate-700'}">${v || '\u00b7'}</span>
+                </div>`;
 
             if (activeCorretores.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor com produ\u00e7\u00e3o cadastrada neste per\u00edodo.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor ativo neste per\u00edodo.</td></tr>`;
             } else {
                 activeCorretores.forEach(c => {
                     let corretorRowHtml = `<tr class="hover:bg-slate-900/10 transition">`;
                     corretorRowHtml += `<td class="p-3 pl-4 text-left font-bold text-slate-300 bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 truncate max-w-[150px]">${c}</td>`;
-                    
-                    let corretorTotalAcumulado = 0;
+
+                    let totA = 0, totAp = 0, totV = 0;
 
                     for (let d = 1; d <= daysInMonth; d++) {
-                        const qty = productionMatrix[`${c}_${d}`] || 0;
-                        corretorTotalAcumulado += qty;
-                        totalDiarioList[d] += qty; 
+                        const cell = cellMatrix[`${c}_${d}`] || { a: 0, ap: 0, v: 0 };
+                        totA += cell.a; totAp += cell.ap; totV += cell.v;
+                        totalDiarioList[d] += cell.a;
+                        totalDiaA[d] += cell.a; totalDiaAp[d] += cell.ap; totalDiaV[d] += cell.v;
 
-                        const bgClass = getHeatmapClass(qty);
+                        const bgClass = getHeatmapClass(cell.a);
                         corretorRowHtml += `
-                            <td onclick="openCalendarCellDetail('${c}', ${d}, '${activeMonth}', ${yearNum})" class="p-2 border-l border-slate-800/40 text-center text-[11px] font-bold cursor-pointer transition ${bgClass}">
-                                ${qty > 0 ? qty : '-'}
-                            </td>
-                        `;
+                            <td onclick="openCalendarCellDetail('${c.replace(/'/g, "\\'")}', ${d}, '${activeMonth}', ${yearNum})" class="border-l border-slate-800/40 text-center cursor-pointer transition ${bgClass}">
+                                ${stack(cell.a, cell.ap, cell.v)}
+                            </td>`;
                     }
 
-                    corretorRowHtml += `<td class="p-3 pr-4 text-right font-extrabold text-brand-500 border-l border-slate-800 bg-slate-950/40">${corretorTotalAcumulado}</td>`;
+                    corretorRowHtml += `<td class="p-2 pr-4 text-right border-l border-slate-800 bg-slate-950/40">${stack(totA, totAp, totV)}</td>`;
                     corretorRowHtml += `</tr>`;
                     tableBody.insertAdjacentHTML('beforeend', corretorRowHtml);
                 });
 
                 let totalRowHtml = `<tr class="bg-slate-950 font-bold border-t border-slate-700 text-white">`;
                 totalRowHtml += `<td class="p-3 pl-4 text-left text-xs uppercase font-extrabold tracking-wider bg-slate-950 sticky left-0 border-r border-slate-800 z-10">Total Geral</td>`;
-                
-                let somaTotalGeral = 0;
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const diaTotalSum = totalDiarioList[d];
-                    somaTotalGeral += diaTotalSum;
-                    
-                    let totalClass = "text-slate-400";
-                    if (diaTotalSum > 5) totalClass = "text-emerald-400 font-black";
-                    if (diaTotalSum === 0) totalClass = "text-rose-500/80 font-normal";
 
-                    const dayClickable = diaTotalSum > 0 ? `onclick="openCalendarDayDetail(${d}, '${activeMonth}', ${yearNum})" class="p-2 text-center text-xs border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition ${totalClass}"` : `class="p-2 text-center text-xs border-l border-slate-800 ${totalClass}"`;
-                    totalRowHtml += `<td ${dayClickable}>${diaTotalSum}</td>`;
+                let somaA = 0, somaAp = 0, somaV = 0;
+                for (let d = 1; d <= daysInMonth; d++) {
+                    somaA += totalDiaA[d]; somaAp += totalDiaAp[d]; somaV += totalDiaV[d];
+                    const temAlgo = (totalDiaA[d] + totalDiaAp[d] + totalDiaV[d]) > 0;
+                    const clickAttr = temAlgo ? `onclick="openCalendarDayDetail(${d}, '${activeMonth}', ${yearNum})" class="border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition"` : `class="border-l border-slate-800"`;
+                    totalRowHtml += `<td ${clickAttr}>${stack(totalDiaA[d], totalDiaAp[d], totalDiaV[d])}</td>`;
                 }
 
-                totalRowHtml += `<td onclick="openCalendarMonthDetail('${activeMonth}', ${yearNum})" class="p-3 pr-4 text-right font-black text-brand-400 bg-slate-950 border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition">${somaTotalGeral}</td>`;
+                totalRowHtml += `<td onclick="openCalendarMonthDetail('${activeMonth}', ${yearNum})" class="p-2 pr-4 text-right bg-slate-950 border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition">${stack(somaA, somaAp, somaV)}</td>`;
                 totalRowHtml += `</tr>`;
                 tableBody.insertAdjacentHTML('beforeend', totalRowHtml);
             }
