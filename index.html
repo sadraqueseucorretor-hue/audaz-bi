@@ -2931,6 +2931,13 @@
             });
         }
 
+        // Detalhes do calend\u00e1rio por m\u00e9trica (an\u00e1lises / aprovados / vendas)
+        let calDetail = {
+            analises:  { cell: {}, day: {}, month: [] },
+            aprovados: { cell: {}, day: {}, month: [] },
+            vendas:    { cell: {}, day: {}, month: [] }
+        };
+        // Mantidos por compatibilidade (apontam para an\u00e1lises)
         let calendarDetailsMap = {};
         let calendarDayDetails = {};
         let calendarMonthDetails = [];
@@ -2983,19 +2990,28 @@
             // Cada c\u00e9lula guarda 3 m\u00e9tricas: a=an\u00e1lises, ap=aprovados, v=vendas \u2014 cada uma pela sua pr\u00f3pria data
             let cellMatrix = {};       // `${c}_${d}` -> { a, ap, v }
             let productionMatrix = {}; // s\u00f3 an\u00e1lises (mant\u00e9m o heatmap e os KPIs de produ\u00e7\u00e3o)
-            calendarDetailsMap = {};
-            calendarDayDetails = {};   // agregado por dia (todos os corretores) \u2014 fichas cadastradas no dia
-            calendarMonthDetails = []; // agregado do m\u00eas inteiro
+            // Reinicia os mapas de detalhe das 3 m\u00e9tricas
+            calDetail = {
+                analises:  { cell: {}, day: {}, month: [] },
+                aprovados: { cell: {}, day: {}, month: [] },
+                vendas:    { cell: {}, day: {}, month: [] }
+            };
             const activeSet = new Set(activeCorretores);
 
             activeCorretores.forEach(c => {
                 for (let d = 1; d <= daysInMonth; d++) {
                     cellMatrix[`${c}_${d}`] = { a: 0, ap: 0, v: 0 };
                     productionMatrix[`${c}_${d}`] = 0;
-                    calendarDetailsMap[`${c}_${d}`] = [];
+                    calDetail.analises.cell[`${c}_${d}`] = [];
+                    calDetail.aprovados.cell[`${c}_${d}`] = [];
+                    calDetail.vendas.cell[`${c}_${d}`] = [];
                 }
             });
-            for (let d = 1; d <= daysInMonth; d++) calendarDayDetails[d] = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                calDetail.analises.day[d] = [];
+                calDetail.aprovados.day[d] = [];
+                calDetail.vendas.day[d] = [];
+            }
 
             const noMes = (mesStr) => normalizeMes(mesStr) === activeMonth && (getMesAno(mesStr) || yearNum) === yearNum;
             const diaDe = (dataStr) => { const dt = parseDate(dataStr); return dt ? dt.getDate() : 1; };
@@ -3011,24 +3027,39 @@
                     if (cellMatrix[key]) {
                         cellMatrix[key].a++;
                         productionMatrix[key]++;
-                        calendarDetailsMap[key].push(row);
-                        if (calendarDayDetails[day]) calendarDayDetails[day].push(row);
-                        calendarMonthDetails.push(row);
+                        calDetail.analises.cell[key].push(row);
+                        if (calDetail.analises.day[day]) calDetail.analises.day[day].push(row);
+                        calDetail.analises.month.push(row);
                     }
                 }
                 // Aprovado -> Data Aprova\u00e7\u00e3o / M\u00eas Aprova\u00e7\u00e3o
                 if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado') && noMes(row['M\u00eas Aprova\u00e7\u00e3o'])) {
                     const day = diaDe(row['Data Aprova\u00e7\u00e3o']);
                     const key = `${corr}_${day}`;
-                    if (cellMatrix[key]) cellMatrix[key].ap++;
+                    if (cellMatrix[key]) {
+                        cellMatrix[key].ap++;
+                        calDetail.aprovados.cell[key].push(row);
+                        if (calDetail.aprovados.day[day]) calDetail.aprovados.day[day].push(row);
+                        calDetail.aprovados.month.push(row);
+                    }
                 }
                 // Venda -> Data Ganho / M\u00eas Ganho
                 if (isGanho(row) && noMes(row['M\u00eas Ganho'])) {
                     const day = diaDe(row['Data Ganho']);
                     const key = `${corr}_${day}`;
-                    if (cellMatrix[key]) cellMatrix[key].v++;
+                    if (cellMatrix[key]) {
+                        cellMatrix[key].v++;
+                        calDetail.vendas.cell[key].push(row);
+                        if (calDetail.vendas.day[day]) calDetail.vendas.day[day].push(row);
+                        calDetail.vendas.month.push(row);
+                    }
                 }
             });
+
+            // Compat: mant\u00e9m os mapas antigos apontando para an\u00e1lises
+            calendarDetailsMap = calDetail.analises.cell;
+            calendarDayDetails = calDetail.analises.day;
+            calendarMonthDetails = calDetail.analises.month;
 
             const headerRow = document.getElementById('calendarHeaderRow');
             headerRow.innerHTML = `<th class="p-3 pl-4 text-left min-w-[150px] bg-slate-950 sticky left-0 z-20">Corretor</th>`;
@@ -3222,7 +3253,10 @@
         function renderCalendarDetail(nome, dataStr, rows, showCorretor) {
             document.getElementById('detailCorrName').textContent = nome;
             document.getElementById('detailCorrDate').textContent = dataStr;
-            document.getElementById('detailCorrTotal').textContent = `${rows.length} ${rows.length === 1 ? 'an\u00e1lise' : 'an\u00e1lises'}`;
+            const unidade = calendarMetric === 'aprovados' ? (rows.length === 1 ? 'aprovado' : 'aprovados')
+                          : calendarMetric === 'vendas' ? (rows.length === 1 ? 'venda' : 'vendas')
+                          : (rows.length === 1 ? 'an\u00e1lise' : 'an\u00e1lises');
+            document.getElementById('detailCorrTotal').textContent = `${rows.length} ${unidade}`;
 
             const tableBody = document.getElementById('detailTableBody');
             tableBody.innerHTML = '';
@@ -3261,22 +3295,35 @@
             document.getElementById('calendarDetailModal').classList.remove('hidden');
         }
 
-        // Detalhe de uma c\u00e9lula (corretor + dia)
+        // Sufixo do t\u00edtulo conforme a m\u00e9trica ativa do calend\u00e1rio
+        function metricaDetalheLabel() {
+            if (calendarMetric === 'aprovados') return { tit: 'Aprovados', verbo: 'aprovados' };
+            if (calendarMetric === 'vendas') return { tit: 'Vendas', verbo: 'fechadas' };
+            return { tit: 'An\u00e1lises', verbo: 'enviadas' };
+        }
+
+        // Detalhe de uma c\u00e9lula (corretor + dia) \u2014 respeita a m\u00e9trica ativa
         function openCalendarCellDetail(corretor, dia, mes, ano) {
-            const rows = calendarDetailsMap[`${corretor}_${dia}`] || [];
-            renderCalendarDetail(corretor, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, false);
+            const m = calDetail[calendarMetric] || calDetail.analises;
+            const rows = m.cell[`${corretor}_${dia}`] || [];
+            const lbl = metricaDetalheLabel();
+            renderCalendarDetail(`${corretor} \u2014 ${lbl.tit}`, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, false);
         }
 
-        // Detalhe do total do dia (todos os corretores)
+        // Detalhe do total do dia (todos os corretores) \u2014 respeita a m\u00e9trica ativa
         function openCalendarDayDetail(dia, mes, ano) {
-            const rows = calendarDayDetails[dia] || [];
-            renderCalendarDetail('Todos os corretores', `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, true);
+            const m = calDetail[calendarMetric] || calDetail.analises;
+            const rows = m.day[dia] || [];
+            const lbl = metricaDetalheLabel();
+            renderCalendarDetail(`Todos os corretores \u2014 ${lbl.tit}`, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, true);
         }
 
-        // Detalhe do total geral do m\u00eas (todos os corretores, todos os dias)
+        // Detalhe do total geral do m\u00eas \u2014 respeita a m\u00e9trica ativa
         function openCalendarMonthDetail(mes, ano) {
-            const rows = calendarMonthDetails || [];
-            renderCalendarDetail('Todos os corretores', `${mes} de ${ano} (m\u00eas inteiro)`, rows, true);
+            const m = calDetail[calendarMetric] || calDetail.analises;
+            const rows = m.month || [];
+            const lbl = metricaDetalheLabel();
+            renderCalendarDetail(`Todos os corretores \u2014 ${lbl.tit}`, `${mes} de ${ano} (m\u00eas inteiro)`, rows, true);
         }
 
         function closeCalendarCellDetail() {
