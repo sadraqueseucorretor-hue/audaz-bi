@@ -3094,8 +3094,9 @@
                 tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor ativo neste per\u00edodo.</td></tr>`;
             } else {
                 activeCorretores.forEach(c => {
-                    let corretorRowHtml = `<tr class="hover:bg-slate-900/10 transition">`;
-                    corretorRowHtml += `<td class="p-3 pl-4 text-left font-bold text-slate-300 bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 truncate max-w-[150px]">${c}</td>`;
+                    const cEsc = c.replace(/'/g, "\\'");
+                    let corretorRowHtml = `<tr class="cal-corretor-row hover:bg-slate-900/10 transition">`;
+                    corretorRowHtml += `<td onclick="toggleCalRowHighlight(this)" title="Clique para destacar a linha" class="p-3 pl-4 text-left font-bold text-slate-300 bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 truncate max-w-[150px] cursor-pointer hover:text-brand-400 transition"><i class="fa-solid fa-user text-[9px] text-slate-600 mr-1.5"></i>${c}</td>`;
 
                     let totMetric = 0;
 
@@ -3113,7 +3114,8 @@
                             </td>`;
                     }
 
-                    corretorRowHtml += `<td class="p-3 pr-4 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40">${totMetric}</td>`;
+                    const totalClick = totMetric > 0 ? `onclick="openCalendarCorretorDetail('${cEsc}', '${activeMonth}', ${yearNum})" class="p-3 pr-4 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40 cursor-pointer hover:bg-slate-800/60 transition" title="Ver todos os clientes do m\u00eas"` : `class="p-3 pr-4 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40"`;
+                    corretorRowHtml += `<td ${totalClick}>${totMetric}</td>`;
                     corretorRowHtml += `</tr>`;
                     tableBody.insertAdjacentHTML('beforeend', corretorRowHtml);
                 });
@@ -3324,6 +3326,33 @@
             const rows = m.month || [];
             const lbl = metricaDetalheLabel();
             renderCalendarDetail(`Todos os corretores \u2014 ${lbl.tit}`, `${mes} de ${ano} (m\u00eas inteiro)`, rows, true);
+        }
+
+        // Destaca/limpa a linha do corretor ao clicar no nome
+        function toggleCalRowHighlight(td) {
+            const tr = td.closest('tr');
+            if (!tr) return;
+            const jaAtivo = tr.classList.contains('cal-row-active');
+            // limpa destaque de todas as linhas
+            document.querySelectorAll('#calendarTableBody tr.cal-row-active').forEach(r => {
+                r.classList.remove('cal-row-active', 'bg-brand-500/10', 'ring-1', 'ring-brand-500/30');
+            });
+            if (!jaAtivo) {
+                tr.classList.add('cal-row-active', 'bg-brand-500/10', 'ring-1', 'ring-brand-500/30');
+            }
+        }
+
+        // Detalhe de TODOS os clientes do corretor no m\u00eas (total da linha) \u2014 respeita a m\u00e9trica ativa
+        function openCalendarCorretorDetail(corretor, mes, ano) {
+            const m = calDetail[calendarMetric] || calDetail.analises;
+            let rows = [];
+            Object.keys(m.cell).forEach(key => {
+                // chave = `${corretor}_${dia}` \u2014 pega s\u00f3 as c\u00e9lulas deste corretor
+                const idx = key.lastIndexOf('_');
+                if (key.slice(0, idx) === corretor) rows = rows.concat(m.cell[key]);
+            });
+            const lbl = metricaDetalheLabel();
+            renderCalendarDetail(`${corretor} \u2014 ${lbl.tit}`, `${mes} de ${ano} (total do m\u00eas)`, rows, false);
         }
 
         function closeCalendarCellDetail() {
