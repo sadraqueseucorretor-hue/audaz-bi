@@ -3328,17 +3328,20 @@
             renderCalendarDetail(`Todos os corretores \u2014 ${lbl.tit}`, `${mes} de ${ano} (m\u00eas inteiro)`, rows, true);
         }
 
-        // Destaca/limpa a linha do corretor ao clicar no nome
+        // Destaca a linha do corretor e escurece as demais ao clicar no nome
         function toggleCalRowHighlight(td) {
             const tr = td.closest('tr');
             if (!tr) return;
             const jaAtivo = tr.classList.contains('cal-row-active');
-            // limpa destaque de todas as linhas
-            document.querySelectorAll('#calendarTableBody tr.cal-row-active').forEach(r => {
-                r.classList.remove('cal-row-active', 'bg-brand-500/10', 'ring-1', 'ring-brand-500/30');
+            const linhas = document.querySelectorAll('#calendarTableBody tr.cal-corretor-row');
+            // limpa estados de todas as linhas de corretor
+            linhas.forEach(r => {
+                r.classList.remove('cal-row-active', 'bg-brand-500/10', 'ring-1', 'ring-brand-500/30', 'opacity-25');
             });
             if (!jaAtivo) {
+                // destaca a escolhida e escurece as outras
                 tr.classList.add('cal-row-active', 'bg-brand-500/10', 'ring-1', 'ring-brand-500/30');
+                linhas.forEach(r => { if (r !== tr) r.classList.add('opacity-25'); });
             }
         }
 
