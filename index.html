@@ -277,6 +277,25 @@
             <!-- VIEW 1: PAINEL EXECUTIVO COMPLETO -->
             <div id="dashboardView" class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
 
+                <!-- 0. PAINEL DE METAS DO M&#202;S (HERO) -->
+                <section class="bg-gradient-to-br from-slate-900/60 to-slate-950/60 rounded-2xl border border-slate-800 p-5">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <span class="h-8 w-8 rounded-xl bg-brand-500/15 text-brand-400 flex items-center justify-center"><i class="fa-solid fa-bullseye"></i></span>
+                            <div>
+                                <h3 class="text-sm font-extrabold text-slate-100 tracking-wide">Metas do M&#234;s &#8212; Estou batendo?</h3>
+                                <p class="text-[10px] text-slate-500" id="metasPeriodoLabel">Acompanhamento do m&#234;s atual</p>
+                            </div>
+                        </div>
+                        <button onclick="toggleMetasEdit()" id="btnEditMetas" class="text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
+                            <i class="fa-solid fa-pen"></i> Editar metas
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="metasGrid">
+                        <!-- Populado via JS -->
+                    </div>
+                </section>
+
                 <!-- 1. GRID DE CARDS EXECUTIVOS (INDICADORES PRINCIPAIS) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="dashboardSection">
                     
@@ -1093,6 +1112,125 @@
             return d1 && d2 && d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
         }
 
+        // ====== METAS MENSAIS (VGV, Vendas, An\u00e1lises, Aprova\u00e7\u00f5es) ======
+        let metasMensais = { vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60 };
+        let metasEditMode = false;
+
+        function loadMetasMensais() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`${appId}-metas-mensais`) || 'null');
+                if (saved) metasMensais = Object.assign(metasMensais, saved);
+            } catch (e) {}
+        }
+        function setMetaMensal(campo, val) {
+            const n = parseFloat(String(val).replace(/\./g, '').replace(',', '.')) || 0;
+            metasMensais[campo] = n;
+            localStorage.setItem(`${appId}-metas-mensais`, JSON.stringify(metasMensais));
+            drawMetasMensais();
+        }
+        function toggleMetasEdit() {
+            metasEditMode = !metasEditMode;
+            const btn = document.getElementById('btnEditMetas');
+            if (btn) btn.innerHTML = metasEditMode
+                ? '<i class="fa-solid fa-check"></i> Concluir'
+                : '<i class="fa-solid fa-pen"></i> Editar metas';
+            drawMetasMensais();
+        }
+
+        function fmtCompact(v, isMoney) {
+            if (isMoney) {
+                if (v >= 1000000) return 'R$ ' + (v / 1000000).toFixed(2).replace('.', ',') + 'M';
+                if (v >= 1000) return 'R$ ' + (v / 1000).toFixed(0) + 'k';
+                return 'R$ ' + Math.round(v);
+            }
+            return String(Math.round(v));
+        }
+
+        function drawMetasMensais() {
+            const grid = document.getElementById('metasGrid');
+            if (!grid) return;
+
+            // Per\u00edodo de refer\u00eancia: m\u00eas selecionado no filtro, sen\u00e3o m\u00eas atual
+            const refDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            const selMes = document.getElementById('filterMes') ? document.getElementById('filterMes').value : '';
+            let mesNome = getMesName(refDate.getMonth() + 1), ano = refDate.getFullYear(), monthIdx = refDate.getMonth();
+            let mesEhAtual = !selMes;
+            if (selMes) {
+                mesNome = normalizeMes(selMes);
+                ano = getMesAno(selMes) || ano;
+                const mm = { 'Janeiro':0,'Fevereiro':1,'Mar\u00e7o':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
+                monthIdx = mm[mesNome] !== undefined ? mm[mesNome] : monthIdx;
+                mesEhAtual = (monthIdx === refDate.getMonth() && ano === refDate.getFullYear());
+            }
+            const diasNoMes = new Date(ano, monthIdx + 1, 0).getDate();
+            const diaHoje = mesEhAtual ? refDate.getDate() : diasNoMes; // m\u00eas passado/futuro = completo
+            const fracDecorrida = Math.max(0.01, Math.min(1, diaHoje / diasNoMes));
+
+            const lblPer = document.getElementById('metasPeriodoLabel');
+            if (lblPer) lblPer.textContent = mesEhAtual ? `${mesNome}/${ano} \u2014 dia ${diaHoje} de ${diasNoMes}` : `${mesNome}/${ano} (m\u00eas fechado)`;
+
+            const cards = [
+                { campo: 'vgv',        label: 'VGV',        icon: 'fa-coins',          cor: 'indigo',  money: true,  atual: kpiValues.vgv },
+                { campo: 'vendas',     label: 'Vendas',     icon: 'fa-house-circle-check', cor: 'brand', money: false, atual: kpiValues.sales },
+                { campo: 'analises',   label: 'An\u00e1lises',   icon: 'fa-file-invoice-dollar', cor: 'sky', money: false, atual: kpiValues.analyses },
+                { campo: 'aprovacoes', label: 'Aprova\u00e7\u00f5es', icon: 'fa-circle-check',    cor: 'amber',   money: false, atual: kpiValues.approvals }
+            ];
+
+            grid.innerHTML = cards.map(c => {
+                const meta = metasMensais[c.campo] || 0;
+                const atual = c.atual || 0;
+                const pct = meta > 0 ? (atual / meta) * 100 : (atual > 0 ? 100 : 0);
+                const pctClamp = Math.min(100, pct);
+                const pacePct = fracDecorrida * 100; // onde "deveria" estar hoje
+                const projecao = mesEhAtual ? (atual / fracDecorrida) : atual;
+                const projPct = meta > 0 ? (projecao / meta) * 100 : 0;
+
+                // Status: batida / no ritmo / atrasado
+                let statusTxt, statusCls, barGrad;
+                if (pct >= 100) {
+                    statusTxt = `<i class="fa-solid fa-circle-check"></i> Meta batida${atual - meta > 0 ? ' (+' + fmtCompact(atual - meta, c.money) + ')' : ''}`;
+                    statusCls = 'text-emerald-400'; barGrad = 'from-emerald-600 to-emerald-400';
+                } else if (pct >= pacePct - 5) {
+                    statusTxt = `<i class="fa-solid fa-arrow-trend-up"></i> No ritmo (${pct.toFixed(0)}%)`;
+                    statusCls = 'text-brand-400'; barGrad = 'from-brand-600 to-brand-500';
+                } else {
+                    statusTxt = `<i class="fa-solid fa-triangle-exclamation"></i> Atrasado (${pct.toFixed(0)}%)`;
+                    statusCls = 'text-amber-400'; barGrad = 'from-amber-600 to-amber-400';
+                }
+
+                const faltam = Math.max(0, meta - atual);
+                const projTxt = mesEhAtual && meta > 0
+                    ? `<p class="text-[10px] text-slate-500 mt-1.5"><i class="fa-solid fa-chart-line"></i> No ritmo atual: <span class="font-bold text-slate-400">${fmtCompact(projecao, c.money)}</span> (${projPct.toFixed(0)}% da meta)</p>`
+                    : '';
+
+                const metaCampo = metasEditMode
+                    ? `<div class="flex items-center gap-1 mt-2">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase">Meta:</span>
+                            <input type="text" value="${c.money ? meta : meta}" onchange="setMetaMensal('${c.campo}', this.value)" class="flex-1 w-full bg-slate-950 border border-slate-700 text-xs rounded px-2 py-1 text-slate-200 text-right focus:border-brand-500 outline-none">
+                       </div>`
+                    : `<p class="text-[11px] text-slate-500 mt-0.5">Meta: <span class="font-bold text-slate-400">${fmtCompact(meta, c.money)}</span> ${faltam > 0 ? '\u00b7 faltam <span class="font-bold text-slate-300">' + fmtCompact(faltam, c.money) + '</span>' : ''}</p>`;
+
+                return `
+                    <div class="bg-slate-950/40 rounded-xl border border-slate-800/70 p-4 relative overflow-hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid ${c.icon} text-${c.cor}-400"></i> ${c.label}</span>
+                            <span class="text-sm font-extrabold text-${c.cor}-400">${pct.toFixed(0)}%</span>
+                        </div>
+                        <div class="flex items-baseline gap-1.5 mb-2">
+                            <span class="text-2xl font-extrabold text-slate-100">${c.money ? fmtCompact(atual, true) : atual}</span>
+                            <span class="text-[11px] text-slate-500 font-bold">/ ${fmtCompact(meta, c.money)}</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden relative">
+                            <div class="h-full bg-gradient-to-r ${barGrad} transition-all duration-500" style="width: ${pctClamp}%"></div>
+                            ${mesEhAtual ? `<div class="absolute top-0 bottom-0 w-px bg-slate-400/60" style="left: ${pacePct}%" title="onde deveria estar hoje"></div>` : ''}
+                        </div>
+                        <p class="text-[11px] font-bold mt-1.5 ${statusCls}">${statusTxt}</p>
+                        ${projTxt}
+                        ${metaCampo}
+                    </div>`;
+            }).join('');
+        }
+
         // Iniciais para avatar
         function inisCorretor(nome) {
             return nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
@@ -1513,6 +1651,7 @@
             restoreRefreshRate();
             loadCorretorRoster();
             loadMetaDiaria();
+            loadMetasMensais();
             const savedUrl = localStorage.getItem(`${appId}-gsheets-url`) || googleSheetsUrl;
             if (savedUrl) {
                 googleSheetsUrl = savedUrl;
@@ -1923,6 +2062,7 @@
             });
 
             calculateKPIs(referenceDate);
+            drawMetasMensais();
             drawFunnel();
             drawIntelligence(referenceDate);
             drawTables();
