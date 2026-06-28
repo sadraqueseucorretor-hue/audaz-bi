@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AUDAZ BI - Central de Intelig&#234;ncia Imobili&#225;ria</title>
+    <title>AUDAZ BI - Central de Inteligência Imobiliária</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -28,7 +28,7 @@
             }
         }
     </script>
-    <!-- FontAwesome para &#205;cones -->
+    <!-- FontAwesome para Ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -80,7 +80,7 @@
         <!-- Sidebar Esquerda -->
         <aside class="w-full lg:w-72 bg-slate-950/80 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 flex flex-col justify-between backdrop-blur-premium shrink-0">
             <div>
-                <!-- Cabe&#231;alho da Marca -->
+                <!-- Cabeçalho da Marca -->
                 <div class="flex items-center gap-3 mb-8">
                     <div class="h-10 w-10 bg-gradient-to-tr from-brand-600 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
                         <i class="fa-solid fa-chart-line text-white text-xl"></i>
@@ -89,11 +89,11 @@
                         <h1 class="text-xl font-extrabold tracking-wider bg-gradient-to-r from-white via-slate-200 to-brand-500 bg-clip-text text-transparent">
                             AUDAZ BI
                         </h1>
-                        <p class="text-xs text-slate-500 font-medium tracking-widest uppercase">MINDSET IMOBILI&#193;RIO</p>
+                        <p class="text-xs text-slate-500 font-medium tracking-widest uppercase">MINDSET IMOBILIÁRIO</p>
                     </div>
                 </div>
 
-                <!-- Painel de Conex&#227;o de Dados -->
+                <!-- Painel de Conexão de Dados -->
                 <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 mb-6">
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Origem dos Dados</span>
@@ -102,7 +102,7 @@
                         </span>
                     </div>
                     <p class="text-xs text-slate-400 mb-4 leading-relaxed">
-                        Ligue diretamente a folha de c&#225;lculo p&#250;blica do Google Sheets para sincronizar a sua equipa em tempo real.
+                        Ligue diretamente a folha de cálculo pública do Google Sheets para sincronizar a sua equipa em tempo real.
                     </p>
                     <button onclick="toggleConnectionModal()" class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150">
                         <i class="fa-solid fa-link text-brand-500"></i>
@@ -114,7 +114,7 @@
                         Gerir Corretores
                     </button>
 
-                    <!-- Seletor de Intervalo de Auto-Atualiza&#231;&#227;o -->
+                    <!-- Seletor de Intervalo de Auto-Atualização -->
                     <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                         <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-brand-500"></i> Atualizar a cada:</span>
                         <select id="autoRefreshSelect" onchange="changeRefreshRate(this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
@@ -128,9 +128,9 @@
                     </div>
                 </div>
 
-                <!-- Links R&#225;pidos de Navega&#231;&#227;o -->
+                <!-- Links Rápidos de Navegação -->
                 <nav class="space-y-1">
-                    <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest pl-3 mb-2">Vis&#245;es Gerais</p>
+                    <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest pl-3 mb-2">Visões Gerais</p>
                     
                     <button onclick="switchView('dashboard')" id="linkDashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-100 border border-slate-800 transition">
                         <i class="fa-solid fa-cube text-brand-500"></i>
@@ -139,7 +139,7 @@
                     
                     <button onclick="switchView('calendar')" id="linkCalendar" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
                         <i class="fa-solid fa-calendar-days text-emerald-400"></i>
-                        Calend&#225;rio de Produ&#231;&#227;o
+                        Calendário de Produção
                     </button>
 
                     <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#rankingsSection'; }, 100);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition text-left">
@@ -149,12 +149,12 @@
                     
                     <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#intelSection'; }, 100);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition text-left">
                         <i class="fa-solid fa-brain text-indigo-400"></i>
-                        Intelig&#234;ncia & Insights
+                        Inteligência & Insights
                     </button>
                 </nav>
             </div>
 
-            <!-- Rodap&#233; da Sidebar -->
+            <!-- Rodapé da Sidebar -->
             <div class="pt-6 border-t border-slate-800 mt-6 lg:mt-0">
                 <div class="flex items-center gap-3">
                     <div class="h-9 w-9 bg-slate-800 rounded-full flex items-center justify-center">
@@ -168,7 +168,7 @@
             </div>
         </aside>
 
-        <!-- &#193;rea de Conte&#250;do Principal -->
+        <!-- Área de Conteúdo Principal -->
         <main class="flex-1 flex flex-col min-w-0">
             
             <!-- Header Superior -->
@@ -184,27 +184,27 @@
                     </div>
                 </div>
 
-                <!-- Per&#237;odo de Ativa&#231;&#227;o do Dashboard -->
+                <!-- Período de Ativação do Dashboard -->
                 <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
                     <button onclick="setPeriod('hoje')" id="btn-hoje" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Hoje</button>
                     <button onclick="setPeriod('semana')" id="btn-semana" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Semana</button>
-                    <button onclick="setPeriod('mes')" id="btn-mes" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">M&#234;s</button>
+                    <button onclick="setPeriod('mes')" id="btn-mes" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Mês</button>
                     <button onclick="setPeriod('ano')" id="btn-ano" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Ano</button>
                 </div>
             </header>
 
-            <!-- Filtros Din&#226;micos Fixos/Topo -->
+            <!-- Filtros Dinâmicos Fixos/Topo -->
             <section class="bg-slate-950/20 border-b border-slate-800 px-6 lg:px-8 py-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
                     <h2 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                        <i class="fa-solid fa-filter text-brand-500"></i> Filtros de Intelig&#234;ncia Avan&#231;ada
+                        <i class="fa-solid fa-filter text-brand-500"></i> Filtros de Inteligência Avançada
                     </h2>
                     <button onclick="clearAllFilters()" class="text-xs text-slate-400 hover:text-brand-500 flex items-center gap-1.5 transition">
                         <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
                     </button>
                 </div>
 
-                <!-- Grid de Sele&#231;&#245;es Din&#226;micas -->
+                <!-- Grid de Seleções Dinâmicas -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
                     <!-- Filtro Corretor -->
                     <div>
@@ -234,9 +234,9 @@
                             <option value="">Todos</option>
                         </select>
                     </div>
-                    <!-- Filtro M&#234;s -->
+                    <!-- Filtro Mês -->
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">M&#234;s</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Mês</label>
                         <select id="filterMes" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
                             <option value="">Todos</option>
                         </select>
@@ -250,7 +250,7 @@
                     </div>
                     <!-- Filtro Semana -->
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Semana do M&#234;s</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Semana do Mês</label>
                         <select id="filterSemana" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
                             <option value="">Todas</option>
                             <option value="1">Semana 1</option>
@@ -263,7 +263,7 @@
                 </div>
             </section>
 
-            <!-- Painel de Notifica&#231;&#245;es / Toasts -->
+            <!-- Painel de Notificações / Toasts -->
             <div id="toastNotification" class="hidden mx-6 lg:mx-8 mt-4 p-4 rounded-xl border bg-slate-950/80 backdrop-blur border-brand-500/20 text-brand-400 flex items-center justify-between shadow-lg shadow-brand-500/5">
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-circle-check text-brand-500"></i>
@@ -277,14 +277,14 @@
             <!-- VIEW 1: PAINEL EXECUTIVO COMPLETO -->
             <div id="dashboardView" class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
 
-                <!-- 0. PAINEL DE METAS DO M&#202;S (HERO) -->
+                <!-- 0. PAINEL DE METAS DO MÊS (HERO) -->
                 <section class="bg-gradient-to-br from-slate-900/60 to-slate-950/60 rounded-2xl border border-slate-800 p-5">
                     <div class="flex items-center justify-between gap-3 mb-4">
                         <div class="flex items-center gap-2.5">
                             <span class="h-8 w-8 rounded-xl bg-brand-500/15 text-brand-400 flex items-center justify-center"><i class="fa-solid fa-bullseye"></i></span>
                             <div>
-                                <h3 class="text-sm font-extrabold text-slate-100 tracking-wide">Metas do M&#234;s &#8212; Estou batendo?</h3>
-                                <p class="text-[10px] text-slate-500" id="metasPeriodoLabel">Acompanhamento do m&#234;s atual</p>
+                                <h3 class="text-sm font-extrabold text-slate-100 tracking-wide">Metas do Mês — Estou batendo?</h3>
+                                <p class="text-[10px] text-slate-500" id="metasPeriodoLabel">Acompanhamento do mês atual</p>
                             </div>
                         </div>
                         <button onclick="toggleMetasEdit()" id="btnEditMetas" class="text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
@@ -296,18 +296,33 @@
                     </div>
                 </section>
 
+                <!-- TOGGLE: Vendas Finalizadas x Informadas -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40 rounded-2xl border border-slate-800 px-5 py-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="h-9 w-9 rounded-xl bg-brand-500/15 text-brand-400 flex items-center justify-center"><i class="fa-solid fa-arrow-right-arrow-left"></i></span>
+                        <div>
+                            <h3 class="text-sm font-extrabold text-slate-100 tracking-wide">Modo de vendas — Gerais x Finalizadas</h3>
+                            <p class="text-[10px] text-slate-500" id="vendasModeHint">Mostrando TODAS as vendas do mês (gerais). Funil e conversões usam sempre a base completa.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 shrink-0">
+                        <button onclick="setVendasMode('gerais')" id="btn-mode-gerais" class="mode-btn px-4 py-1.5 rounded-lg text-xs font-bold transition">Gerais</button>
+                        <button onclick="setVendasMode('finalizadas')" id="btn-mode-finalizadas" class="mode-btn px-4 py-1.5 rounded-lg text-xs font-bold transition">Finalizadas</button>
+                    </div>
+                </div>
+
                 <!-- 1. GRID DE CARDS EXECUTIVOS (INDICADORES PRINCIPAIS) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="dashboardSection">
                     
-                    <!-- Card An&#225;lises -->
+                    <!-- Card Análises -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex items-start justify-between relative overflow-hidden transition-all hover:scale-[1.01] hover:border-slate-700">
                         <div class="space-y-2">
                             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                An&#225;lises Enviadas
+                                Análises Enviadas
                             </span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-3xl font-extrabold" id="kpiAnalises">0</span>
-                                <span class="text-[10px] font-bold text-slate-500" id="kpiAnalisesLabel">este per&#237;odo</span>
+                                <span class="text-[10px] font-bold text-slate-500" id="kpiAnalisesLabel">este período</span>
                             </div>
                             <p class="text-[11px] text-slate-400" id="kpiAnalisesMeta">Propostas em curso</p>
                         </div>
@@ -317,17 +332,17 @@
                         <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-blue-500/5 rounded-full blur-xl"></div>
                     </div>
 
-                    <!-- Card Aprova&#231;&#245;es -->
+                    <!-- Card Aprovações -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex items-start justify-between relative overflow-hidden transition-all hover:scale-[1.01] hover:border-slate-700">
                         <div class="space-y-2">
                             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                Aprova&#231;&#245;es
+                                Aprovações
                             </span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-3xl font-extrabold text-amber-500" id="kpiAprovacoes">0</span>
-                                <span class="text-[10px] font-bold text-amber-500" id="kpiAprovacoesLabel">este per&#237;odo</span>
+                                <span class="text-[10px] font-bold text-amber-500" id="kpiAprovacoesLabel">este período</span>
                             </div>
-                            <p class="text-[11px] text-slate-400" id="kpiAprovacoesTaxa">Convers&#227;o envio &#8594; aprova&#231;&#227;o: 0%</p>
+                            <p class="text-[11px] text-slate-400" id="kpiAprovacoesTaxa">Conversão envio → aprovação: 0%</p>
                         </div>
                         <div class="h-12 w-12 bg-amber-500/10 rounded-xl border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-sm">
                             <i class="fa-solid fa-circle-check text-xl"></i>
@@ -343,7 +358,7 @@
                             </span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-3xl font-extrabold text-brand-500" id="kpiVendas">0</span>
-                                <span class="text-[10px] font-bold text-brand-500" id="kpiVendasLabel">este per&#237;odo</span>
+                                <span class="text-[10px] font-bold text-brand-500" id="kpiVendasLabel">este período</span>
                             </div>
                             <p class="text-[11px] text-slate-400" id="kpiVendasTaxa">Taxa de fecho final: 0%</p>
                         </div>
@@ -361,9 +376,9 @@
                             </span>
                             <div class="flex items-baseline gap-2">
                                 <span class="text-2xl font-extrabold text-indigo-400" id="kpiVgv">R$ 0M</span>
-                                <span class="text-[10px] font-bold text-indigo-500" id="kpiVgvLabel">este per&#237;odo</span>
+                                <span class="text-[10px] font-bold text-indigo-500" id="kpiVgvLabel">este período</span>
                             </div>
-                            <p class="text-[11px] text-slate-400" id="kpiVgvTicket">Ticket M&#233;dio: R$ 0k</p>
+                            <p class="text-[11px] text-slate-400" id="kpiVgvTicket">Ticket Médio: R$ 0k</p>
                         </div>
                         <div class="h-12 w-12 bg-indigo-500/10 rounded-xl border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-sm">
                             <i class="fa-solid fa-coins text-xl"></i>
@@ -373,7 +388,7 @@
 
                 </div>
 
-                <!-- 2. FUNIL DE CONVERS&#195;O & INTELIG&#202;NCIA COMERCIAL (ROW) -->
+                <!-- 2. FUNIL DE CONVERSÃO & INTELIGÊNCIA COMERCIAL (ROW) -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
                     <!-- Funil Visual de Vendas -->
@@ -381,16 +396,16 @@
                         <div>
                             <div class="flex items-center justify-between mb-6">
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                                    <i class="fa-solid fa-filter text-brand-500"></i> Funil de Convers&#227;o Imobili&#225;ria
+                                    <i class="fa-solid fa-filter text-brand-500"></i> Funil de Conversão Imobiliária
                                 </h3>
-                                <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Efici&#234;ncia Geral</span>
+                                <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Eficiência Geral</span>
                             </div>
 
                             <div class="space-y-4">
-                                <!-- Etapa 1: An&#225;lises -->
+                                <!-- Etapa 1: Análises -->
                                 <div>
                                     <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
-                                        <span>1. An&#225;lises Enviadas</span>
+                                        <span>1. Análises Enviadas</span>
                                         <span id="funnelAnalisesQty" class="font-bold">0</span>
                                     </div>
                                     <div class="w-full bg-slate-800 h-8 rounded-lg relative overflow-hidden flex items-center justify-center border border-slate-700/50">
@@ -399,7 +414,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Convers&#227;o Interna 1 -->
+                                <!-- Conversão Interna 1 -->
                                 <div class="flex justify-center -my-2 relative z-10">
                                     <div class="bg-slate-800 border border-slate-700 text-[10px] text-slate-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
                                         <i class="fa-solid fa-arrow-down text-teal-400"></i>
@@ -407,19 +422,19 @@
                                     </div>
                                 </div>
 
-                                <!-- Etapa 2: Aprova&#231;&#245;es -->
+                                <!-- Etapa 2: Aprovações -->
                                 <div>
                                     <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
-                                        <span>2. An&#225;lises Aprovadas</span>
+                                        <span>2. Análises Aprovadas</span>
                                         <span id="funnelAprovacoesQty" class="font-bold">0</span>
                                     </div>
                                     <div class="w-full bg-slate-800 h-8 rounded-lg relative overflow-hidden flex items-center justify-center border border-slate-700/50">
                                         <div id="funnelAprovacoesBar" class="bg-gradient-to-r from-amber-600 to-amber-500 h-full absolute left-0 top-0 transition-all duration-500" style="width: 0%"></div>
-                                        <span class="relative z-10 text-[10px] font-bold text-white uppercase tracking-wider">Aprova&#231;&#227;o de Cr&#233;dito</span>
+                                        <span class="relative z-10 text-[10px] font-bold text-white uppercase tracking-wider">Aprovação de Crédito</span>
                                     </div>
                                 </div>
 
-                                <!-- Convers&#227;o Interna 2 -->
+                                <!-- Conversão Interna 2 -->
                                 <div class="flex justify-center -my-2 relative z-10">
                                     <div class="bg-slate-800 border border-slate-700 text-[10px] text-slate-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
                                         <i class="fa-solid fa-arrow-down text-brand-400"></i>
@@ -447,24 +462,24 @@
                         </div>
                     </div>
 
-                    <!-- Bloco de Intelig&#234;ncia Comercial (Insights R&#225;pidos) -->
+                    <!-- Bloco de Inteligência Comercial (Insights Rápidos) -->
                     <div id="intelSection" class="lg:col-span-7 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between mb-6">
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                                    <i class="fa-solid fa-brain text-indigo-400"></i> Intelig&#234;ncia Comercial & Destaques
+                                    <i class="fa-solid fa-brain text-indigo-400"></i> Inteligência Comercial & Destaques
                                 </h3>
-                                <span class="text-[10px] bg-indigo-500/10 text-indigo-400 px-2.5 py-0.5 rounded-full font-semibold">An&#225;lise de Dados IA</span>
+                                <span class="text-[10px] bg-indigo-500/10 text-indigo-400 px-2.5 py-0.5 rounded-full font-semibold">Análise de Dados IA</span>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Melhor Corretor do M&#234;s -->
+                                <!-- Melhor Corretor do Mês -->
                                 <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/60 flex items-center gap-3">
                                     <div class="h-10 w-10 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl flex items-center justify-center">
                                         <i class="fa-solid fa-crown text-base"></i>
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Top Vendedor do M&#234;s</p>
+                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Top Vendedor do Mês</p>
                                         <p class="text-xs font-bold text-slate-200 truncate" id="intelTopCorretorMes">A aguardar dados...</p>
                                         <p class="text-[10px] text-brand-400" id="intelTopCorretorMesVgv">VGV: R$ 0</p>
                                     </div>
@@ -476,7 +491,7 @@
                                         <i class="fa-solid fa-people-group text-base"></i>
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Equipa L&#237;der</p>
+                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Equipa Líder</p>
                                         <p class="text-xs font-bold text-slate-200 truncate" id="intelTopEquipe">A aguardar dados...</p>
                                         <p class="text-[10px] text-brand-400" id="intelTopEquipeVgv">VGV: R$ 0</p>
                                     </div>
@@ -494,15 +509,15 @@
                                     </div>
                                 </div>
 
-                                <!-- Convers&#245;es Destacadas -->
+                                <!-- Conversões Destacadas -->
                                 <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/60 flex items-center gap-3">
                                     <div class="h-10 w-10 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-xl flex items-center justify-center">
                                         <i class="fa-solid fa-chart-pie text-base"></i>
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Melhor Convers&#227;o de Vendas</p>
+                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Melhor Conversão de Vendas</p>
                                         <p class="text-xs font-bold text-slate-200 truncate" id="intelBestConversion">A aguardar dados...</p>
-                                        <p class="text-[10px] text-teal-400" id="intelBestConversionRate">Convers&#227;o: 0%</p>
+                                        <p class="text-[10px] text-teal-400" id="intelBestConversionRate">Conversão: 0%</p>
                                     </div>
                                 </div>
                             </div>
@@ -515,14 +530,14 @@
                                     <div class="h-6 w-6 bg-indigo-500/10 text-indigo-400 rounded-lg flex items-center justify-center animate-pulse">
                                         <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
                                     </div>
-                                    <p class="text-xs font-bold text-slate-200">&#10024; Copilot de Intelig&#234;ncia Audaz IA</p>
+                                    <p class="text-xs font-bold text-slate-200">✨ Copilot de Inteligência Audaz IA</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <button onclick="generateAIIconicInsights()" id="btnGenerateAI" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded text-[10px] font-bold flex items-center gap-1.5 transition">
-                                        <i class="fa-solid fa-arrows-rotate"></i> &#10024; Atualizar Insights
+                                        <i class="fa-solid fa-arrows-rotate"></i> ✨ Atualizar Insights
                                     </button>
                                     <button onclick="playAIEngineSpeech()" id="btnPlayTTS" class="hidden px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-bold flex items-center gap-1.5 transition">
-                                        <i class="fa-solid fa-volume-high"></i> &#10024; Ouvir Relat&#243;rio
+                                        <i class="fa-solid fa-volume-high"></i> ✨ Ouvir Relatório
                                     </button>
                                 </div>
                             </div>
@@ -535,7 +550,7 @@
                                 </div>
                                 <div class="max-h-40 overflow-y-auto pr-1">
                                     <p class="text-xs text-slate-400 leading-relaxed" id="narrativeInsight">
-                                        O sistema est&#225; a gerar an&#225;lises comerciais cruzadas. Clique em <strong>&#10024; Atualizar Insights</strong> para acionar a Intelig&#234;ncia Artificial do Gemini e obter um diagn&#243;stico executivo em tempo real sobre o seu funil imobili&#225;rio.
+                                        O sistema está a gerar análises comerciais cruzadas. Clique em <strong>✨ Atualizar Insights</strong> para acionar a Inteligência Artificial do Gemini e obter um diagnóstico executivo em tempo real sobre o seu funil imobiliário.
                                     </p>
                                 </div>
                             </div>
@@ -544,7 +559,7 @@
                             <div class="flex gap-2">
                                 <input type="text" id="aiUserQuestion" placeholder="Pergunte ao Copilot (ex: 'Como acelerar a equipa Vanguard?')..." class="flex-1 bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition placeholder-slate-600">
                                 <button onclick="askAIGeminiQuestion()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
-                                    <span>&#10024; Enviar</span>
+                                    <span>✨ Enviar</span>
                                 </button>
                             </div>
                         </div>
@@ -553,15 +568,15 @@
 
                 </div>
 
-                <!-- 3. SE&#199;&#195;O GR&#193;FICOS PROFISSIONAIS (CHART.JS) -->
+                <!-- 3. SEÇÃO GRÁFICOS PROFISSIONAIS (CHART.JS) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     
-                    <!-- Gr&#225;fico 1: Evolu&#231;&#227;o Operacional -->
+                    <!-- Gráfico 1: Evolução Operacional -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolu&#231;&#227;o Mensal de Opera&#231;&#245;es</h3>
-                                <p class="text-[10px] text-slate-500">Acompanhamento temporal de An&#225;lises, Aprova&#231;&#245;es e Vendas</p>
+                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução Mensal de Operações</h3>
+                                <p class="text-[10px] text-slate-500">Acompanhamento temporal de Análises, Aprovações e Vendas</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-chart-line text-xs"></i>
@@ -572,12 +587,12 @@
                         </div>
                     </div>
 
-                    <!-- Gr&#225;fico 2: Evolu&#231;&#227;o de VGV -->
+                    <!-- Gráfico 2: Evolução de VGV -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolu&#231;&#227;o Hist&#243;rica do VGV</h3>
-                                <p class="text-[10px] text-slate-500">Volume de vendas l&#237;quidas convertidas em Reais (R$)</p>
+                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução Histórica do VGV</h3>
+                                <p class="text-[10px] text-slate-500">Volume de vendas líquidas convertidas em Reais (R$)</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-money-bill-trend-up text-xs"></i>
@@ -588,12 +603,12 @@
                         </div>
                     </div>
 
-                    <!-- Gr&#225;fico 3: Performance por Corretor -->
+                    <!-- Gráfico 3: Performance por Corretor -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Performance por Corretor</h3>
-                                <p class="text-[10px] text-slate-500">Compara&#231;&#245;es diretas de funil por corretor</p>
+                                <p class="text-[10px] text-slate-500">Comparações diretas de funil por corretor</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-users-viewfinder text-xs"></i>
@@ -604,12 +619,12 @@
                         </div>
                     </div>
 
-                    <!-- Gr&#225;fico 4: Performance por Equipe -->
+                    <!-- Gráfico 4: Performance por Equipe -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Desempenho por Equipa</h3>
-                                <p class="text-[10px] text-slate-500">Participa&#231;&#227;o de mercado das frentes comerciais imobili&#225;rias</p>
+                                <p class="text-[10px] text-slate-500">Participação de mercado das frentes comerciais imobiliárias</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-shield-halved text-xs"></i>
@@ -622,24 +637,24 @@
 
                 </div>
 
-                <!-- 3.5 RANKING DI&#193;RIO &#8212; AN&#193;LISES (esquerda) x APROVADOS (direita) DE HOJE -->
+                <!-- 3.5 RANKING DIÁRIO — ANÁLISES (esquerda) x APROVADOS (direita) DE HOJE -->
                 <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-4">
                     <div class="flex items-center justify-between gap-3 mb-3">
                         <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                            <i class="fa-solid fa-gauge-high text-brand-500"></i> Ranking Di&#225;rio &#8212; Hoje
+                            <i class="fa-solid fa-gauge-high text-brand-500"></i> Ranking Diário — Hoje
                         </h3>
                         <span class="text-[10px] text-slate-500" id="dailyMetaDateLabel">Hoje</span>
                     </div>
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <!-- COLUNA ESQUERDA: AN&#193;LISES DE HOJE -->
+                        <!-- COLUNA ESQUERDA: ANÁLISES DE HOJE -->
                         <div class="bg-slate-950/30 rounded-xl border border-slate-800/60 p-3 flex flex-col">
                             <div class="flex items-center gap-2 mb-2.5">
                                 <span class="h-6 w-6 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center"><i class="fa-solid fa-file-lines text-xs"></i></span>
-                                <h4 class="text-xs font-extrabold text-slate-200 uppercase tracking-wider">An&#225;lises de Hoje</h4>
+                                <h4 class="text-xs font-extrabold text-slate-200 uppercase tracking-wider">Análises de Hoje</h4>
                             </div>
                             <div id="dailyRankingList" class="flex-1"></div>
-                            <!-- Rodap&#233; an&#225;lises: total + meta + barra -->
+                            <!-- Rodapé análises: total + meta + barra -->
                             <div class="mt-3 pt-3 border-t border-slate-800/70">
                                 <div class="flex items-center justify-between gap-2 mb-2">
                                     <span class="text-[11px] font-bold text-slate-300" id="dailyMetaProgressLabel">0 / 0 hoje</span>
@@ -651,7 +666,7 @@
                                 <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                                     <div id="dailyMetaBar" class="h-full bg-gradient-to-r from-brand-600 to-brand-500 transition-all duration-500" style="width: 0%"></div>
                                 </div>
-                                <p class="text-[10px] mt-1.5" id="dailyMetaStatus">&#8212;</p>
+                                <p class="text-[10px] mt-1.5" id="dailyMetaStatus">—</p>
                             </div>
                         </div>
 
@@ -662,11 +677,11 @@
                                 <h4 class="text-xs font-extrabold text-slate-200 uppercase tracking-wider">Aprovados de Hoje</h4>
                             </div>
                             <div id="dailyApprovedList" class="flex-1"></div>
-                            <!-- Rodap&#233; aprovados: total -->
+                            <!-- Rodapé aprovados: total -->
                             <div class="mt-3 pt-3 border-t border-slate-800/70">
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="text-[11px] font-bold text-slate-300" id="dailyApprovedTotalLabel">0 aprovados hoje</span>
-                                    <span class="text-[10px] text-slate-500" id="dailyApprovedRateLabel">&#8212;</span>
+                                    <span class="text-[10px] text-slate-500" id="dailyApprovedRateLabel">—</span>
                                 </div>
                             </div>
                         </div>
@@ -684,7 +699,7 @@
                                     <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                         <i class="fa-solid fa-ranking-star text-amber-500"></i> Ranking Geral de Corretores
                                     </h3>
-                                    <p class="text-[10px] text-slate-500">Ordene por quem tem mais &#8212; clique nos bot&#245;es abaixo</p>
+                                    <p class="text-[10px] text-slate-500">Ordene por quem tem mais — clique nos botões abaixo</p>
                                 </div>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500">
@@ -694,13 +709,13 @@
                                 </div>
                             </div>
 
-                            <!-- Bot&#245;es de ordena&#231;&#227;o do ranking -->
+                            <!-- Botões de ordenação do ranking -->
                             <div class="flex items-center gap-1.5 mb-3 flex-wrap">
                                 <span class="text-[10px] text-slate-500 font-bold uppercase mr-1">Ordenar por:</span>
                                 <button id="rankSort-vgv" onclick="setRankSort('vgv')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition">VGV</button>
                                 <button id="rankSort-vendas" onclick="setRankSort('vendas')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Vendas</button>
-                                <button id="rankSort-aprovacoes" onclick="setRankSort('aprovacoes')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Aprova&#231;&#245;es</button>
-                                <button id="rankSort-analises" onclick="setRankSort('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">An&#225;lises</button>
+                                <button id="rankSort-aprovacoes" onclick="setRankSort('aprovacoes')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Aprovações</button>
+                                <button id="rankSort-analises" onclick="setRankSort('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Análises</button>
                             </div>
 
                             <div class="overflow-x-auto">
@@ -709,10 +724,10 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Corretor</th>
-                                            <th class="pb-3 text-center">An&#225;lises</th>
+                                            <th class="pb-3 text-center">Análises</th>
                                             <th class="pb-3 text-center">Aprovs</th>
                                             <th class="pb-3 text-center">Vendas</th>
-                                            <th class="pb-3 text-center">Convers&#227;o</th>
+                                            <th class="pb-3 text-center">Conversão</th>
                                             <th class="pb-3 text-right pr-2">VGV</th>
                                         </tr>
                                     </thead>
@@ -732,7 +747,7 @@
                                     <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                         <i class="fa-solid fa-people-group text-blue-500"></i> Ranking Geral de Equipas
                                     </h3>
-                                    <p class="text-[10px] text-slate-500">Medi&#231;&#227;o consolidada de sinergia e entrega comercial</p>
+                                    <p class="text-[10px] text-slate-500">Medição consolidada de sinergia e entrega comercial</p>
                                 </div>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500">
@@ -748,10 +763,10 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Equipa</th>
-                                            <th class="pb-3 text-center">An&#225;lises</th>
+                                            <th class="pb-3 text-center">Análises</th>
                                             <th class="pb-3 text-center">Aprovs</th>
                                             <th class="pb-3 text-center">Vendas</th>
-                                            <th class="pb-3 text-center">Convers&#227;o</th>
+                                            <th class="pb-3 text-center">Conversão</th>
                                             <th class="pb-3 text-right pr-2">VGV</th>
                                         </tr>
                                     </thead>
@@ -765,16 +780,16 @@
 
                 </div>
 
-                <!-- 5. PAINEL DE ALERTAS AUTOM&#193;TICOS & PREDITIVOS -->
+                <!-- 5. PAINEL DE ALERTAS AUTOMÁTICOS & PREDITIVOS -->
                 <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                     <div class="flex items-center justify-between mb-6">
                         <div>
                             <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                 <i class="fa-solid fa-bell text-rose-500 animate-bounce"></i> Alertas de Risco & Alinhamento de Metas
                             </h3>
-                            <p class="text-[10px] text-slate-500">Algoritmo em tempo real de inatividade, convers&#227;o cr&#237;tica e metas corporativas</p>
+                            <p class="text-[10px] text-slate-500">Algoritmo em tempo real de inatividade, conversão crítica e metas corporativas</p>
                         </div>
-                        <span class="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full font-bold">Diagn&#243;stico Ativo</span>
+                        <span class="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-0.5 rounded-full font-bold">Diagnóstico Ativo</span>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="alertsGrid">
@@ -784,70 +799,70 @@
 
             </div>
 
-            <!-- VIEW 2: CALEND&#193;RIO DE PRODU&#199;&#195;O COM HEATMAP -->
+            <!-- VIEW 2: CALENDÁRIO DE PRODUÇÃO COM HEATMAP -->
             <div id="calendarView" class="hidden flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
                 
-                <!-- Cabe&#231;alho Informativo do Calend&#225;rio -->
+                <!-- Cabeçalho Informativo do Calendário -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h2 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-                            <i class="fa-solid fa-calendar-days text-emerald-400"></i> Calend&#225;rio de Produ&#231;&#227;o Di&#225;ria
+                            <i class="fa-solid fa-calendar-days text-emerald-400"></i> Calendário de Produção Diária
                         </h2>
-                        <p class="text-xs text-slate-400">Matriz anal&#237;tica de const&#226;ncia operacional para monitorizar a frequ&#234;ncia de envio de an&#225;lises por corretor.</p>
+                        <p class="text-xs text-slate-400">Matriz analítica de constância operacional para monitorizar a frequência de envio de análises por corretor.</p>
                     </div>
                     
-                    <!-- Legenda din&#226;mica (muda conforme a m&#233;trica selecionada) -->
+                    <!-- Legenda dinâmica (muda conforme a métrica selecionada) -->
                     <div class="flex flex-wrap items-center gap-3 bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-800/80 text-[10px]" id="calendarLegend">
                         <!-- Preenchida via JS -->
                     </div>
                 </div>
 
-                <!-- INDICADORES EXCLUSIVOS DO CALEND&#193;RIO -->
+                <!-- INDICADORES EXCLUSIVOS DO CALENDÁRIO -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Dia de Maior Produ&#231;&#227;o</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Dia de Maior Produção</p>
                         <h4 class="text-base font-extrabold text-white" id="calKpiDiaMaior">A aguardar dados...</h4>
-                        <p class="text-[10px] text-emerald-400 mt-1" id="calKpiDiaMaiorQtd">0 an&#225;lises enviadas</p>
+                        <p class="text-[10px] text-emerald-400 mt-1" id="calKpiDiaMaiorQtd">0 análises enviadas</p>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Mais Constante (M&#234;s)</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Mais Constante (Mês)</p>
                         <h4 class="text-base font-extrabold text-slate-200" id="calKpiCorrMes">A aguardar dados...</h4>
-                        <p class="text-[10px] text-indigo-400 mt-1" id="calKpiCorrMesQtd">0 an&#225;lises</p>
+                        <p class="text-[10px] text-indigo-400 mt-1" id="calKpiCorrMesQtd">0 análises</p>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Destaque da Semana</p>
                         <h4 class="text-base font-extrabold text-slate-200" id="calKpiCorrSemana">A aguardar dados...</h4>
-                        <p class="text-[10px] text-teal-400 mt-1" id="calKpiCorrSemanaQtd">0 an&#225;lises na semana</p>
+                        <p class="text-[10px] text-teal-400 mt-1" id="calKpiCorrSemanaQtd">0 análises na semana</p>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">M&#233;dia Di&#225;ria por Corretor</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Média Diária por Corretor</p>
                         <h4 class="text-lg font-extrabold text-white" id="calKpiMedia">0.00</h4>
                         <p class="text-[10px] text-slate-400 mt-1">Envios / dia ativo</p>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Dias sem Produ&#231;&#227;o</p>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Dias sem Produção</p>
                         <h4 class="text-lg font-extrabold text-rose-400" id="calKpiDiasZero">0</h4>
-                        <p class="text-[10px] text-rose-500/80 mt-1">Frequ&#234;ncia zerada</p>
+                        <p class="text-[10px] text-rose-500/80 mt-1">Frequência zerada</p>
                     </div>
 
                 </div>
 
-                <!-- CONT&#202;INER DA MATRIZ DO CALEND&#193;RIO COM ROLAGEM HORIZONTAL -->
+                <!-- CONTÊINER DA MATRIZ DO CALENDÁRIO COM ROLAGEM HORIZONTAL -->
                 <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
                         <div>
                             <h3 class="text-sm font-bold tracking-wider text-slate-300 uppercase">Mapa de Calor Operacional</h3>
-                            <p class="text-[10px] text-slate-500">Mapeamento din&#226;mico di&#225;rio (Clique em qualquer c&#233;lula para detalhes ricos).</p>
+                            <p class="text-[10px] text-slate-500">Mapeamento dinâmico diário (Clique em qualquer célula para detalhes ricos).</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <!-- Seletor de m&#233;trica do calend&#225;rio -->
+                            <!-- Seletor de métrica do calendário -->
                             <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
-                                <button onclick="setCalendarMetric('analises')" id="calBtn-analises" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-sky-500 text-white">An&#225;lises</button>
+                                <button onclick="setCalendarMetric('analises')" id="calBtn-analises" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-sky-500 text-white">Análises</button>
                                 <button onclick="setCalendarMetric('aprovados')" id="calBtn-aprovados" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovados</button>
                                 <button onclick="setCalendarMetric('vendas')" id="calBtn-vendas" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
                             </div>
@@ -860,11 +875,11 @@
                         <table class="w-full text-center border-collapse">
                             <thead>
                                 <tr class="bg-slate-950/80 border-b border-slate-800 text-[10px] text-slate-400 font-bold uppercase tracking-wider" id="calendarHeaderRow">
-                                    <!-- Din&#226;mico via JS -->
+                                    <!-- Dinâmico via JS -->
                                 </tr>
                             </thead>
                             <tbody id="calendarTableBody" class="divide-y divide-slate-800/40">
-                                <!-- Din&#226;mico via JS -->
+                                <!-- Dinâmico via JS -->
                             </tbody>
                         </table>
                     </div>
@@ -874,9 +889,9 @@
                 <div class="p-4 bg-slate-950/25 rounded-xl border border-slate-800/60 flex items-start gap-3">
                     <i class="fa-solid fa-circle-info text-emerald-400 mt-0.5 text-base"></i>
                     <div>
-                        <p class="text-xs font-bold text-slate-300">Como analisar a const&#226;ncia di&#225;ria?</p>
+                        <p class="text-xs font-bold text-slate-300">Como analisar a constância diária?</p>
                         <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
-                            Uma equipa constante evita o ac&#250;mulo de propostas e garante aprova&#231;&#245;es escalonadas. Dias de cor azul mais forte indicam pico operacional. C&#233;lulas a vermelho representam oportunidades de interven&#231;&#227;o estrat&#233;gica de lideran&#231;a para corretores inativos.
+                            Uma equipa constante evita o acúmulo de propostas e garante aprovações escalonadas. Dias de cor azul mais forte indicam pico operacional. Células a vermelho representam oportunidades de intervenção estratégica de liderança para corretores inativos.
                         </p>
                     </div>
                 </div>
@@ -887,7 +902,7 @@
 
     </div>
 
-    <!-- MODAL DE DRILL-DOWN / DETALHES DE PRODU&#199;&#195;O DI&#193;RIA -->
+    <!-- MODAL DE DRILL-DOWN / DETALHES DE PRODUÇÃO DIÁRIA -->
     <div id="calendarDetailModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 relative shadow-2xl">
             <button onclick="closeCalendarCellDetail()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
@@ -899,12 +914,12 @@
                     <i class="fa-solid fa-clipboard-user text-lg"></i>
                 </div>
                 <div>
-                    <h4 class="text-base font-bold text-slate-200" id="detailModalTitle">Detalhamento de Produ&#231;&#227;o</h4>
+                    <h4 class="text-base font-bold text-slate-200" id="detailModalTitle">Detalhamento de Produção</h4>
                     <p class="text-xs text-slate-400" id="detailModalSubtitle">Corretor e Data selecionados</p>
                 </div>
             </div>
 
-            <!-- Corpo de Informa&#231;&#245;es -->
+            <!-- Corpo de Informações -->
             <div class="space-y-4">
                 <div class="grid grid-cols-3 gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
                     <div>
@@ -916,7 +931,7 @@
                         <p class="text-xs font-bold text-slate-200" id="detailCorrDate">-</p>
                     </div>
                     <div>
-                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Total de An&#225;lises</p>
+                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Total de Análises</p>
                         <p class="text-xs font-bold text-emerald-400" id="detailCorrTotal">0 propostas</p>
                     </div>
                 </div>
@@ -931,7 +946,7 @@
                                     <th class="p-2">Cliente</th>
                                     <th class="p-2">Construtora</th>
                                     <th class="p-2">Empreendimento</th>
-                                    <th class="p-2">Situa&#231;&#227;o</th>
+                                    <th class="p-2">Situação</th>
                                     <th class="p-2 text-right pr-3">VGV</th>
                                 </tr>
                             </thead>
@@ -949,7 +964,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE CONEX&#195;O GOOGLE SHEETS -->
+    <!-- MODAL DE CONEXÃO GOOGLE SHEETS -->
     <div id="connectionModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 relative shadow-2xl">
             <button onclick="toggleConnectionModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
@@ -961,19 +976,19 @@
                     <i class="fa-solid fa-database text-lg"></i>
                 </div>
                 <div>
-                    <h4 class="text-base font-bold text-slate-200">Integra&#231;&#227;o Direta com Google Sheets</h4>
-                    <p class="text-xs text-slate-500">Aceda aos seus dados e mantenha-os totalmente din&#226;micos</p>
+                    <h4 class="text-base font-bold text-slate-200">Integração Direta com Google Sheets</h4>
+                    <p class="text-xs text-slate-500">Aceda aos seus dados e mantenha-os totalmente dinâmicos</p>
                 </div>
             </div>
 
-            <!-- Passos de Configura&#231;&#227;o -->
+            <!-- Passos de Configuração -->
             <div class="space-y-4 mb-6">
                 <div class="text-xs text-slate-400 space-y-2 leading-relaxed">
-                    <p class="font-semibold text-slate-200">Instru&#231;&#245;es para publicar a sua folha de c&#225;lculo do Google Sheets:</p>
+                    <p class="font-semibold text-slate-200">Instruções para publicar a sua folha de cálculo do Google Sheets:</p>
                     <ol class="list-decimal list-inside space-y-1">
-                        <li>Abra a sua folha de c&#225;lculo comercial do Google Sheets.</li>
+                        <li>Abra a sua folha de cálculo comercial do Google Sheets.</li>
                         <li>Clique em <strong class="text-slate-200">Arquivo</strong> &gt; <strong class="text-slate-200">Compartilhar</strong> &gt; <strong class="text-slate-200">Publicar na Web</strong>.</li>
-                        <li>Selecione o documento inteiro e altere o formato de exporta&#231;&#227;o para <strong class="text-emerald-400 font-semibold">Valores separados por v&#237;rgula (.csv)</strong>.</li>
+                        <li>Selecione o documento inteiro e altere o formato de exportação para <strong class="text-emerald-400 font-semibold">Valores separados por vírgula (.csv)</strong>.</li>
                         <li>Clique em Publicar, copie o link gerado e cole no campo abaixo!</li>
                     </ol>
                 </div>
@@ -985,7 +1000,7 @@
 
                 <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1">
                     <p class="font-bold text-slate-300">As colunas da folha devem ser EXATAMENTE:</p>
-                    <p class="font-mono text-emerald-500">ID | Data Cadastro | M&#234;s Cadastro | Corretor | Equipe | Cliente | Construtora | Empreendimento | Data Aprova&#231;&#227;o | M&#234;s Aprova&#231;&#227;o | Situa&#231;&#227;o - An&#225;lise | Data Ganho | M&#234;s Ganho | Ganho | Situa&#231;&#227;o - Ganho | VGV</p>
+                    <p class="font-mono text-emerald-500">ID | Data Cadastro | Mês Cadastro | Corretor | Equipe | Cliente | Construtora | Empreendimento | Data Aprovação | Mês Aprovação | Situação - Análise | Data Ganho | Mês Ganho | Ganho | Situação - Ganho | VGV</p>
                 </div>
             </div>
 
@@ -998,14 +1013,14 @@
                 </button>
             </div>
             
-            <!-- Bot&#227;o de Restaurar Padr&#227;o -->
+            <!-- Botão de Restaurar Padrão -->
             <button onclick="useMockData()" class="w-full mt-3 py-2 text-xs font-semibold text-slate-400 hover:text-white border border-dashed border-slate-800 rounded-lg hover:border-slate-700 transition">
-                Usar Dados de Demonstra&#231;&#227;o (Default)
+                Usar Dados de Demonstração (Default)
             </button>
         </div>
     </div>
 
-    <!-- MODAL DE GEST&#195;O DE CORRETORES -->
+    <!-- MODAL DE GESTÃO DE CORRETORES -->
     <div id="corretorModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 relative shadow-2xl">
             <button onclick="toggleCorretorModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
@@ -1018,7 +1033,7 @@
                 </div>
                 <div>
                     <h4 class="text-base font-bold text-slate-200">Gerir Corretores</h4>
-                    <p class="text-xs text-slate-500">Ative/desative ou pr&#233;-cadastre corretores (guardado neste navegador)</p>
+                    <p class="text-xs text-slate-500">Ative/desative ou pré-cadastre corretores (guardado neste navegador)</p>
                 </div>
             </div>
 
@@ -1038,7 +1053,7 @@
             <div class="mt-4 p-3 bg-slate-950/40 rounded-lg border border-slate-800/60 flex items-start gap-2">
                 <i class="fa-solid fa-circle-info text-indigo-400 mt-0.5 text-xs"></i>
                 <p class="text-[11px] text-slate-400 leading-relaxed">
-                    <strong class="text-slate-300">Desativar</strong> remove o corretor das listas, rankings e filtros individuais (os dados dele continuam somando nos totais executivos). <strong class="text-slate-300">Adicionar</strong> cadastra um nome que aparece com 0 produ&#231;&#227;o at&#233; surgirem fichas dele na planilha.
+                    <strong class="text-slate-300">Desativar</strong> remove o corretor das listas, rankings e filtros individuais (os dados dele continuam somando nos totais executivos). <strong class="text-slate-300">Adicionar</strong> cadastra um nome que aparece com 0 produção até surgirem fichas dele na planilha.
                 </p>
             </div>
 
@@ -1048,31 +1063,32 @@
         </div>
     </div>
 
-    <!-- C&#211;DIGO JS PRINCIPAL: PROCESSAMENTO DE DADOS, REGRA DE NEG&#211;CIO E RENDERIZA&#199;&#195;O -->
+    <!-- CÓDIGO JS PRINCIPAL: PROCESSAMENTO DE DADOS, REGRA DE NEGÓCIO E RENDERIZAÇÃO -->
     <script>
-        // CONFIGURA\u00c7\u00d5ES GERAIS E BASE DE DADOS DE DEMONSTRA\u00c7\u00c3O (120 Lan\u00e7amentos Realistas para Junho 2026)
+        // CONFIGURAÇÕES GERAIS E BASE DE DADOS DE DEMONSTRAÇÃO (120 Lançamentos Realistas para Junho 2026)
         let dataset = [];
         let filteredDataset = [];
         let currentPeriod = 'mes'; // hoje, semana, mes, ano
+        let vendasMode = 'gerais'; // 'gerais' (todas as ganhas) | 'finalizadas' (toggle de comparação)
         let isMockDataActive = true;
         let googleSheetsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRRzuQ7IytW5uFndnCNqaiEyLIzpq3FvjNmim9VeoO3T2j6kSLZXmdnfdc9OjtKOXal2Myx5knCPX4A/pub?gid=0&single=true&output=csv';
         let activeView = 'dashboard'; // dashboard, calendar
         let lastAIResponseText = ""; // Cache para funcionalidade TTS
 
-        // Motores de Sincroniza\u00e7\u00e3o Autom\u00e1tica em Tempo Real
-        let autoRefreshInterval = 15; // padr\u00e3o: 15 segundos (full-time)
+        // Motores de Sincronização Automática em Tempo Real
+        let autoRefreshInterval = 15; // padrão: 15 segundos (full-time)
         let countdownTimerId = null;
         let secondsLeft = 15;
         let lastSyncTime = null;
 
-        // Chave de API vazia - o ambiente injeta automaticamente em tempo de execu\u00e7\u00e3o
+        // Chave de API vazia - o ambiente injeta automaticamente em tempo de execução
         const apiKey = ""; 
 
         // Constantes do ID do App
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'audaz-bi-v1';
 
-        // ====== GEST\u00c3O DE CORRETORES (roster persistido no navegador) ======
-        let addedCorretores = [];    // pr\u00e9-cadastrados (aparecem com 0 produ\u00e7\u00e3o)
+        // ====== GESTÃO DE CORRETORES (roster persistido no navegador) ======
+        let addedCorretores = [];    // pré-cadastrados (aparecem com 0 produção)
         let inactiveCorretores = []; // ocultos das listas/rankings/filtros individuais
 
         function loadCorretorRoster() {
@@ -1085,7 +1101,7 @@
             localStorage.setItem(`${appId}-corretores-added`, JSON.stringify(addedCorretores));
             localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores));
         }
-        // Todos os nomes conhecidos = os da planilha + os pr\u00e9-cadastrados
+        // Todos os nomes conhecidos = os da planilha + os pré-cadastrados
         function getAllKnownCorretores() {
             const s = new Set();
             dataset.forEach(r => { if (r.Corretor) s.add(r.Corretor); });
@@ -1100,8 +1116,8 @@
             return !inactiveCorretores.includes(name);
         }
 
-        // ====== META DI\u00c1RIA DA EQUIPE (an\u00e1lises/dia) ======
-        let metaDiariaEquipe = 10; // padr\u00e3o
+        // ====== META DIÁRIA DA EQUIPE (análises/dia) ======
+        let metaDiariaEquipe = 10; // padrão
 
         function loadMetaDiaria() {
             const saved = localStorage.getItem(`${appId}-meta-diaria`);
@@ -1113,7 +1129,7 @@
             metaDiariaEquipe = parseInt(val) || 0;
             localStorage.setItem(`${appId}-meta-diaria`, metaDiariaEquipe);
             drawDailyAnalysisRanking();
-            showToast(`Meta di\u00e1ria da equipa: ${metaDiariaEquipe} an\u00e1lises/dia`);
+            showToast(`Meta diária da equipa: ${metaDiariaEquipe} análises/dia`);
         }
 
         // Mesma data (Y/M/D)?
@@ -1121,7 +1137,7 @@
             return d1 && d2 && d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
         }
 
-        // ====== METAS MENSAIS (VGV, Vendas, An\u00e1lises, Aprova\u00e7\u00f5es) ======
+        // ====== METAS MENSAIS (VGV, Vendas, Análises, Aprovações) ======
         let metasMensais = { vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60 };
         let metasEditMode = false;
 
@@ -1155,7 +1171,7 @@
             const grid = document.getElementById('metasGrid');
             if (!grid) return;
 
-            // Per\u00edodo de refer\u00eancia: m\u00eas selecionado no filtro, sen\u00e3o m\u00eas atual
+            // Período de referência: mês selecionado no filtro, senão mês atual
             const refDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             const selMes = document.getElementById('filterMes') ? document.getElementById('filterMes').value : '';
             let mesNome = getMesName(refDate.getMonth() + 1), ano = refDate.getFullYear(), monthIdx = refDate.getMonth();
@@ -1163,22 +1179,23 @@
             if (selMes) {
                 mesNome = normalizeMes(selMes);
                 ano = getMesAno(selMes) || ano;
-                const mm = { 'Janeiro':0,'Fevereiro':1,'Mar\u00e7o':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
+                const mm = { 'Janeiro':0,'Fevereiro':1,'Março':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
                 monthIdx = mm[mesNome] !== undefined ? mm[mesNome] : monthIdx;
                 mesEhAtual = (monthIdx === refDate.getMonth() && ano === refDate.getFullYear());
             }
             const diasNoMes = new Date(ano, monthIdx + 1, 0).getDate();
-            const diaHoje = mesEhAtual ? refDate.getDate() : diasNoMes; // m\u00eas passado/futuro = completo
+            const diaHoje = mesEhAtual ? refDate.getDate() : diasNoMes; // mês passado/futuro = completo
             const fracDecorrida = Math.max(0.01, Math.min(1, diaHoje / diasNoMes));
 
             const lblPer = document.getElementById('metasPeriodoLabel');
-            if (lblPer) lblPer.textContent = mesEhAtual ? `${mesNome}/${ano} \u2014 dia ${diaHoje} de ${diasNoMes}` : `${mesNome}/${ano} (m\u00eas fechado)`;
+            if (lblPer) lblPer.textContent = mesEhAtual ? `${mesNome}/${ano} — dia ${diaHoje} de ${diasNoMes}` : `${mesNome}/${ano} (mês fechado)`;
 
+            const modeFin = vendasMode === 'finalizadas';
             const cards = [
-                { campo: 'vgv',        label: 'VGV (finalizado)', icon: 'fa-coins',      cor: 'indigo',  money: true,  atual: kpiValues.vgv,      info: `Informado (pend.): ${formatBRL(kpiValues.vgvInformada)}` },
-                { campo: 'vendas',     label: 'Vendas (final.)',  icon: 'fa-house-circle-check', cor: 'brand', money: false, atual: kpiValues.sales, info: `Informadas (pend.): ${kpiValues.salesInformada}` },
-                { campo: 'analises',   label: 'An\u00e1lises',   icon: 'fa-file-invoice-dollar', cor: 'sky', money: false, atual: kpiValues.analyses, info: '' },
-                { campo: 'aprovacoes', label: 'Aprova\u00e7\u00f5es', icon: 'fa-circle-check',    cor: 'amber',   money: false, atual: kpiValues.approvals, info: '' }
+                { campo: 'vgv',        label: modeFin ? 'VGV (finalizado)' : 'VGV (geral)', icon: 'fa-coins',      cor: 'indigo',  money: true,  atual: modeFin ? kpiValues.vgvFinal : kpiValues.vgvGeral,      info: modeFin ? `Geral: ${formatBRL(kpiValues.vgvGeral)}` : `Finalizado: ${formatBRL(kpiValues.vgvFinal)}` },
+                { campo: 'vendas',     label: modeFin ? 'Vendas (final.)' : 'Vendas (gerais)',  icon: 'fa-house-circle-check', cor: 'brand', money: false, atual: modeFin ? kpiValues.salesFinal : kpiValues.salesGeral, info: modeFin ? `Geral: ${kpiValues.salesGeral}` : `Finalizadas: ${kpiValues.salesFinal}` },
+                { campo: 'analises',   label: 'Análises',   icon: 'fa-file-invoice-dollar', cor: 'sky', money: false, atual: kpiValues.analyses, info: '' },
+                { campo: 'aprovacoes', label: 'Aprovações', icon: 'fa-circle-check',    cor: 'amber',   money: false, atual: kpiValues.approvals, info: '' }
             ];
 
             grid.innerHTML = cards.map(c => {
@@ -1213,7 +1230,7 @@
                             <span class="text-[10px] text-slate-500 font-bold uppercase">Meta:</span>
                             <input type="text" value="${c.money ? meta : meta}" onchange="setMetaMensal('${c.campo}', this.value)" class="flex-1 w-full bg-slate-950 border border-slate-700 text-xs rounded px-2 py-1 text-slate-200 text-right focus:border-brand-500 outline-none">
                        </div>`
-                    : `<p class="text-[11px] text-slate-500 mt-0.5">Meta: <span class="font-bold text-slate-400">${fmtCompact(meta, c.money)}</span> ${faltam > 0 ? '\u00b7 faltam <span class="font-bold text-slate-300">' + fmtCompact(faltam, c.money) + '</span>' : ''}</p>`;
+                    : `<p class="text-[11px] text-slate-500 mt-0.5">Meta: <span class="font-bold text-slate-400">${fmtCompact(meta, c.money)}</span> ${faltam > 0 ? '· faltam <span class="font-bold text-slate-300">' + fmtCompact(faltam, c.money) + '</span>' : ''}</p>`;
 
                 return `
                     <div class="bg-slate-950/40 rounded-xl border border-slate-800/70 p-4 relative overflow-hidden">
@@ -1242,9 +1259,9 @@
             return nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
         }
 
-        // Renderiza um ranking di\u00e1rio compacto (reutilizado por An\u00e1lises e Aprovados)
+        // Renderiza um ranking diário compacto (reutilizado por Análises e Aprovados)
         function buildDailyRankingCards(contagem, total, opts) {
-            const medalhas = ['\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49'];
+            const medalhas = ['🥇', '🥈', '🥉'];
             const ranking = Object.keys(contagem)
                 .map(nome => ({ nome, qtd: contagem[nome] }))
                 .sort((a, b) => b.qtd - a.qtd || a.nome.localeCompare(b.nome, 'pt-BR'));
@@ -1311,11 +1328,11 @@
 
             const ativos = getActiveCorretores();
 
-            // === AN\u00c1LISES de hoje (Data Cadastro) ===
+            // === ANÁLISES de hoje (Data Cadastro) ===
             const contAnalises = {};
             ativos.forEach(n => { contAnalises[n] = 0; });
             let totalAnalises = 0;
-            // === APROVADOS de hoje (Data Aprova\u00e7\u00e3o + Situa\u00e7\u00e3o cont\u00e9m 'Aprovado') ===
+            // === APROVADOS de hoje (Data Aprovação + Situação contém 'Aprovado') ===
             const contAprov = {};
             ativos.forEach(n => { contAprov[n] = 0; });
             let totalAprov = 0;
@@ -1327,17 +1344,17 @@
                     if (contAnalises[c] === undefined) contAnalises[c] = 0;
                     contAnalises[c]++; totalAnalises++;
                 }
-                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado') && mesmaData(parseDate(row['Data Aprova\u00e7\u00e3o']), hoje)) {
+                if ((row['Situação - Analise'] || '').includes('Aprovado') && mesmaData(parseDate(row['Data Aprovação']), hoje)) {
                     if (contAprov[c] === undefined) contAprov[c] = 0;
                     contAprov[c]++; totalAprov++;
                 }
             });
 
-            // --- Coluna esquerda: An\u00e1lises + meta ---
+            // --- Coluna esquerda: Análises + meta ---
             const listA = document.getElementById('dailyRankingList');
             if (listA) {
                 listA.innerHTML = buildDailyRankingCards(contAnalises, totalAnalises, {
-                    labelAtivos: 'ativos', labelZero: 'sem an\u00e1lise',
+                    labelAtivos: 'ativos', labelZero: 'sem análise',
                     avatarGrad: 'from-brand-600 to-emerald-500', numColor: 'text-brand-400'
                 });
             }
@@ -1366,7 +1383,7 @@
             const listB = document.getElementById('dailyApprovedList');
             if (listB) {
                 listB.innerHTML = buildDailyRankingCards(contAprov, totalAprov, {
-                    labelAtivos: 'aprovaram', labelZero: 'sem aprova\u00e7\u00e3o',
+                    labelAtivos: 'aprovaram', labelZero: 'sem aprovação',
                     avatarGrad: 'from-amber-600 to-amber-400', numColor: 'text-amber-400'
                 });
             }
@@ -1375,7 +1392,7 @@
             if (aprTotalLbl) aprTotalLbl.textContent = `${totalAprov} aprovados hoje`;
             if (aprRateLbl) {
                 const taxa = totalAnalises > 0 ? ((totalAprov / totalAnalises) * 100).toFixed(0) : 0;
-                aprRateLbl.textContent = totalAnalises > 0 ? `${taxa}% das an\u00e1lises de hoje` : '\u2014';
+                aprRateLbl.textContent = totalAnalises > 0 ? `${taxa}% das análises de hoje` : '—';
             }
         }
 
@@ -1391,7 +1408,7 @@
             if (!nome) return;
             const jaExiste = getAllKnownCorretores().some(n => n.toLowerCase() === nome.toLowerCase());
             if (jaExiste) {
-                showToast("Esse corretor j\u00e1 existe.", true);
+                showToast("Esse corretor já existe.", true);
                 input.value = '';
                 return;
             }
@@ -1423,7 +1440,7 @@
         }
 
         function refreshAfterRosterChange() {
-            // Se o corretor selecionado no filtro ficou inativo, limpa a sele\u00e7\u00e3o
+            // Se o corretor selecionado no filtro ficou inativo, limpa a seleção
             const fc = document.getElementById('filterCorretor');
             if (fc && fc.value && !isCorretorActive(fc.value)) fc.value = '';
             if (!isMockDataActive && dataset.length > 0) {
@@ -1451,7 +1468,7 @@
                 const dot = ativo ? 'bg-brand-500' : 'bg-slate-600';
                 const nomeClass = ativo ? 'text-slate-200' : 'text-slate-500 line-through';
                 const tag = ehAdicionado
-                    ? '<span class="text-[9px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Pr\u00e9-cadastrado</span>'
+                    ? '<span class="text-[9px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Pré-cadastrado</span>'
                     : '';
                 const toggleBtn = ativo
                     ? `<button onclick="toggleCorretorActive('${nome.replace(/'/g, "\\'")}')" title="Desativar" class="px-2.5 py-1 bg-slate-800 hover:bg-rose-600/20 hover:text-rose-400 text-slate-300 rounded text-[10px] font-bold border border-slate-700 transition">Desativar</button>`
@@ -1475,13 +1492,13 @@
         }
         // ===================================================================
 
-        // Gera\u00e7\u00e3o inteligente de dados fict\u00edcios de alta fidelidade
+        // Geração inteligente de dados fictícios de alta fidelidade
         function generateMockData() {
-            const corretores = ['Carlos Silva', 'Ana Paula', 'Ricardo Santos', 'Bruna Oliveira', 'Felipe Costa', 'Juliana Lima', 'Mateus Almeida', 'Patr\u00edcia Rocha'];
+            const corretores = ['Carlos Silva', 'Ana Paula', 'Ricardo Santos', 'Bruna Oliveira', 'Felipe Costa', 'Juliana Lima', 'Mateus Almeida', 'Patrícia Rocha'];
             const equipes = ['Alpha', 'Vanguard', 'Titanium'];
             const construtoras = ['Cyrela', 'MRV', 'Even', 'Gafisa', 'Direcional'];
-            const empreendimentos = ['Residencial Splendor', 'Breeze Condom\u00ednio', 'Neo Smart Living', 'Urban Park Club', 'Horizon Corporate', 'Prime View'];
-            const situacoesAnalise = ['Aprovado', 'Em An\u00e1lise', 'Reprovado', 'Pend\u00eancia Documental'];
+            const empreendimentos = ['Residencial Splendor', 'Breeze Condomínio', 'Neo Smart Living', 'Urban Park Club', 'Horizon Corporate', 'Prime View'];
+            const situacoesAnalise = ['Aprovado', 'Em Análise', 'Reprovado', 'Pendência Documental'];
             
             let data = [];
             
@@ -1509,7 +1526,7 @@
 
                 const corretor = corretores[Math.floor(Math.random() * corretores.length)];
                 let equipe = equipes[0];
-                if (['Ana Paula', 'Bruna Oliveira', 'Patr\u00edcia Rocha'].includes(corretor)) equipe = equipes[1];
+                if (['Ana Paula', 'Bruna Oliveira', 'Patrícia Rocha'].includes(corretor)) equipe = equipes[1];
                 if (['Ricardo Santos', 'Mateus Almeida'].includes(corretor)) equipe = equipes[2];
 
                 const cliente = `Cliente ${i}`;
@@ -1522,7 +1539,7 @@
                 let mesAprovacao = '';
                 let dataGanho = '';
                 let mesGanho = '';
-                let ganho = 'N\u00e3o';
+                let ganho = 'Não';
                 let situacaoGanho = 'Perdido';
                 
                 if (situacaoAnalise === 'Aprovado') {
@@ -1546,19 +1563,19 @@
                 data.push({
                     ID: id,
                     'Data Cadastro': formatDate(dateCadastro),
-                    'M\u00eas Cadastro': getMesName(dateCadastro.getMonth() + 1),
+                    'Mês Cadastro': getMesName(dateCadastro.getMonth() + 1),
                     Corretor: corretor,
                     Equipe: equipe,
                     Cliente: cliente,
                     Construtora: construtora,
                     Empreendimento: empreendimento,
-                    'Data Aprova\u00e7\u00e3o': dataAprovacao,
-                    'M\u00eas Aprova\u00e7\u00e3o': mesAprovacao,
-                    'Situa\u00e7\u00e3o - Analise': situacaoAnalise,
+                    'Data Aprovação': dataAprovacao,
+                    'Mês Aprovação': mesAprovacao,
+                    'Situação - Analise': situacaoAnalise,
                     'Data Ganho': dataGanho,
-                    'M\u00eas Ganho': mesGanho,
+                    'Mês Ganho': mesGanho,
                     'Ganho': ganho,
-                    'Situa\u00e7\u00e3o - Ganho': situacaoGanho,
+                    'Situação - Ganho': situacaoGanho,
                     VGV: vgv
                 });
             }
@@ -1574,27 +1591,27 @@
 
         function getMesName(monthNum) {
             const meses = [
-                'Janeiro', 'Fevereiro', 'Mar\u00e7o', 'Abril', 'Maio', 'Junho',
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
             ];
             return meses[monthNum - 1];
         }
 
-        // Normaliza formatos como 'junho/2026' ou 'junho' \u2192 'Junho'
+        // Normaliza formatos como 'junho/2026' ou 'junho' → 'Junho'
         function normalizeMes(str) {
             if (!str) return '';
             const base = str.split('/')[0].trim();
             return base.charAt(0).toUpperCase() + base.slice(1).toLowerCase();
         }
 
-        // Extrai o ano de 'junho/2026' \u2192 2026
+        // Extrai o ano de 'junho/2026' → 2026
         function getMesAno(str) {
             if (!str) return null;
             const parts = str.split('/');
             return parts.length === 2 ? parseInt(parts[1]) : null;
         }
 
-        // Verifica se um campo 'M\u00eas Xxx' (ex: 'junho/2026') bate com o per\u00edodo atual
+        // Verifica se um campo 'Mês Xxx' (ex: 'junho/2026') bate com o período atual
         function checkMesPeriodMatch(mesStr, period, referenceDate) {
             if (!mesStr) return false;
             const mesNome = normalizeMes(mesStr);
@@ -1606,24 +1623,30 @@
             return true; // hoje/semana tratados por data real
         }
 
-        // Considera venda/ganho quando Ganho = 'Sim' OU Situa\u00e7\u00e3o-Ganho cont\u00e9m 'Ganho'
+        // Considera venda/ganho quando Ganho = 'Sim' OU Situação-Ganho contém 'Ganho'
         function isGanho(row) {
-            return row['Ganho'] === 'Sim' || (row['Situa\u00e7\u00e3o - Ganho'] || '').includes('Ganho');
+            return row['Ganho'] === 'Sim' || (row['Situação - Ganho'] || '').includes('Ganho');
         }
 
-        // Est\u00e1gios que contam como VENDA FINALIZADA (Venda Gerada em diante)
-        const ESTAGIOS_FINALIZADA = ['Venda Gerada', 'Emitir NF', 'Recebido 1', '1\u00ba Parte NF', '1o Parte NF', '1 Parte NF', 'Faturada', 'Recebido Inter', 'Recebido Int'];
-        function isVendaFinalizada(row) {
+        // GERAL ("informadas" no sentido amplo) = TODAS as vendas ganhas no mês,
+        // menos Cancelado / Em Análise. É a "base completa" (funil/conversões usam esta).
+        function isVendaGanhaReal(row) {
             if (!isGanho(row)) return false;
-            const s = row['Situa\u00e7\u00e3o - Ganho'] || '';
-            return ESTAGIOS_FINALIZADA.some(k => s.includes(k));
+            const s = row['Situação - Ganho'] || '';
+            return !s.includes('Cancelado') && !s.includes('Em Análise');
         }
-        // Venda informada (pendente) = APENAS "Venda Informada"
-        function isVendaInformada(row) {
-            return (row['Situa\u00e7\u00e3o - Ganho'] || '').includes('Venda Informada');
+        // VENDA FINALIZADA = base geral, EXCETO o status "Venda Informada".
+        // (Acompanhar, Filtragem, Venda Gerada, Emitir NF, Faturada, Recebido... TODOS contam.)
+        function isVendaFinalizada(row) {
+            return isVendaGanhaReal(row) && !(row['Situação - Ganho'] || '').includes('Venda Informada');
+        }
+        // Predicado sensível ao TOGGLE (Gerais x Finalizadas). Usado em cartões,
+        // rankings e destaques. Funil e conversões NÃO usam isto (ficam sempre na base geral).
+        function isVendaModo(row) {
+            return vendasMode === 'finalizadas' ? isVendaFinalizada(row) : isVendaGanhaReal(row);
         }
 
-        // Retorna VGV num\u00e9rico de uma linha
+        // Retorna VGV numérico de uma linha
         function getVGV(row) {
             const v = row['VGV'];
             if (!v) return 0;
@@ -1675,6 +1698,9 @@
             loadCorretorRoster();
             loadMetaDiaria();
             loadMetasMensais();
+            const savedVendasMode = localStorage.getItem(`${appId}-vendas-mode`);
+            if (savedVendasMode === 'gerais' || savedVendasMode === 'finalizadas') vendasMode = savedVendasMode;
+            updateVendasModeUI();
             const savedUrl = localStorage.getItem(`${appId}-gsheets-url`) || googleSheetsUrl;
             if (savedUrl) {
                 googleSheetsUrl = savedUrl;
@@ -1691,7 +1717,7 @@
             document.getElementById('sourceBadge').innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span> DEMO`;
             document.getElementById('sourceBadge').className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 flex items-center gap-1";
             
-            showToast("Dados de Demonstra\u00e7\u00e3o (Ano de 2026) carregados com sucesso!");
+            showToast("Dados de Demonstração (Ano de 2026) carregados com sucesso!");
             document.getElementById('connectionModal').classList.add('hidden');
             
             processData();
@@ -1706,7 +1732,7 @@
         function connectGoogleSheets() {
             const urlInput = document.getElementById('sheetUrlInput').value.trim();
             if (!urlInput) {
-                showToast("Por favor, insira um link de publica\u00e7\u00e3o v\u00e1lido.", true);
+                showToast("Por favor, insira um link de publicação válido.", true);
                 return;
             }
 
@@ -1718,14 +1744,14 @@
         function processSheetCSV(csvText) {
             const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
             if (!results.data || results.data.length === 0 || results.data[0].ID === undefined) {
-                showToast("Erro: estrutura de colunas inv\u00e1lida.", true);
+                showToast("Erro: estrutura de colunas inválida.", true);
                 showEmptyState();
                 return;
             }
             applyParsedRows(results.data);
         }
 
-        // Anexa um par\u00e2metro \u00fanico para furar o cache do navegador/Google (dados sempre frescos)
+        // Anexa um parâmetro único para furar o cache do navegador/Google (dados sempre frescos)
         function cacheBust(url) {
             const sep = url.includes('?') ? '&' : '?';
             return `${url}${sep}_cb=${Date.now()}`;
@@ -1734,7 +1760,7 @@
         function fetchFromGoogleSheets(url) {
             showToast("A sincronizar com o Google Sheets...");
 
-            // M\u00e9todo 1: PapaParse download direto (com cache-buster)
+            // Método 1: PapaParse download direto (com cache-buster)
             Papa.parse(cacheBust(url), {
                 download: true,
                 header: true,
@@ -1795,7 +1821,7 @@
                 }
             }
             if (silent) { updateSyncStatusUI("counting"); }
-            else { showToast("Erro de liga\u00e7\u00e3o. Verifique se a planilha est\u00e1 publicada na web.", true); showEmptyState(); }
+            else { showToast("Erro de ligação. Verifique se a planilha está publicada na web.", true); showEmptyState(); }
         }
 
         function showEmptyState() {
@@ -1808,7 +1834,7 @@
         }
 
         // =========================================================================
-        // \u2728 NOVO: ENGINE DE AUTO-ATUALIZA\u00c7\u00c3O EM TEMPO REAL (REAL-TIME SYNC) \u2728
+        // ✨ NOVO: ENGINE DE AUTO-ATUALIZAÇÃO EM TEMPO REAL (REAL-TIME SYNC) ✨
         // =========================================================================
         function startAutoRefreshTimer() {
             clearInterval(countdownTimerId);
@@ -1833,7 +1859,7 @@
             }, 1000);
         }
 
-        // Aplica um CSV rec\u00e9m-baixado (auto-refresh silencioso): s\u00f3 re-renderiza se mudou
+        // Aplica um CSV recém-baixado (auto-refresh silencioso): só re-renderiza se mudou
         function applyRefreshedCSV(csvText) {
             const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
             if (!results.data || results.data.length === 0 || results.data[0].ID === undefined || results.data[0].Corretor === undefined) {
@@ -1872,7 +1898,7 @@
                 statusText.textContent = "A atualizar em segundo plano...";
             }
 
-            // M\u00e9todo 1: download direto com cache-buster
+            // Método 1: download direto com cache-buster
             try {
                 Papa.parse(cacheBust(googleSheetsUrl), {
                     download: true,
@@ -1901,23 +1927,23 @@
 
             if (isMockDataActive) {
                 indicator.className = "h-2 w-2 rounded-full bg-amber-500 animate-pulse";
-                text.textContent = "Modo de Demonstra\u00e7\u00e3o Ativo (Simula\u00e7\u00e3o)";
+                text.textContent = "Modo de Demonstração Ativo (Simulação)";
                 return;
             }
 
             const rate = parseInt(document.getElementById('autoRefreshSelect').value);
             if (rate === 0) {
                 indicator.className = "h-2 w-2 rounded-full bg-slate-500";
-                text.textContent = "Auto-atualiza\u00e7\u00e3o desativada";
+                text.textContent = "Auto-atualização desativada";
                 return;
             }
 
             if (status === "counting") {
                 indicator.className = "h-2 w-2 rounded-full bg-brand-500 animate-pulse";
-                text.textContent = `Sincronizado. Nova verifica\u00e7\u00e3o em ${secondsLeft}s`;
+                text.textContent = `Sincronizado. Nova verificação em ${secondsLeft}s`;
             } else if (status === "error") {
                 indicator.className = "h-2 w-2 rounded-full bg-rose-500 animate-bounce";
-                text.textContent = "Falha ao conectar \u00e0 folha de c\u00e1lculo";
+                text.textContent = "Falha ao conectar à folha de cálculo";
             }
         }
 
@@ -1925,10 +1951,10 @@
             localStorage.setItem(`${appId}-refresh-rate`, val);
             startAutoRefreshTimer();
             const label = val === '0' ? 'desativada' : `${val}s`;
-            showToast(`Frequ\u00eancia de atualiza\u00e7\u00e3o: ${label}`);
+            showToast(`Frequência de atualização: ${label}`);
         }
 
-        // Restaura a frequ\u00eancia salva (mant\u00e9m a prefer\u00eancia entre sess\u00f5es)
+        // Restaura a frequência salva (mantém a preferência entre sessões)
         function restoreRefreshRate() {
             const saved = localStorage.getItem(`${appId}-refresh-rate`);
             if (saved !== null) {
@@ -1937,9 +1963,9 @@
             }
         }
 
-        // === SINCRONIZA\u00c7\u00c3O FULL-TIME: atualiza ao voltar o foco e ao reconectar ===
+        // === SINCRONIZAÇÃO FULL-TIME: atualiza ao voltar o foco e ao reconectar ===
         // Navegadores congelam timers em abas em segundo plano (ex: TV/monitor);
-        // ao reexibir a aba, for\u00e7a uma atualiza\u00e7\u00e3o imediata para nunca ficar defasado.
+        // ao reexibir a aba, força uma atualização imediata para nunca ficar defasado.
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && !isMockDataActive && googleSheetsUrl) {
                 silentFetchFromGoogleSheets();
@@ -1975,8 +2001,8 @@
                 if (row.Equipe) equipes.add(row.Equipe);
                 if (row.Construtora) construtoras.add(row.Construtora);
                 if (row.Empreendimento) empreendimentos.add(row.Empreendimento);
-                if (row['M\u00eas Cadastro']) meses.add(row['M\u00eas Cadastro']);
-                if (row['M\u00eas Ganho']) meses.add(row['M\u00eas Ganho']);
+                if (row['Mês Cadastro']) meses.add(row['Mês Cadastro']);
+                if (row['Mês Ganho']) meses.add(row['Mês Ganho']);
 
                 const dateCad = parseDate(row['Data Cadastro']);
                 if (dateCad) {
@@ -2026,6 +2052,29 @@
             applyFilters();
         }
 
+        function setVendasMode(mode) {
+            vendasMode = (mode === 'finalizadas') ? 'finalizadas' : 'gerais';
+            localStorage.setItem(`${appId}-vendas-mode`, vendasMode);
+            updateVendasModeUI();
+            applyFilters();
+        }
+
+        function updateVendasModeUI() {
+            const base = "mode-btn px-4 py-1.5 rounded-lg text-xs font-bold transition";
+            const ger = document.getElementById('btn-mode-gerais');
+            const fin = document.getElementById('btn-mode-finalizadas');
+            if (ger && fin) {
+                ger.className = base + (vendasMode === 'gerais' ? ' bg-brand-500 text-white shadow-lg shadow-brand-500/10' : ' text-slate-400 hover:text-slate-200');
+                fin.className = base + (vendasMode === 'finalizadas' ? ' bg-amber-500 text-white shadow-lg shadow-amber-500/10' : ' text-slate-400 hover:text-slate-200');
+            }
+            const hint = document.getElementById('vendasModeHint');
+            if (hint) {
+                hint.textContent = vendasMode === 'finalizadas'
+                    ? 'Cartões, VGV, ticket, metas e rankings em VENDAS FINALIZADAS (geral menos "Venda Informada"). Funil e conversões usam sempre a base completa.'
+                    : 'Cartões, VGV, ticket, metas e rankings em TODAS as vendas do mês (gerais). Funil e conversões usam sempre a base completa.';
+            }
+        }
+
         function clearAllFilters() {
             document.getElementById('filterCorretor').value = "";
             document.getElementById('filterEquipe').value = "";
@@ -2047,16 +2096,16 @@
             const selAno = document.getElementById('filterAno').value;
             const selSemana = document.getElementById('filterSemana').value;
 
-            // Se filtro de m\u00eas ativo, usa esse m\u00eas como refer\u00eancia para KPIs
+            // Se filtro de mês ativo, usa esse mês como referência para KPIs
             let referenceDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             if (selMes) {
                 const mesNomeRef = normalizeMes(selMes);
                 const anoRef = getMesAno(selMes) || referenceDate.getFullYear();
-                const monthMap = { 'Janeiro':0,'Fevereiro':1,'Mar\u00e7o':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
+                const monthMap = { 'Janeiro':0,'Fevereiro':1,'Março':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
                 const monthIdx = monthMap[mesNomeRef];
                 if (monthIdx !== undefined) referenceDate = new Date(anoRef, monthIdx, 15);
             }
-            // Guarda globalmente para drawTables() (chamado tamb\u00e9m pela busca) usar a mesma refer\u00eancia
+            // Guarda globalmente para drawTables() (chamado também pela busca) usar a mesma referência
             currentRefDate = referenceDate;
 
             filteredDataset = dataset.filter(row => {
@@ -2065,14 +2114,14 @@
                 if (selConstrutora && row.Construtora !== selConstrutora) return false;
                 if (selEmpreendimento && row.Empreendimento !== selEmpreendimento) return false;
 
-                // Inclui linha se entrou no m\u00eas (M\u00eas Cadastro) OU fechou no m\u00eas (M\u00eas Ganho)
+                // Inclui linha se entrou no mês (Mês Cadastro) OU fechou no mês (Mês Ganho)
                 if (selMes) {
-                    const bateCadastro = row['M\u00eas Cadastro'] === selMes;
-                    const bateGanho = isGanho(row) && row['M\u00eas Ganho'] === selMes;
+                    const bateCadastro = row['Mês Cadastro'] === selMes;
+                    const bateGanho = isGanho(row) && row['Mês Ganho'] === selMes;
                     if (!bateCadastro && !bateGanho) return false;
                 }
 
-                const anoRow = getMesAno(row['M\u00eas Cadastro']);
+                const anoRow = getMesAno(row['Mês Cadastro']);
                 if (selAno && anoRow && anoRow.toString() !== selAno.toString()) return false;
 
                 const dateCad = parseDate(row['Data Cadastro']);
@@ -2127,71 +2176,77 @@
             return true;
         }
 
-        let kpiValues = { analyses: 0, approvals: 0, sales: 0, vgv: 0, salesInformada: 0, vgvInformada: 0 };
-        let currentRefDate = new Date(); // refer\u00eancia de per\u00edodo partilhada (definida em applyFilters)
+        let kpiValues = { analyses: 0, approvals: 0, sales: 0, vgv: 0, salesGeral: 0, vgvGeral: 0, salesFinal: 0, vgvFinal: 0, salesView: 0, vgvView: 0 };
+        let currentRefDate = new Date(); // referência de período partilhada (definida em applyFilters)
 
         function calculateKPIs(refDate) {
             let analysesCount = 0;
             let approvalsCount = 0;
-            let salesCount = 0;       // FINALIZADAS (Venda Gerada em diante)
-            let totalVgv = 0;         // VGV finalizado
-            let informadaCount = 0;   // ganho informado, ainda n\u00e3o finalizado
-            let vgvInformada = 0;
+            let salesGeral = 0;       // GERAL: todas as vendas ganhas no mês (base completa)
+            let vgvGeral = 0;
+            let salesFinal = 0;       // FINALIZADAS: geral menos "Venda Informada"
+            let vgvFinal = 0;
 
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
 
             filteredDataset.forEach(row => {
-                // An\u00e1lises e Aprova\u00e7\u00f5es: por safra (M\u00eas Cadastro)
+                // Análises e Aprovações: por safra (Mês Cadastro)
                 const safraMatch = useMesRef
-                    ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDate)
+                    ? checkMesPeriodMatch(row['Mês Cadastro'], currentPeriod, refDate)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDate);
                 if (safraMatch) {
                     analysesCount++;
-                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) approvalsCount++;
+                    if ((row['Situação - Analise'] || '').includes('Aprovado')) approvalsCount++;
                 }
 
-                // Vendas e VGV: por M\u00eas Ganho (faturamento)
-                if (isGanho(row)) {
+                // Vendas e VGV: por Mês Ganho. Geral = todas as ganhas; Finalizada = geral sem "Venda Informada".
+                if (isVendaGanhaReal(row)) {
                     const ganhoMatch = useMesRef
-                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDate)
+                        ? checkMesPeriodMatch(row['Mês Ganho'], currentPeriod, refDate)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDate);
                     if (ganhoMatch) {
-                        if (isVendaFinalizada(row)) {
-                            salesCount++;
-                            totalVgv += getVGV(row);
-                        } else if (isVendaInformada(row)) {
-                            informadaCount++;
-                            vgvInformada += getVGV(row);
-                        }
+                        const v = getVGV(row);
+                        salesGeral++; vgvGeral += v;
+                        if (isVendaFinalizada(row)) { salesFinal++; vgvFinal += v; }
                     }
                 }
             });
 
             kpiValues.analyses = analysesCount;
             kpiValues.approvals = approvalsCount;
-            kpiValues.sales = salesCount;
-            kpiValues.vgv = totalVgv;
-            kpiValues.salesInformada = informadaCount;
-            kpiValues.vgvInformada = vgvInformada;
+            kpiValues.salesGeral = salesGeral;
+            kpiValues.vgvGeral = vgvGeral;
+            kpiValues.salesFinal = salesFinal;
+            kpiValues.vgvFinal = vgvFinal;
+            // Funil, conversões, alertas e relatórios usam a BASE COMPLETA (geral), fixa (não muda com o toggle).
+            kpiValues.sales = salesGeral;
+            kpiValues.vgv = vgvGeral;
+
+            // Modo de visualização (toggle): cartões Vendas/VGV/Ticket seguem o modo escolhido.
+            const isFinal = vendasMode === 'finalizadas';
+            const salesView = isFinal ? salesFinal : salesGeral;
+            const vgvView = isFinal ? vgvFinal : vgvGeral;
+            kpiValues.salesView = salesView;
+            kpiValues.vgvView = vgvView;
 
             document.getElementById('kpiAnalises').textContent = analysesCount;
             document.getElementById('kpiAprovacoes').textContent = approvalsCount;
-            document.getElementById('kpiVendas').textContent = salesCount;
-            document.getElementById('kpiVgv').textContent = formatBRL(totalVgv);
+            document.getElementById('kpiVendas').textContent = salesView;
+            document.getElementById('kpiVgv').textContent = formatBRL(vgvView);
 
-            const periodLabel = `este ${currentPeriod === 'mes' ? 'm\u00eas' : currentPeriod === 'ano' ? 'ano' : currentPeriod}`;
+            const periodLabel = `este ${currentPeriod === 'mes' ? 'mês' : currentPeriod === 'ano' ? 'ano' : currentPeriod}`;
+            const modeTag = isFinal ? 'FINALIZADAS' : 'GERAIS';
             document.getElementById('kpiAnalisesLabel').textContent = periodLabel;
             document.getElementById('kpiAprovacoesLabel').textContent = periodLabel;
-            document.getElementById('kpiVendasLabel').textContent = periodLabel;
-            document.getElementById('kpiVgvLabel').textContent = periodLabel;
+            document.getElementById('kpiVendasLabel').textContent = `${periodLabel} · ${modeTag}`;
+            document.getElementById('kpiVgvLabel').textContent = `${periodLabel} · ${modeTag}`;
 
             const taxaAprov = analysesCount > 0 ? ((approvalsCount / analysesCount) * 100).toFixed(1) : '0';
-            const taxaConvTotal = analysesCount > 0 ? ((salesCount / analysesCount) * 100).toFixed(1) : '0';
-            const ticketMedio = salesCount > 0 ? (totalVgv / salesCount) : 0;
+            const ticketMedio = salesView > 0 ? (vgvView / salesView) : 0;
 
-            document.getElementById('kpiAprovacoesTaxa').textContent = `Convers\u00e3o envio \u2192 aprova\u00e7\u00e3o: ${taxaAprov}%`;
-            document.getElementById('kpiVendasTaxa').textContent = `Finalizadas: ${salesCount} \u00b7 Informadas (pend.): ${informadaCount}`;
-            document.getElementById('kpiVgvTicket').textContent = `Finalizado \u00b7 Informado: ${formatBRL(vgvInformada)}`;
+            document.getElementById('kpiAprovacoesTaxa').textContent = `Conversão envio → aprovação: ${taxaAprov}%`;
+            document.getElementById('kpiVendasTaxa').textContent = `Gerais: ${salesGeral}  ·  Finalizadas: ${salesFinal}`;
+            document.getElementById('kpiVgvTicket').textContent = `Ticket: ${formatBRL(ticketMedio)}  ·  ${isFinal ? 'VGV geral: ' + formatBRL(vgvGeral) : 'VGV final.: ' + formatBRL(vgvFinal)}`;
         }
 
         function formatCurrencyMillions(val) {
@@ -2218,8 +2273,8 @@
             const conv2 = approvals > 0 ? ((sales / approvals) * 100).toFixed(1) : 0;
             const taxaFinal = analyses > 0 ? ((sales / analyses) * 100).toFixed(1) : 0;
 
-            document.getElementById('convAnaliseParaAprovacao').textContent = `${conv1}% de convers\u00e3o`;
-            document.getElementById('convAprovacaoParaGanho').textContent = `${conv2}% de convers\u00e3o`;
+            document.getElementById('convAnaliseParaAprovacao').textContent = `${conv1}% de conversão`;
+            document.getElementById('convAprovacaoParaGanho').textContent = `${conv2}% de conversão`;
             document.getElementById('funnelTaxaFinal').textContent = `${taxaFinal}%`;
 
             document.getElementById('funnelAnalisesBar').style.width = '100%';
@@ -2237,9 +2292,9 @@
                 const equipe = row.Equipe;
                 const vgv = getVGV(row);
 
-                // An\u00e1lises: por safra (M\u00eas Cadastro)
+                // Análises: por safra (Mês Cadastro)
                 const safraMatch = useMes
-                    ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDate)
+                    ? checkMesPeriodMatch(row['Mês Cadastro'], currentPeriod, refDate)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDate);
                 if (safraMatch) {
                     if (!corretoresVolume[corretor]) corretoresVolume[corretor] = { vgv: 0, vendas: 0, analises: 0 };
@@ -2248,10 +2303,10 @@
                     equipesVolume[equipe].analises++;
                 }
 
-                // Vendas e VGV: FINALIZADAS, por M\u00eas Ganho (faturamento)
-                if (isVendaFinalizada(row)) {
+                // Vendas e VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
+                if (isVendaModo(row)) {
                     const ganhoMatch = useMes
-                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDate)
+                        ? checkMesPeriodMatch(row['Mês Ganho'], currentPeriod, refDate)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDate);
                     if (ganhoMatch) {
                         if (!corretoresVolume[corretor]) corretoresVolume[corretor] = { vgv: 0, vendas: 0, analises: 0 };
@@ -2278,10 +2333,10 @@
             let corretoresMes = {};
 
             filteredDataset.forEach(row => {
-                if (isVendaFinalizada(row)) {
-                    // Faturamento finalizado no m\u00eas de refer\u00eancia (M\u00eas Ganho)
-                    const mesGanhoNorm = normalizeMes(row['M\u00eas Ganho']);
-                    const anoGanho = getMesAno(row['M\u00eas Ganho']);
+                if (isVendaModo(row)) {
+                    // Faturamento (conforme modo) no mês de referência (Mês Ganho)
+                    const mesGanhoNorm = normalizeMes(row['Mês Ganho']);
+                    const anoGanho = getMesAno(row['Mês Ganho']);
                     if (mesGanhoNorm === mesAtualNome && (anoGanho === null || anoGanho === mesAtualAno)) {
                         if (!corretoresMes[row.Corretor]) corretoresMes[row.Corretor] = 0;
                         corretoresMes[row.Corretor] += getVGV(row);
@@ -2290,7 +2345,7 @@
             });
 
             for (let corr in corretoresMes) {
-                if (!isCorretorActive(corr)) continue; // desativado n\u00e3o vira destaque
+                if (!isCorretorActive(corr)) continue; // desativado não vira destaque
                 if (corretoresMes[corr] > bestCorretorMesVgv) {
                     bestCorretorMesVgv = corretoresMes[corr];
                     bestCorretorMes = corr;
@@ -2298,7 +2353,7 @@
             }
 
             for (let corr in corretoresVolume) {
-                if (!isCorretorActive(corr)) continue; // desativado n\u00e3o vira destaque
+                if (!isCorretorActive(corr)) continue; // desativado não vira destaque
                 const dataCorr = corretoresVolume[corr];
                 if (dataCorr.vgv > bestCorretorAnoVgv) {
                     bestCorretorAnoVgv = dataCorr.vgv;
@@ -2331,14 +2386,14 @@
             document.getElementById('intelTopCorretorAnoVgv').textContent = `VGV: ${formatCurrency(bestCorretorAnoVgv)}`;
 
             document.getElementById('intelBestConversion').textContent = bestConversionCorretor;
-            document.getElementById('intelBestConversionRate').textContent = `Convers\u00e3o: ${bestConversionRate.toFixed(1)}%`;
+            document.getElementById('intelBestConversionRate').textContent = `Conversão: ${bestConversionRate.toFixed(1)}%`;
         }
 
         // =========================================================================
-        // \u2728 INTEGRA\u00c7\u00d5ES DE INTELIG\u00caNCIA ARTIFICIAL: GEMINI API E TEXT-TO-SPEECH \u2728
+        // ✨ INTEGRAÇÕES DE INTELIGÊNCIA ARTIFICIAL: GEMINI API E TEXT-TO-SPEECH ✨
         // =========================================================================
 
-        async function callGemini(promptText, systemPrompt = "Voc\u00ea \u00e9 um assistente de intelig\u00eancia comercial especialista no mercado imobili\u00e1rio do Brasil.") {
+        async function callGemini(promptText, systemPrompt = "Você é um assistente de inteligência comercial especialista no mercado imobiliário do Brasil.") {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const payload = {
                 contents: [{ parts: [{ text: promptText }] }],
@@ -2362,7 +2417,7 @@
                 await new Promise(resolve => setTimeout(resolve, delay));
                 delay *= 2;
             }
-            throw new Error("Falha ao comunicar com o Gemini ap\u00f3s v\u00e1rias tentativas de retrocesso (backoff).");
+            throw new Error("Falha ao comunicar com o Gemini após várias tentativas de retrocesso (backoff).");
         }
 
         async function generateAIIconicInsights() {
@@ -2393,9 +2448,9 @@
                     }
                 };
 
-                const prompt = `Analise os seguintes dados comerciais da imobili\u00e1ria:\n${JSON.stringify(statsContext, null, 2)}\n\nEscreva um diagn\u00f3stico executivo em portugu\u00eas resumido e focado (m\u00e1ximo de 3 par\u00e1grafos). Destaque os pontos fortes, gargalos de convers\u00e3o de an\u00e1lises para aprova\u00e7\u00f5es, e prescreva exatamente duas a\u00e7\u00f5es t\u00e1ticas imediatas de melhoria de faturamento.`;
+                const prompt = `Analise os seguintes dados comerciais da imobiliária:\n${JSON.stringify(statsContext, null, 2)}\n\nEscreva um diagnóstico executivo em português resumido e focado (máximo de 3 parágrafos). Destaque os pontos fortes, gargalos de conversão de análises para aprovações, e prescreva exatamente duas ações táticas imediatas de melhoria de faturamento.`;
 
-                const systemPrompt = "Voc\u00ea \u00e9 o consultor de BI com IA do Audaz BI imobili\u00e1rio. Seja corporativo, refinado, objetivo e estrat\u00e9gico.";
+                const systemPrompt = "Você é o consultor de BI com IA do Audaz BI imobiliário. Seja corporativo, refinado, objetivo e estratégico.";
 
                 const responseText = await callGemini(prompt, systemPrompt);
                 
@@ -2416,7 +2471,7 @@
             const userQuestionInput = document.getElementById('aiUserQuestion');
             const question = userQuestionInput.value.trim();
             if (!question) {
-                showToast("Por favor, introduza a sua d\u00favida antes de enviar.", true);
+                showToast("Por favor, introduza a sua dúvida antes de enviar.", true);
                 return;
             }
 
@@ -2438,12 +2493,12 @@
                     topEquipe: document.getElementById('intelTopEquipe').textContent,
                 };
 
-                const prompt = `Considere o contexto imobili\u00e1rio ativo:\n${JSON.stringify(statsContext)}\n\nPergunta do gestor: "${question}"\n\nResponda de forma \u00e1gil, precisa e estrat\u00e9gica em portugu\u00eas para este gestor imobili\u00e1rio.`;
+                const prompt = `Considere o contexto imobiliário ativo:\n${JSON.stringify(statsContext)}\n\nPergunta do gestor: "${question}"\n\nResponda de forma ágil, precisa e estratégica em português para este gestor imobiliário.`;
 
                 const responseText = await callGemini(prompt);
                 if (responseText) {
                     lastAIResponseText = responseText;
-                    outputBox.innerHTML = `<strong>D\u00favida:</strong> "${question}"<br><br><strong>\u2728 Resposta Audaz IA:</strong><br>${responseText.replace(/\n/g, '<br>')}`;
+                    outputBox.innerHTML = `<strong>Dúvida:</strong> "${question}"<br><br><strong>✨ Resposta Audaz IA:</strong><br>${responseText.replace(/\n/g, '<br>')}`;
                     userQuestionInput.value = "";
                     btnTTS.classList.remove('hidden');
                     showToast("Resposta do Copilot IA carregada!");
@@ -2495,7 +2550,7 @@
             if (currentAudio) {
                 currentAudio.pause();
                 currentAudio = null;
-                btnPlay.innerHTML = `<i class="fa-solid fa-volume-high"></i> \u2728 Ouvir Relat\u00f3rio`;
+                btnPlay.innerHTML = `<i class="fa-solid fa-volume-high"></i> ✨ Ouvir Relatório`;
                 return;
             }
 
@@ -2508,7 +2563,7 @@
 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
                 const payload = {
-                    contents: [{ parts: [{ text: `Diga de forma muito profissional e executiva em portugu\u00eas: ${cleanSpeechText}` }] }],
+                    contents: [{ parts: [{ text: `Diga de forma muito profissional e executiva em português: ${cleanSpeechText}` }] }],
                     generationConfig: {
                         responseModalalities: ["AUDIO"],
                         speechConfig: {
@@ -2538,7 +2593,7 @@
                 }
 
                 if (!response || !response.ok) {
-                    throw new Error("N\u00e3o foi poss\u00edvel gerar a locu\u00e7\u00e3o de \u00e1udio.");
+                    throw new Error("Não foi possível gerar a locução de áudio.");
                 }
 
                 const result = await response.json();
@@ -2557,7 +2612,7 @@
                     const audioUrl = pcmToWav(base64Audio, sampleRate);
                     currentAudio = new Audio(audioUrl);
                     
-                    btnPlay.innerHTML = `<i class="fa-solid fa-circle-stop text-rose-500"></i> \u2728 Parar \u00c1udio`;
+                    btnPlay.innerHTML = `<i class="fa-solid fa-circle-stop text-rose-500"></i> ✨ Parar Áudio`;
                     btnPlay.disabled = false;
                     loader.classList.add('hidden');
 
@@ -2565,11 +2620,11 @@
 
                     currentAudio.onended = function() {
                         currentAudio = null;
-                        btnPlay.innerHTML = `<i class="fa-solid fa-volume-high"></i> \u2728 Ouvir Relat\u00f3rio`;
+                        btnPlay.innerHTML = `<i class="fa-solid fa-volume-high"></i> ✨ Ouvir Relatório`;
                     };
                 }
             } catch (err) {
-                showToast("Erro de locu\u00e7\u00e3o: " + err.message, true);
+                showToast("Erro de locução: " + err.message, true);
                 btnPlay.disabled = false;
                 loader.classList.add('hidden');
             }
@@ -2577,7 +2632,7 @@
 
         // =========================================================================
 
-        // Ordena\u00e7\u00e3o dos rankings (corretores e equipas)
+        // Ordenação dos rankings (corretores e equipas)
         let rankSort = 'vgv'; // vgv | vendas | aprovacoes | analises
         function rankSorter(a, b) {
             const diff = (b[rankSort] || 0) - (a[rankSort] || 0);
@@ -2587,7 +2642,7 @@
         }
         function setRankSort(campo) {
             rankSort = campo;
-            // atualiza visual dos bot\u00f5es
+            // atualiza visual dos botões
             ['analises','aprovacoes','vendas','vgv'].forEach(k => {
                 const b = document.getElementById('rankSort-' + k);
                 if (b) b.className = (k === campo)
@@ -2605,7 +2660,7 @@
             const useMesTables = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
 
             let corretoresMap = {};
-            // Pr\u00e9-cadastra todos os corretores ATIVOS (assim os pr\u00e9-cadastrados aparecem com 0)
+            // Pré-cadastra todos os corretores ATIVOS (assim os pré-cadastrados aparecem com 0)
             getActiveCorretores().forEach(nome => {
                 corretoresMap[nome] = { corretor: nome, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
             });
@@ -2614,20 +2669,20 @@
                 const c = row.Corretor;
                 if (!isCorretorActive(c)) return; // corretor desativado: fora das listas individuais
 
-                // An\u00e1lises/Aprova\u00e7\u00f5es: por safra (M\u00eas Cadastro)
+                // Análises/Aprovações: por safra (Mês Cadastro)
                 const safraMatch = useMesTables
-                    ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDateTables)
+                    ? checkMesPeriodMatch(row['Mês Cadastro'], currentPeriod, refDateTables)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDateTables);
                 if (safraMatch) {
                     if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     corretoresMap[c].analises++;
-                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) corretoresMap[c].aprovacoes++;
+                    if ((row['Situação - Analise'] || '').includes('Aprovado')) corretoresMap[c].aprovacoes++;
                 }
 
-                // Vendas/VGV: FINALIZADAS, por M\u00eas Ganho (faturamento)
-                if (isVendaFinalizada(row)) {
+                // Vendas/VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
+                if (isVendaModo(row)) {
                     const ganhoMatch = useMesTables
-                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDateTables)
+                        ? checkMesPeriodMatch(row['Mês Ganho'], currentPeriod, refDateTables)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDateTables);
                     if (ganhoMatch) {
                         if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
@@ -2656,7 +2711,7 @@
 
                     const rowHtml = `
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
-                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}\u00ba</td>
+                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">${c.corretor}</td>
                             <td class="py-3 text-center text-slate-400">${c.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold">${c.aprovacoes}</td>
@@ -2674,20 +2729,20 @@
                 const eq = row.Equipe;
                 if (!eq) return;
 
-                // An\u00e1lises/Aprova\u00e7\u00f5es: por safra (M\u00eas Cadastro)
+                // Análises/Aprovações: por safra (Mês Cadastro)
                 const safraMatch = useMesTables
-                    ? checkMesPeriodMatch(row['M\u00eas Cadastro'], currentPeriod, refDateTables)
+                    ? checkMesPeriodMatch(row['Mês Cadastro'], currentPeriod, refDateTables)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDateTables);
                 if (safraMatch) {
                     if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].analises++;
-                    if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) equipesMap[eq].aprovacoes++;
+                    if ((row['Situação - Analise'] || '').includes('Aprovado')) equipesMap[eq].aprovacoes++;
                 }
 
-                // Vendas/VGV: FINALIZADAS, por M\u00eas Ganho (faturamento)
-                if (isVendaFinalizada(row)) {
+                // Vendas/VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
+                if (isVendaModo(row)) {
                     const ganhoMatch = useMesTables
-                        ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDateTables)
+                        ? checkMesPeriodMatch(row['Mês Ganho'], currentPeriod, refDateTables)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDateTables);
                     if (ganhoMatch) {
                         if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
@@ -2715,7 +2770,7 @@
 
                     const rowHtml = `
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
-                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}\u00ba</td>
+                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">Equipa ${eq.equipe}</td>
                             <td class="py-3 text-center text-slate-400">${eq.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold">${eq.aprovacoes}</td>
@@ -2737,21 +2792,21 @@
             if (charts.performanceCorretor) charts.performanceCorretor.destroy();
             if (charts.performanceEquipe) charts.performanceEquipe.destroy();
 
-            const mesesOrdem = ['Janeiro', 'Fevereiro', 'Mar\u00e7o', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const mesesOrdem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
             let evolucaoMes = {};
             mesesOrdem.forEach(m => {
                 evolucaoMes[m] = { analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
             });
 
             filteredDataset.forEach(row => {
-                const mesCad = normalizeMes(row['M\u00eas Cadastro']);
-                const mesAprov = normalizeMes(row['M\u00eas Aprova\u00e7\u00e3o']);
-                const mesGanho = normalizeMes(row['M\u00eas Ganho']);
+                const mesCad = normalizeMes(row['Mês Cadastro']);
+                const mesAprov = normalizeMes(row['Mês Aprovação']);
+                const mesGanho = normalizeMes(row['Mês Ganho']);
 
                 if (mesCad && evolucaoMes[mesCad]) {
                     evolucaoMes[mesCad].analises++;
                 }
-                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado') && mesAprov && evolucaoMes[mesAprov]) {
+                if ((row['Situação - Analise'] || '').includes('Aprovado') && mesAprov && evolucaoMes[mesAprov]) {
                     evolucaoMes[mesAprov].aprovacoes++;
                 }
                 if (isGanho(row) && mesGanho && evolucaoMes[mesGanho]) {
@@ -2767,7 +2822,7 @@
             let dataVendas = activeLabels.map(m => evolucaoMes[m].vendas);
             let dataVgv = activeLabels.map(m => evolucaoMes[m].vgv);
 
-            // 1. Gr\u00e1fico de Evolu\u00e7\u00e3o Operacional - Otimiza\u00e7\u00e3o de Contraste e Espessura
+            // 1. Gráfico de Evolução Operacional - Otimização de Contraste e Espessura
             const ctxEvol = document.getElementById('chartEvolucaoMensal').getContext('2d');
             charts.evolucaoMensal = new Chart(ctxEvol, {
                 type: 'line',
@@ -2775,7 +2830,7 @@
                     labels: activeLabels,
                     datasets: [
                         {
-                            label: 'An\u00e1lises Enviadas',
+                            label: 'Análises Enviadas',
                             data: dataAnalises,
                             borderColor: '#38bdf8', 
                             backgroundColor: 'rgba(56, 189, 248, 0.08)',
@@ -2789,7 +2844,7 @@
                             fill: true
                         },
                         {
-                            label: 'Aprova\u00e7\u00f5es',
+                            label: 'Aprovações',
                             data: dataAprovacoes,
                             borderColor: '#fb923c', 
                             backgroundColor: 'rgba(251, 146, 60, 0.05)',
@@ -2843,7 +2898,7 @@
                 }
             });
 
-            // 2. Gr\u00e1fico de Evolu\u00e7\u00e3o de VGV - Refor\u00e7o de Cor e Contraste
+            // 2. Gráfico de Evolução de VGV - Reforço de Cor e Contraste
             const ctxVgv = document.getElementById('chartEvolucaoVgv').getContext('2d');
             charts.evolucaoVgv = new Chart(ctxVgv, {
                 type: 'bar',
@@ -2886,7 +2941,7 @@
                 const c = row.Corretor;
                 if (!corrData[c]) corrData[c] = { analises: 0, aprovacoes: 0, vendas: 0 };
                 corrData[c].analises++;
-                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) corrData[c].aprovacoes++;
+                if ((row['Situação - Analise'] || '').includes('Aprovado')) corrData[c].aprovacoes++;
                 if (isGanho(row)) corrData[c].vendas++;
             });
 
@@ -2895,7 +2950,7 @@
                 ...corrData[k]
             })).sort((a,b)=> b.vendas - a.vendas).slice(0, 5);
 
-            // 3. Gr\u00e1fico de Performance por Corretor - Uniformidade de Cores e Alto Contraste
+            // 3. Gráfico de Performance por Corretor - Uniformidade de Cores e Alto Contraste
             const ctxCorr = document.getElementById('chartPerformanceCorretor').getContext('2d');
             charts.performanceCorretor = new Chart(ctxCorr, {
                 type: 'bar',
@@ -2903,13 +2958,13 @@
                     labels: topCorretores.map(t => t.name),
                     datasets: [
                         {
-                            label: 'An\u00e1lises',
+                            label: 'Análises',
                             data: topCorretores.map(t => t.analises),
                             backgroundColor: '#38bdf8', 
                             borderRadius: 4
                         },
                         {
-                            label: 'Aprova\u00e7\u00f5es',
+                            label: 'Aprovações',
                             data: topCorretores.map(t => t.aprovacoes),
                             backgroundColor: '#fb923c', 
                             borderRadius: 4
@@ -3030,9 +3085,9 @@
                 alerts.push({
                     type: 'danger',
                     icon: 'fa-user-clock text-rose-400',
-                    title: 'Inatividade Comercial Cr\u00edtica',
-                    desc: `<strong>${topInativo.name}</strong> est\u00e1 h\u00e1 <strong>${topInativo.dias} dias</strong> sem fechar novos contratos na carteira imobili\u00e1ria.`,
-                    action: 'Reuni\u00e3o de Alinhamento'
+                    title: 'Inatividade Comercial Crítica',
+                    desc: `<strong>${topInativo.name}</strong> está há <strong>${topInativo.dias} dias</strong> sem fechar novos contratos na carteira imobiliária.`,
+                    action: 'Reunião de Alinhamento'
                 });
             }
 
@@ -3041,8 +3096,8 @@
                 alerts.push({
                     type: 'warning',
                     icon: 'fa-folder-open text-amber-400',
-                    title: 'Falta de Prospec\u00e7\u00e3o Recente',
-                    desc: `<strong>${topInativoCad.name}</strong> est\u00e1 h\u00e1 <strong>${topInativoCad.dias} dias</strong> sem dar entrada em propostas de an\u00e1lise documental.`,
+                    title: 'Falta de Prospecção Recente',
+                    desc: `<strong>${topInativoCad.name}</strong> está há <strong>${topInativoCad.dias} dias</strong> sem dar entrada em propostas de análise documental.`,
                     action: 'Reavaliar Pipeline de Leads'
                 });
             }
@@ -3072,8 +3127,8 @@
                         type: 'info',
                         icon: 'fa-chart-pie text-sky-400',
                         title: `Desempenho Equipa ${eq}`,
-                        desc: `Faturamento abaixo da m\u00e9dia da empresa de ${formatCurrency(mediaVgv)}. Atual acumulado: ${formatCurrency(equipesSoma[eq])}.`,
-                        action: 'Mentoria com L\u00edder'
+                        desc: `Faturamento abaixo da média da empresa de ${formatCurrency(mediaVgv)}. Atual acumulado: ${formatCurrency(equipesSoma[eq])}.`,
+                        action: 'Mentoria com Líder'
                     });
                 }
             });
@@ -3094,7 +3149,7 @@
                     type: 'success',
                     icon: 'fa-award text-emerald-400',
                     title: 'Meta Mensal Superada!',
-                    desc: `Parab\u00e9ns \u00e0 equipa! A meta de R$ 5.0M foi batida. VGV Consolidado: <strong>${formatCurrency(kpiValues.vgv)}</strong>.`,
+                    desc: `Parabéns à equipa! A meta de R$ 5.0M foi batida. VGV Consolidado: <strong>${formatCurrency(kpiValues.vgv)}</strong>.`,
                     action: 'Criar Nova Meta'
                 });
             }
@@ -3123,21 +3178,21 @@
             });
         }
 
-        // Detalhes do calend\u00e1rio por m\u00e9trica (an\u00e1lises / aprovados / vendas)
+        // Detalhes do calendário por métrica (análises / aprovados / vendas)
         let calDetail = {
             analises:  { cell: {}, day: {}, month: [] },
             aprovados: { cell: {}, day: {}, month: [] },
             vendas:    { cell: {}, day: {}, month: [] }
         };
-        // Mantidos por compatibilidade (apontam para an\u00e1lises)
+        // Mantidos por compatibilidade (apontam para análises)
         let calendarDetailsMap = {};
         let calendarDayDetails = {};
         let calendarMonthDetails = [];
         let calendarMetric = 'analises'; // 'analises' | 'aprovados' | 'vendas'
 
         const CAL_METRICS = {
-            analises:  { key: 'a',  label: 'An\u00e1lises',  sub: 'data cadastro',  color: 'sky',     btnBg: 'bg-sky-500' },
-            aprovados: { key: 'ap', label: 'Aprovados', sub: 'data aprova\u00e7\u00e3o', color: 'amber',   btnBg: 'bg-amber-500' },
+            analises:  { key: 'a',  label: 'Análises',  sub: 'data cadastro',  color: 'sky',     btnBg: 'bg-sky-500' },
+            aprovados: { key: 'ap', label: 'Aprovados', sub: 'data aprovação', color: 'amber',   btnBg: 'bg-amber-500' },
             vendas:    { key: 'v',  label: 'Vendas',    sub: 'data ganho',     color: 'emerald', btnBg: 'bg-emerald-500' }
         };
 
@@ -3167,7 +3222,7 @@
             document.getElementById('calMonthLabel').textContent = `${activeMonth}/${activeYear}`;
 
             const monthMap = {
-                'Janeiro': 1, 'Fevereiro': 2, 'Mar\u00e7o': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
+                'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
                 'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
             };
 
@@ -3176,13 +3231,13 @@
             
             const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
 
-            // Roster de corretores ativos (inclui pr\u00e9-cadastrados, exclui desativados)
+            // Roster de corretores ativos (inclui pré-cadastrados, exclui desativados)
             const activeCorretores = getActiveCorretores();
 
-            // Cada c\u00e9lula guarda 3 m\u00e9tricas: a=an\u00e1lises, ap=aprovados, v=vendas \u2014 cada uma pela sua pr\u00f3pria data
+            // Cada célula guarda 3 métricas: a=análises, ap=aprovados, v=vendas — cada uma pela sua própria data
             let cellMatrix = {};       // `${c}_${d}` -> { a, ap, v }
-            let productionMatrix = {}; // s\u00f3 an\u00e1lises (mant\u00e9m o heatmap e os KPIs de produ\u00e7\u00e3o)
-            // Reinicia os mapas de detalhe das 3 m\u00e9tricas
+            let productionMatrix = {}; // só análises (mantém o heatmap e os KPIs de produção)
+            // Reinicia os mapas de detalhe das 3 métricas
             calDetail = {
                 analises:  { cell: {}, day: {}, month: [] },
                 aprovados: { cell: {}, day: {}, month: [] },
@@ -3212,8 +3267,8 @@
                 const corr = row.Corretor;
                 if (!activeSet.has(corr)) return;
 
-                // An\u00e1lise -> Data Cadastro / M\u00eas Cadastro
-                if (noMes(row['M\u00eas Cadastro'])) {
+                // Análise -> Data Cadastro / Mês Cadastro
+                if (noMes(row['Mês Cadastro'])) {
                     const day = diaDe(row['Data Cadastro']);
                     const key = `${corr}_${day}`;
                     if (cellMatrix[key]) {
@@ -3224,9 +3279,9 @@
                         calDetail.analises.month.push(row);
                     }
                 }
-                // Aprovado -> Data Aprova\u00e7\u00e3o / M\u00eas Aprova\u00e7\u00e3o
-                if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado') && noMes(row['M\u00eas Aprova\u00e7\u00e3o'])) {
-                    const day = diaDe(row['Data Aprova\u00e7\u00e3o']);
+                // Aprovado -> Data Aprovação / Mês Aprovação
+                if ((row['Situação - Analise'] || '').includes('Aprovado') && noMes(row['Mês Aprovação'])) {
+                    const day = diaDe(row['Data Aprovação']);
                     const key = `${corr}_${day}`;
                     if (cellMatrix[key]) {
                         cellMatrix[key].ap++;
@@ -3235,8 +3290,8 @@
                         calDetail.aprovados.month.push(row);
                     }
                 }
-                // Venda -> Data Ganho / M\u00eas Ganho
-                if (isGanho(row) && noMes(row['M\u00eas Ganho'])) {
+                // Venda -> Data Ganho / Mês Ganho
+                if (isGanho(row) && noMes(row['Mês Ganho'])) {
                     const day = diaDe(row['Data Ganho']);
                     const key = `${corr}_${day}`;
                     if (cellMatrix[key]) {
@@ -3248,7 +3303,7 @@
                 }
             });
 
-            // Compat: mant\u00e9m os mapas antigos apontando para an\u00e1lises
+            // Compat: mantém os mapas antigos apontando para análises
             calendarDetailsMap = calDetail.analises.cell;
             calendarDayDetails = calDetail.analises.day;
             calendarMonthDetails = calDetail.analises.month;
@@ -3272,18 +3327,18 @@
             const tableBody = document.getElementById('calendarTableBody');
             tableBody.innerHTML = '';
 
-            let totalDiarioList = Array(daysInMonth + 1).fill(0);       // total an\u00e1lises (heatmap/KPIs)
+            let totalDiarioList = Array(daysInMonth + 1).fill(0);       // total análises (heatmap/KPIs)
             let totalDiaA = Array(daysInMonth + 1).fill(0);
             let totalDiaAp = Array(daysInMonth + 1).fill(0);
             let totalDiaV = Array(daysInMonth + 1).fill(0);
 
-            // M\u00e9trica selecionada (mostra uma de cada vez, separada)
+            // Métrica selecionada (mostra uma de cada vez, separada)
             const metricKey = CAL_METRICS[calendarMetric].key; // a | ap | v
             const cor = CAL_METRICS[calendarMetric].color;     // sky | amber | emerald
             atualizarLegendaCalendario();
 
             if (activeCorretores.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor ativo neste per\u00edodo.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor ativo neste período.</td></tr>`;
             } else {
                 activeCorretores.forEach(c => {
                     const cEsc = c.replace(/'/g, "\\'");
@@ -3296,7 +3351,7 @@
                         const cell = cellMatrix[`${c}_${d}`] || { a: 0, ap: 0, v: 0 };
                         const val = cell[metricKey];
                         totMetric += val;
-                        totalDiarioList[d] += cell.a; // KPIs de produ\u00e7\u00e3o continuam por an\u00e1lises
+                        totalDiarioList[d] += cell.a; // KPIs de produção continuam por análises
                         totalDiaA[d] += cell.a; totalDiaAp[d] += cell.ap; totalDiaV[d] += cell.v;
 
                         const bgClass = getHeatmapClass(val);
@@ -3306,7 +3361,7 @@
                             </td>`;
                     }
 
-                    const totalClick = totMetric > 0 ? `onclick="openCalendarCorretorDetail('${cEsc}', '${activeMonth}', ${yearNum})" class="p-3 pr-4 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40 cursor-pointer hover:bg-slate-800/60 transition" title="Ver todos os clientes do m\u00eas"` : `class="p-3 pr-4 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40"`;
+                    const totalClick = totMetric > 0 ? `onclick="openCalendarCorretorDetail('${cEsc}', '${activeMonth}', ${yearNum})" class="p-3 pr-4 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40 cursor-pointer hover:bg-slate-800/60 transition" title="Ver todos os clientes do mês"` : `class="p-3 pr-4 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40"`;
                     corretorRowHtml += `<td ${totalClick}>${totMetric}</td>`;
                     corretorRowHtml += `</tr>`;
                     tableBody.insertAdjacentHTML('beforeend', corretorRowHtml);
@@ -3347,8 +3402,8 @@
                     <span class="text-slate-200 font-semibold">${m.label}</span>
                     <span class="text-slate-500">(${m.sub})</span>
                 </div>
-                <span class="text-slate-600">\u2022</span>
-                <span class="text-slate-500">Use os bot\u00f5es acima para alternar entre An\u00e1lises, Aprovados e Vendas.</span>`;
+                <span class="text-slate-600">•</span>
+                <span class="text-slate-500">Use os botões acima para alternar entre Análises, Aprovados e Vendas.</span>`;
         }
 
         function getHeatmapClass(qty) {
@@ -3385,7 +3440,7 @@
 
             if (maxDiaProduction > 0) {
                 document.getElementById('calKpiDiaMaior').textContent = `Dia ${String(maxDiaNum).padStart(2, '0')}/${mesNome}`;
-                document.getElementById('calKpiDiaMaiorQtd').textContent = `${maxDiaProduction} an\u00e1lises enviadas`;
+                document.getElementById('calKpiDiaMaiorQtd').textContent = `${maxDiaProduction} análises enviadas`;
             } else {
                 document.getElementById('calKpiDiaMaior').textContent = "Sem envios";
                 document.getElementById('calKpiDiaMaiorQtd').textContent = "A aguardar dados...";
@@ -3408,7 +3463,7 @@
             });
 
             document.getElementById('calKpiCorrMes').textContent = bestCorretor;
-            document.getElementById('calKpiCorrMesQtd').textContent = `${bestCorretorSoma} an\u00e1lises enviadas`;
+            document.getElementById('calKpiCorrMesQtd').textContent = `${bestCorretorSoma} análises enviadas`;
 
             const referenceDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             let corretoresSemanaMap = {};
@@ -3430,7 +3485,7 @@
             }
 
             document.getElementById('calKpiCorrSemana').textContent = bestCorretorSemana;
-            document.getElementById('calKpiCorrSemanaQtd').textContent = `${bestCorretorSemanaQtd} an\u00e1lises na semana`;
+            document.getElementById('calKpiCorrSemanaQtd').textContent = `${bestCorretorSemanaQtd} análises na semana`;
 
             const numCorretores = corretoresList.length;
             if (numCorretores > 0 && daysCount > 0) {
@@ -3443,27 +3498,27 @@
             document.getElementById('calKpiDiasZero').textContent = diasZeradosCount;
         }
 
-        // Renderiza o modal de detalhes do calend\u00e1rio (gen\u00e9rico)
+        // Renderiza o modal de detalhes do calendário (genérico)
         function renderCalendarDetail(nome, dataStr, rows, showCorretor) {
             document.getElementById('detailCorrName').textContent = nome;
             document.getElementById('detailCorrDate').textContent = dataStr;
             const unidade = calendarMetric === 'aprovados' ? (rows.length === 1 ? 'aprovado' : 'aprovados')
                           : calendarMetric === 'vendas' ? (rows.length === 1 ? 'venda' : 'vendas')
-                          : (rows.length === 1 ? 'an\u00e1lise' : 'an\u00e1lises');
+                          : (rows.length === 1 ? 'análise' : 'análises');
             document.getElementById('detailCorrTotal').textContent = `${rows.length} ${unidade}`;
 
             const tableBody = document.getElementById('detailTableBody');
             tableBody.innerHTML = '';
 
             if (rows.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhuma produ\u00e7\u00e3o registrada neste per\u00edodo.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhuma produção registrada neste período.</td></tr>`;
             } else {
                 rows.forEach(r => {
                     const idText = r.ID || '-';
                     const clienteText = r.Cliente || '-';
                     const construtoraText = r.Construtora || '-';
                     const empText = r.Empreendimento || '-';
-                    const sitText = r['Situa\u00e7\u00e3o - Analise'] || '-';
+                    const sitText = r['Situação - Analise'] || '-';
                     const vgvText = formatCurrency(parseFloat(r.VGV) || 0);
 
                     let situationClass = "text-slate-400";
@@ -3489,35 +3544,35 @@
             document.getElementById('calendarDetailModal').classList.remove('hidden');
         }
 
-        // Sufixo do t\u00edtulo conforme a m\u00e9trica ativa do calend\u00e1rio
+        // Sufixo do título conforme a métrica ativa do calendário
         function metricaDetalheLabel() {
             if (calendarMetric === 'aprovados') return { tit: 'Aprovados', verbo: 'aprovados' };
             if (calendarMetric === 'vendas') return { tit: 'Vendas', verbo: 'fechadas' };
-            return { tit: 'An\u00e1lises', verbo: 'enviadas' };
+            return { tit: 'Análises', verbo: 'enviadas' };
         }
 
-        // Detalhe de uma c\u00e9lula (corretor + dia) \u2014 respeita a m\u00e9trica ativa
+        // Detalhe de uma célula (corretor + dia) — respeita a métrica ativa
         function openCalendarCellDetail(corretor, dia, mes, ano) {
             const m = calDetail[calendarMetric] || calDetail.analises;
             const rows = m.cell[`${corretor}_${dia}`] || [];
             const lbl = metricaDetalheLabel();
-            renderCalendarDetail(`${corretor} \u2014 ${lbl.tit}`, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, false);
+            renderCalendarDetail(`${corretor} — ${lbl.tit}`, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, false);
         }
 
-        // Detalhe do total do dia (todos os corretores) \u2014 respeita a m\u00e9trica ativa
+        // Detalhe do total do dia (todos os corretores) — respeita a métrica ativa
         function openCalendarDayDetail(dia, mes, ano) {
             const m = calDetail[calendarMetric] || calDetail.analises;
             const rows = m.day[dia] || [];
             const lbl = metricaDetalheLabel();
-            renderCalendarDetail(`Todos os corretores \u2014 ${lbl.tit}`, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, true);
+            renderCalendarDetail(`Todos os corretores — ${lbl.tit}`, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, true);
         }
 
-        // Detalhe do total geral do m\u00eas \u2014 respeita a m\u00e9trica ativa
+        // Detalhe do total geral do mês — respeita a métrica ativa
         function openCalendarMonthDetail(mes, ano) {
             const m = calDetail[calendarMetric] || calDetail.analises;
             const rows = m.month || [];
             const lbl = metricaDetalheLabel();
-            renderCalendarDetail(`Todos os corretores \u2014 ${lbl.tit}`, `${mes} de ${ano} (m\u00eas inteiro)`, rows, true);
+            renderCalendarDetail(`Todos os corretores — ${lbl.tit}`, `${mes} de ${ano} (mês inteiro)`, rows, true);
         }
 
         // Destaca a linha do corretor e escurece as demais ao clicar no nome
@@ -3537,17 +3592,17 @@
             }
         }
 
-        // Detalhe de TODOS os clientes do corretor no m\u00eas (total da linha) \u2014 respeita a m\u00e9trica ativa
+        // Detalhe de TODOS os clientes do corretor no mês (total da linha) — respeita a métrica ativa
         function openCalendarCorretorDetail(corretor, mes, ano) {
             const m = calDetail[calendarMetric] || calDetail.analises;
             let rows = [];
             Object.keys(m.cell).forEach(key => {
-                // chave = `${corretor}_${dia}` \u2014 pega s\u00f3 as c\u00e9lulas deste corretor
+                // chave = `${corretor}_${dia}` — pega só as células deste corretor
                 const idx = key.lastIndexOf('_');
                 if (key.slice(0, idx) === corretor) rows = rows.concat(m.cell[key]);
             });
             const lbl = metricaDetalheLabel();
-            renderCalendarDetail(`${corretor} \u2014 ${lbl.tit}`, `${mes} de ${ano} (total do m\u00eas)`, rows, false);
+            renderCalendarDetail(`${corretor} — ${lbl.tit}`, `${mes} de ${ano} (total do mês)`, rows, false);
         }
 
         function closeCalendarCellDetail() {
