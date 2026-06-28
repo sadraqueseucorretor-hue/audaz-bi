@@ -689,7 +689,7 @@
                     <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2 px-1">
                         <i class="fa-solid fa-ranking-star text-amber-500"></i> Rankings Rápidos — Hoje · Semana · Mês
                     </h3>
-                    <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4"></div>
+                    <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </section>
 
                 <!-- 4. TABELAS DE RANKINGS EXECUTIVOS -->
@@ -1352,14 +1352,24 @@
                 map[nome].vgv += (vgv || 0);
             }
 
-            const anHoje = {}, anSem = {}, apHoje = {}, apSem = {}, vdSem = {}, vdMes = {};
+            // Pré-popula TODOS os corretores ativos com 0 (aparecem mesmo sem registro).
+            let ativos = getActiveCorretores();
+            if (selCorr) ativos = ativos.filter(n => n === selCorr);
+            const novoMapa = () => { const m = {}; ativos.forEach(n => { m[n] = { count: 0, vgv: 0 }; }); return m; };
+            const anHoje = novoMapa(), anSem = novoMapa(), anMes = novoMapa(), apHoje = novoMapa(), apSem = novoMapa(), apMes = novoMapa(), vdSem = novoMapa(), vdMes = novoMapa();
+            const ehMesCadastro = (row) => {
+                const anoC = getMesAno(row['Mês Cadastro']);
+                return normalizeMes(row['Mês Cadastro']) === mesAtual && (anoC === null || anoC === anoAtual);
+            };
             base.forEach(row => {
                 const c = row.Corretor;
                 if (checkPeriodMatch(row['Data Cadastro'], 'hoje', refDate)) addTo(anHoje, c, 0);
                 if (checkPeriodMatch(row['Data Cadastro'], 'semana', refDate)) addTo(anSem, c, 0);
+                if (ehMesCadastro(row)) addTo(anMes, c, 0);
                 const aprovado = (row['Situação - Analise'] || '').includes('Aprovado');
                 if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'hoje', refDate)) addTo(apHoje, c, 0);
                 if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'semana', refDate)) addTo(apSem, c, 0);
+                if (aprovado && ehMesCadastro(row)) addTo(apMes, c, 0);
                 if (isVendaModo(row)) {
                     const vgv = getVGV(row);
                     if (checkPeriodMatch(row['Data Ganho'], 'semana', refDate)) addTo(vdSem, c, vgv);
@@ -1371,9 +1381,11 @@
             const fmtInt = n => Math.round(n).toLocaleString('pt-BR');
             const cards = [
                 { title: 'Análises · Hoje',     icon: 'fa-file-lines',   col: 'AN', map: anHoje, vgv: false },
-                { title: 'Aprovações · Hoje',   icon: 'fa-circle-check', col: 'AP', map: apHoje, vgv: false },
                 { title: 'Análises · Semana',   icon: 'fa-file-lines',   col: 'AN', map: anSem,  vgv: false },
+                { title: 'Análises · Mês',      icon: 'fa-file-lines',   col: 'AN', map: anMes,  vgv: false },
+                { title: 'Aprovações · Hoje',   icon: 'fa-circle-check', col: 'AP', map: apHoje, vgv: false },
                 { title: 'Aprovações · Semana', icon: 'fa-circle-check', col: 'AP', map: apSem,  vgv: false },
+                { title: 'Aprovações · Mês',    icon: 'fa-circle-check', col: 'AP', map: apMes,  vgv: false },
                 { title: 'Vendas · Semana',     icon: 'fa-trophy',       col: 'VD', map: vdSem,  vgv: true },
                 { title: 'Vendas · Mês',        icon: 'fa-trophy',       col: 'VD', map: vdMes,  vgv: true }
             ];
@@ -1381,8 +1393,10 @@
             grid.innerHTML = cards.map(card => {
                 const list = Object.entries(card.map)
                     .map(([nome, v]) => ({ nome, count: v.count, vgv: v.vgv }))
-                    .sort((a, b) => card.vgv ? (b.vgv - a.vgv) : (b.count - a.count))
-                    .slice(0, 10);
+                    .sort((a, b) => {
+                        const d = card.vgv ? (b.vgv - a.vgv) : (b.count - a.count);
+                        return d !== 0 ? d : a.nome.localeCompare(b.nome);
+                    });
                 const totalCount = Object.values(card.map).reduce((s, v) => s + v.count, 0);
                 const totalVgv = Object.values(card.map).reduce((s, v) => s + v.vgv, 0);
 
@@ -1391,13 +1405,14 @@
                     rows = `<div class="text-center text-[11px] text-slate-500 py-5">Sem registros</div>`;
                 } else {
                     rows = list.map((r, i) => {
+                        const zero = r.count === 0;
                         let pos = 'text-slate-500';
-                        if (i === 0) pos = 'text-amber-400'; else if (i === 1) pos = 'text-slate-300'; else if (i === 2) pos = 'text-amber-600';
-                        return `<div class="flex items-center px-2 py-1.5 rounded hover:bg-slate-800/40 text-xs">
+                        if (!zero && i === 0) pos = 'text-amber-400'; else if (!zero && i === 1) pos = 'text-slate-300'; else if (!zero && i === 2) pos = 'text-amber-600';
+                        return `<div class="flex items-center px-2 py-1.5 rounded hover:bg-slate-800/40 text-xs ${zero ? 'opacity-45' : ''}">
                             <span class="w-7 font-extrabold ${pos}">${i + 1}º</span>
-                            <span class="flex-1 font-semibold text-slate-200 truncate">${r.nome}</span>
-                            <span class="w-9 text-right font-bold text-slate-300">${r.count}</span>
-                            ${card.vgv ? `<span class="w-24 text-right font-semibold text-indigo-300">${fmtInt(r.vgv)}</span>` : ''}
+                            <span class="flex-1 font-semibold ${zero ? 'text-slate-400' : 'text-slate-200'} truncate">${r.nome}</span>
+                            <span class="w-9 text-right font-bold ${zero ? 'text-slate-500' : 'text-slate-300'}">${r.count}</span>
+                            ${card.vgv ? `<span class="w-24 text-right font-semibold ${zero ? 'text-slate-600' : 'text-indigo-300'}">${fmtInt(r.vgv)}</span>` : ''}
                         </div>`;
                     }).join('');
                 }
