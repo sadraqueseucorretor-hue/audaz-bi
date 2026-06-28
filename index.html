@@ -392,72 +392,68 @@
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
                     <!-- Funil Visual de Vendas -->
-                    <div class="lg:col-span-5 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col justify-between">
+                    <div class="lg:col-span-5 bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col">
                         <div>
-                            <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                                    <i class="fa-solid fa-filter text-brand-500"></i> Funil de Conversão Imobiliária
+                                    <i class="fa-solid fa-filter text-brand-500"></i> Funil de Vendas
                                 </h3>
-                                <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Eficiência Geral</span>
+                                <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Conversão etapa a etapa</span>
                             </div>
 
-                            <div class="space-y-4">
-                                <!-- Etapa 1: Análises -->
-                                <div>
-                                    <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
-                                        <span>1. Análises Enviadas</span>
-                                        <span id="funnelAnalisesQty" class="font-bold">0</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-8 rounded-lg relative overflow-hidden flex items-center justify-center border border-slate-700/50">
-                                        <div id="funnelAnalisesBar" class="bg-gradient-to-r from-blue-600 to-blue-500 h-full absolute left-0 top-0 transition-all duration-500" style="width: 100%"></div>
-                                        <span class="relative z-10 text-[10px] font-bold text-white uppercase tracking-wider">Base de Entrada (100%)</span>
-                                    </div>
-                                </div>
-
-                                <!-- Conversão Interna 1 -->
-                                <div class="flex justify-center -my-2 relative z-10">
-                                    <div class="bg-slate-800 border border-slate-700 text-[10px] text-slate-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
-                                        <i class="fa-solid fa-arrow-down text-teal-400"></i>
-                                        <span id="convAnaliseParaAprovacao">0%</span>
-                                    </div>
-                                </div>
-
-                                <!-- Etapa 2: Aprovações -->
-                                <div>
-                                    <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
-                                        <span>2. Análises Aprovadas</span>
-                                        <span id="funnelAprovacoesQty" class="font-bold">0</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-8 rounded-lg relative overflow-hidden flex items-center justify-center border border-slate-700/50">
-                                        <div id="funnelAprovacoesBar" class="bg-gradient-to-r from-amber-600 to-amber-500 h-full absolute left-0 top-0 transition-all duration-500" style="width: 0%"></div>
-                                        <span class="relative z-10 text-[10px] font-bold text-white uppercase tracking-wider">Aprovação de Crédito</span>
-                                    </div>
-                                </div>
-
-                                <!-- Conversão Interna 2 -->
-                                <div class="flex justify-center -my-2 relative z-10">
-                                    <div class="bg-slate-800 border border-slate-700 text-[10px] text-slate-400 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
-                                        <i class="fa-solid fa-arrow-down text-brand-400"></i>
-                                        <span id="convAprovacaoParaGanho">0%</span>
-                                    </div>
-                                </div>
-
-                                <!-- Etapa 3: Vendas -->
-                                <div>
-                                    <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
-                                        <span>3. Contratos Fechados (Ganho)</span>
-                                        <span id="funnelVendasQty" class="font-bold">0</span>
-                                    </div>
-                                    <div class="w-full bg-slate-800 h-8 rounded-lg relative overflow-hidden flex items-center justify-center border border-slate-700/50">
-                                        <div id="funnelVendasBar" class="bg-gradient-to-r from-brand-600 to-brand-500 h-full absolute left-0 top-0 transition-all duration-500" style="width: 0%"></div>
-                                        <span class="relative z-10 text-[10px] font-bold text-white uppercase tracking-wider">Assinatura do Contrato</span>
-                                    </div>
-                                </div>
+                            <div class="relative">
+                                <svg viewBox="0 0 420 300" class="w-full" style="max-height:300px">
+                                    <defs>
+                                        <linearGradient id="fgBlue" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#3b82f6"/>
+                                        </linearGradient>
+                                        <linearGradient id="fgAmber" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0" stop-color="#d97706"/><stop offset="1" stop-color="#f59e0b"/>
+                                        </linearGradient>
+                                        <linearGradient id="fgGreen" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0" stop-color="#059669"/><stop offset="1" stop-color="#10b981"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <!-- Banda 1: Analises -->
+                                    <polygon points="20,8 400,8 328,92 92,92" fill="url(#fgBlue)"/>
+                                    <text x="210" y="40" text-anchor="middle" fill="#dbeafe" font-size="12" font-weight="700" letter-spacing="1">ANÁLISES</text>
+                                    <text x="210" y="74" text-anchor="middle" fill="#ffffff" font-size="26" font-weight="800" id="funnelAnalisesQty">0</text>
+                                    <!-- Banda 2: Aprovacoes -->
+                                    <polygon points="92,100 328,100 288,184 132,184" fill="url(#fgAmber)"/>
+                                    <text x="210" y="130" text-anchor="middle" fill="#fef3c7" font-size="12" font-weight="700" letter-spacing="1">APROVAÇÕES</text>
+                                    <text x="210" y="162" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="800" id="funnelAprovacoesQty">0</text>
+                                    <!-- Banda 3: Vendas -->
+                                    <polygon points="132,192 288,192 245,276 175,276" fill="url(#fgGreen)"/>
+                                    <text x="210" y="222" text-anchor="middle" fill="#d1fae5" font-size="11" font-weight="700" letter-spacing="1">VENDAS</text>
+                                    <text x="210" y="250" text-anchor="middle" fill="#ffffff" font-size="22" font-weight="800" id="funnelVendasQty">0</text>
+                                    <!-- Badge conversao 1 (Analises -> Aprovacoes) -->
+                                    <rect x="332" y="84" width="74" height="22" rx="11" fill="#dc2626"/>
+                                    <text x="369" y="99" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAnaliseParaAprovacao">0%</text>
+                                    <!-- Badge conversao 2 (Aprovacoes -> Vendas) -->
+                                    <rect x="300" y="176" width="74" height="22" rx="11" fill="#dc2626"/>
+                                    <text x="337" y="191" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAprovacaoParaGanho">0%</text>
+                                </svg>
                             </div>
                         </div>
 
-                        <div class="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                            <span>Taxa de Fecho Total:</span>
+                        <div class="grid grid-cols-2 gap-3 mt-5">
+                            <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3 text-center">
+                                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Ticket Médio</p>
+                                <p class="text-base font-extrabold text-slate-100" id="funnelTicket">R$ 0,00</p>
+                                <p class="text-[9px] text-slate-500">por venda</p>
+                            </div>
+                            <div class="bg-indigo-500/5 rounded-xl border border-indigo-500/20 p-3 text-center">
+                                <p class="text-[10px] text-indigo-300/70 uppercase font-bold tracking-wider">VGV Total</p>
+                                <p class="text-base font-extrabold text-indigo-300" id="funnelVgv">R$ 0,00</p>
+                                <p class="text-[9px] text-slate-500">no período</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 flex items-center justify-between bg-rose-500/5 border border-rose-500/20 rounded-xl px-4 py-2.5">
+                            <span class="text-[11px] font-bold text-rose-300 uppercase tracking-wide flex items-center gap-1.5"><i class="fa-solid fa-hand-holding-dollar"></i> Comissões estimadas (corretor)</span>
+                            <span class="text-sm font-extrabold text-rose-200" id="funnelComissao">R$ 0,00</span>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                            <span>Taxa de fecho total (Análises → Vendas):</span>
                             <span id="funnelTaxaFinal" class="font-bold text-brand-400 text-sm">0%</span>
                         </div>
                     </div>
@@ -591,8 +587,8 @@
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução Histórica do VGV</h3>
-                                <p class="text-[10px] text-slate-500">Volume de vendas líquidas convertidas em Reais (R$)</p>
+                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução dos Ganhos</h3>
+                                <p class="text-[10px] text-slate-500">VGV (barras) e quantidade de ganhos (linha) por mês</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-money-bill-trend-up text-xs"></i>
@@ -1648,7 +1644,11 @@
 
         // Retorna VGV numérico de uma linha
         function getVGV(row) {
-            const v = row['VGV'];
+            return getMoneyField(row, 'VGV');
+        }
+        // Parser genérico de colunas em Reais ("R$ 1.234,56" -> 1234.56). Usado p/ VGV e comissão.
+        function getMoneyField(row, col) {
+            const v = row[col];
             if (!v) return 0;
             if (typeof v === 'number') return v;
             return parseFloat(String(v).replace(/R\$\s?/,'').replace(/\./g,'').replace(',','.').trim()) || 0;
@@ -2186,6 +2186,7 @@
             let vgvGeral = 0;
             let salesFinal = 0;       // FINALIZADAS: geral menos "Venda Informada"
             let vgvFinal = 0;
+            let comissaoCorretorTotal = 0; // comissão estimada do corretor (base geral)
 
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
 
@@ -2207,6 +2208,7 @@
                     if (ganhoMatch) {
                         const v = getVGV(row);
                         salesGeral++; vgvGeral += v;
+                        comissaoCorretorTotal += getMoneyField(row, 'Comissão Corretor');
                         if (isVendaFinalizada(row)) { salesFinal++; vgvFinal += v; }
                     }
                 }
@@ -2218,6 +2220,7 @@
             kpiValues.vgvGeral = vgvGeral;
             kpiValues.salesFinal = salesFinal;
             kpiValues.vgvFinal = vgvFinal;
+            kpiValues.comissaoCorretor = comissaoCorretorTotal;
             // Funil, conversões, alertas e relatórios usam a BASE COMPLETA (geral), fixa (não muda com o toggle).
             kpiValues.sales = salesGeral;
             kpiValues.vgv = vgvGeral;
@@ -2273,13 +2276,15 @@
             const conv2 = approvals > 0 ? ((sales / approvals) * 100).toFixed(1) : 0;
             const taxaFinal = analyses > 0 ? ((sales / analyses) * 100).toFixed(1) : 0;
 
-            document.getElementById('convAnaliseParaAprovacao').textContent = `${conv1}% de conversão`;
-            document.getElementById('convAprovacaoParaGanho').textContent = `${conv2}% de conversão`;
+            document.getElementById('convAnaliseParaAprovacao').textContent = `${conv1}%`;
+            document.getElementById('convAprovacaoParaGanho').textContent = `${conv2}%`;
             document.getElementById('funnelTaxaFinal').textContent = `${taxaFinal}%`;
 
-            document.getElementById('funnelAnalisesBar').style.width = '100%';
-            document.getElementById('funnelAprovacoesBar').style.width = `${Math.min(100, Math.max(8, conv1))}%`;
-            document.getElementById('funnelVendasBar').style.width = `${Math.min(100, Math.max(8, conv2))}%`;
+            // Ticket / VGV / Comissão estimada (base geral, igual aos KPIs e ao funil)
+            const ticket = sales > 0 ? (kpiValues.vgv / sales) : 0;
+            document.getElementById('funnelTicket').textContent = formatBRL(ticket);
+            document.getElementById('funnelVgv').textContent = formatBRL(kpiValues.vgv);
+            document.getElementById('funnelComissao').textContent = formatBRL(kpiValues.comissaoCorretor || 0);
         }
 
         function drawIntelligence(refDate) {
@@ -2904,33 +2909,61 @@
                 type: 'bar',
                 data: {
                     labels: activeLabels,
-                    datasets: [{
-                        label: 'VGV Convertido',
-                        data: dataVgv,
-                        backgroundColor: 'rgba(129, 140, 248, 0.85)', 
-                        borderColor: '#818cf8',
-                        borderWidth: 2,
-                        borderRadius: 6
-                    }]
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'VGV',
+                            data: dataVgv,
+                            backgroundColor: 'rgba(129, 140, 248, 0.85)',
+                            borderColor: '#818cf8',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            yAxisID: 'y',
+                            order: 2
+                        },
+                        {
+                            type: 'line',
+                            label: 'Ganhos (qtd)',
+                            data: dataVendas,
+                            borderColor: '#4ade80',
+                            backgroundColor: '#4ade80',
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#4ade80',
+                            pointBorderColor: '#0b1220',
+                            pointBorderWidth: 2,
+                            tension: 0.3,
+                            yAxisID: 'y1',
+                            order: 1
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: true, labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12, usePointStyle: true } }
                     },
                     scales: {
-                        x: { 
-                            grid: { display: false }, 
-                            ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } } 
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } }
                         },
-                        y: { 
-                            grid: { color: 'rgba(255, 255, 255, 0.12)' }, 
-                            ticks: { 
+                        y: {
+                            position: 'left',
+                            grid: { color: 'rgba(255, 255, 255, 0.12)' },
+                            ticks: {
                                 color: '#cbd5e1',
                                 font: { size: 11, weight: '500' },
                                 callback: function(val) { return `R$ ${(val / 1000000).toFixed(1)}M`; }
-                            } 
+                            }
+                        },
+                        y1: {
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#4ade80', font: { size: 11, weight: '600' }, precision: 0 }
                         }
                     }
                 }
