@@ -1618,9 +1618,9 @@
             const s = row['Situa\u00e7\u00e3o - Ganho'] || '';
             return ESTAGIOS_FINALIZADA.some(k => s.includes(k));
         }
-        // Venda informada = ganho que ainda N\u00c3O foi finalizado (Acompanhar, Venda Informada, Filtragem)
+        // Venda informada (pendente) = APENAS "Venda Informada"
         function isVendaInformada(row) {
-            return isGanho(row) && !isVendaFinalizada(row);
+            return (row['Situa\u00e7\u00e3o - Ganho'] || '').includes('Venda Informada');
         }
 
         // Retorna VGV num\u00e9rico de uma linha
@@ -2159,7 +2159,7 @@
                         if (isVendaFinalizada(row)) {
                             salesCount++;
                             totalVgv += getVGV(row);
-                        } else {
+                        } else if (isVendaInformada(row)) {
                             informadaCount++;
                             vgvInformada += getVGV(row);
                         }
