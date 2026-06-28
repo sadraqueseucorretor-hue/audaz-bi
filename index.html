@@ -635,9 +635,14 @@
 
                 <!-- 3.6 RANKINGS RÁPIDOS (estilo Habitnet): Análises/Aprovações Hoje+Semana+Mês, Vendas Semana+Mês -->
                 <section class="space-y-3">
-                    <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2 px-1">
-                        <i class="fa-solid fa-ranking-star text-amber-500"></i> Rankings Rápidos — Hoje · Semana · Mês
-                    </h3>
+                    <div class="flex items-center justify-between gap-3 px-1">
+                        <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-ranking-star text-amber-500"></i> Rankings Rápidos — Hoje · Semana · Mês
+                        </h3>
+                        <button onclick="toggleRankingsEdit()" id="btnEditRankingsMetas" class="text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
+                            <i class="fa-solid fa-pen"></i> Editar metas
+                        </button>
+                    </div>
                     <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </section>
 
@@ -1191,6 +1196,29 @@
             return nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
         }
 
+        // ====== METAS DOS RANKINGS RÁPIDOS (por card, sobre o total da equipe) ======
+        let rankingsMetas = {}; // { anHoje, anSem, anMes, apHoje, apSem, apMes, vdSem, vdMes }
+        let rankingsEditMode = false;
+        function loadRankingsMetas() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`${appId}-rankings-metas`) || 'null');
+                if (saved) rankingsMetas = saved;
+            } catch (e) {}
+        }
+        function setRankingMeta(key, val) {
+            rankingsMetas[key] = parseInt(String(val).replace(/\D/g, '')) || 0;
+            localStorage.setItem(`${appId}-rankings-metas`, JSON.stringify(rankingsMetas));
+            drawQuickRankings();
+        }
+        function toggleRankingsEdit() {
+            rankingsEditMode = !rankingsEditMode;
+            const btn = document.getElementById('btnEditRankingsMetas');
+            if (btn) btn.innerHTML = rankingsEditMode
+                ? '<i class="fa-solid fa-check"></i> Concluir'
+                : '<i class="fa-solid fa-pen"></i> Editar metas';
+            drawQuickRankings();
+        }
+
         // Rankings rápidos estilo Habitnet: Análises/Aprovações (Hoje e Semana) e Vendas (Semana e Mês).
         // Snapshot por data atual; respeita só os filtros de corretor/equipe/construtora/empreendimento.
         function drawQuickRankings() {
@@ -1247,14 +1275,14 @@
 
             const fmtInt = n => Math.round(n).toLocaleString('pt-BR');
             const cards = [
-                { title: 'Análises · Hoje',     icon: 'fa-file-lines',   col: 'AN', map: anHoje, vgv: false },
-                { title: 'Análises · Semana',   icon: 'fa-file-lines',   col: 'AN', map: anSem,  vgv: false },
-                { title: 'Análises · Mês',      icon: 'fa-file-lines',   col: 'AN', map: anMes,  vgv: false },
-                { title: 'Aprovações · Hoje',   icon: 'fa-circle-check', col: 'AP', map: apHoje, vgv: false },
-                { title: 'Aprovações · Semana', icon: 'fa-circle-check', col: 'AP', map: apSem,  vgv: false },
-                { title: 'Aprovações · Mês',    icon: 'fa-circle-check', col: 'AP', map: apMes,  vgv: false },
-                { title: 'Vendas · Semana',     icon: 'fa-trophy',       col: 'VD', map: vdSem,  vgv: true },
-                { title: 'Vendas · Mês',        icon: 'fa-trophy',       col: 'VD', map: vdMes,  vgv: true }
+                { title: 'Análises · Hoje',     icon: 'fa-file-lines',   col: 'AN', map: anHoje, vgv: false, key: 'anHoje' },
+                { title: 'Análises · Semana',   icon: 'fa-file-lines',   col: 'AN', map: anSem,  vgv: false, key: 'anSem' },
+                { title: 'Análises · Mês',      icon: 'fa-file-lines',   col: 'AN', map: anMes,  vgv: false, key: 'anMes' },
+                { title: 'Aprovações · Hoje',   icon: 'fa-circle-check', col: 'AP', map: apHoje, vgv: false, key: 'apHoje' },
+                { title: 'Aprovações · Semana', icon: 'fa-circle-check', col: 'AP', map: apSem,  vgv: false, key: 'apSem' },
+                { title: 'Aprovações · Mês',    icon: 'fa-circle-check', col: 'AP', map: apMes,  vgv: false, key: 'apMes' },
+                { title: 'Vendas · Semana',     icon: 'fa-trophy',       col: 'VD', map: vdSem,  vgv: true,  key: 'vdSem' },
+                { title: 'Vendas · Mês',        icon: 'fa-trophy',       col: 'VD', map: vdMes,  vgv: true,  key: 'vdMes' }
             ];
 
             grid.innerHTML = cards.map(card => {
@@ -1266,6 +1294,17 @@
                     });
                 const totalCount = Object.values(card.map).reduce((s, v) => s + v.count, 0);
                 const totalVgv = Object.values(card.map).reduce((s, v) => s + v.vgv, 0);
+
+                const meta = rankingsMetas[card.key] || 0;
+                const pct = meta > 0 ? Math.min(100, Math.round((totalCount / meta) * 100)) : 0;
+                const batida = meta > 0 && totalCount >= meta;
+                const totalColor = meta > 0 ? (batida ? 'text-emerald-400' : 'text-amber-300') : 'text-slate-100';
+                const metaPart = rankingsEditMode
+                    ? `<input type="number" min="0" value="${meta || ''}" placeholder="meta" onchange="setRankingMeta('${card.key}', this.value)" class="w-14 bg-slate-950 border border-slate-700 text-[11px] rounded px-1.5 py-0.5 text-slate-200 text-center focus:border-brand-500 outline-none">`
+                    : (meta > 0 ? `<span class="text-slate-500">/ ${meta}</span>` : '');
+                const progresso = (!rankingsEditMode && meta > 0)
+                    ? `<div class="w-full bg-slate-900/70 h-1.5 rounded-full overflow-hidden mt-1.5"><div class="h-full ${batida ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-gradient-to-r from-brand-600 to-brand-500'}" style="width:${pct}%"></div></div><p class="text-[9px] mt-1 ${batida ? 'text-emerald-400' : 'text-amber-400'}">${batida ? `<i class="fa-solid fa-circle-check"></i> Meta batida (${pct}%)` : `Faltam ${meta - totalCount} (${pct}%)`}</p>`
+                    : '';
 
                 let rows;
                 if (list.length === 0) {
@@ -1289,9 +1328,15 @@
                         <i class="fa-solid ${card.icon} text-blue-300 text-xs"></i>
                         <h4 class="text-[11px] font-bold tracking-wider text-white uppercase">${card.title}</h4>
                     </div>
-                    <div class="bg-slate-800/60 px-4 py-2 flex items-center justify-between text-[11px] font-extrabold">
-                        <span class="text-brand-400">AUDAZ</span>
-                        <span class="flex items-center gap-4"><span class="text-slate-100">${totalCount}</span>${card.vgv ? `<span class="text-indigo-300">${fmtInt(totalVgv)}</span>` : ''}</span>
+                    <div class="bg-slate-800/60 px-4 py-2">
+                        <div class="flex items-center justify-between text-[11px] font-extrabold">
+                            <span class="text-brand-400">AUDAZ</span>
+                            <span class="flex items-center gap-3">
+                                <span class="flex items-center gap-1.5"><span class="${totalColor}">${totalCount}</span>${metaPart}</span>
+                                ${card.vgv ? `<span class="text-indigo-300">${fmtInt(totalVgv)}</span>` : ''}
+                            </span>
+                        </div>
+                        ${progresso}
                     </div>
                     <div class="px-2 py-1.5 flex-1">
                         <div class="flex items-center px-2 pb-1 text-[9px] text-slate-500 uppercase font-bold border-b border-slate-800/60 mb-1">
@@ -1608,6 +1653,7 @@
             restoreRefreshRate();
             loadCorretorRoster();
             loadMetasMensais();
+            loadRankingsMetas();
             const savedVendasMode = localStorage.getItem(`${appId}-vendas-mode`);
             if (savedVendasMode === 'gerais' || savedVendasMode === 'finalizadas') vendasMode = savedVendasMode;
             updateVendasModeUI();
