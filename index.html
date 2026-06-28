@@ -1108,7 +1108,7 @@
             const grid = document.getElementById('metasGrid');
             if (!grid) return;
 
-            // Período de referência: mês selecionado no filtro, senão mês atual
+            // Período de referência: mês selecionado no filtro, senão o MÊS COMERCIAL CORRENTE (dos dados).
             const refDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             const selMes = document.getElementById('filterMes') ? document.getElementById('filterMes').value : '';
             let mesNome = getMesName(refDate.getMonth() + 1), ano = refDate.getFullYear(), monthIdx = refDate.getMonth();
@@ -1116,16 +1116,31 @@
             if (selMes) {
                 mesNome = normalizeMes(selMes);
                 ano = getMesAno(selMes) || ano;
-                const mm = { 'Janeiro':0,'Fevereiro':1,'Março':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
-                monthIdx = mm[mesNome] !== undefined ? mm[mesNome] : monthIdx;
+                monthIdx = MESES_IDX[mesNome] !== undefined ? MESES_IDX[mesNome] : monthIdx;
                 mesEhAtual = (monthIdx === refDate.getMonth() && ano === refDate.getFullYear());
+            } else if (!isMockDataActive) {
+                const lc = getLatestCommercialMonth();
+                if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
             }
             const diasNoMes = new Date(ano, monthIdx + 1, 0).getDate();
-            const diaHoje = mesEhAtual ? refDate.getDate() : diasNoMes; // mês passado/futuro = completo
+            // Dias decorridos COM CONTINUIDADE: conta do 1º dia do mês comercial até hoje (pode passar de diasNoMes).
+            let diaHoje;
+            if (!mesEhAtual) {
+                diaHoje = diasNoMes; // mês fechado/selecionado = completo
+            } else {
+                const inicio = new Date(ano, monthIdx, 1);
+                diaHoje = Math.max(1, Math.floor((refDate - inicio) / 86400000) + 1);
+            }
             const fracDecorrida = Math.max(0.01, Math.min(1, diaHoje / diasNoMes));
 
             const lblPer = document.getElementById('metasPeriodoLabel');
-            if (lblPer) lblPer.textContent = mesEhAtual ? `${mesNome}/${ano} — dia ${diaHoje} de ${diasNoMes}` : `${mesNome}/${ano} (mês fechado)`;
+            if (lblPer) {
+                lblPer.textContent = !mesEhAtual
+                    ? `${mesNome}/${ano} (mês fechado)`
+                    : (diaHoje <= diasNoMes
+                        ? `${mesNome}/${ano} — dia ${diaHoje} de ${diasNoMes}`
+                        : `${mesNome}/${ano} — em curso (dia ${diaHoje})`);
+            }
 
             const modeFin = vendasMode === 'finalizadas';
             const cards = [
@@ -1225,8 +1240,10 @@
             const grid = document.getElementById('quickRankingsGrid');
             if (!grid) return;
             const refDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
-            const mesAtual = getMesName(refDate.getMonth() + 1);
-            const anoAtual = refDate.getFullYear();
+            // Mês comercial corrente (último dos dados) para os cards de "Mês"; hoje/semana usam a data real.
+            const lc = !isMockDataActive ? getLatestCommercialMonth() : null;
+            const mesAtual = lc ? lc.nome : getMesName(refDate.getMonth() + 1);
+            const anoAtual = lc ? lc.ano : refDate.getFullYear();
 
             const selCorr = document.getElementById('filterCorretor').value;
             const selEq = document.getElementById('filterEquipe').value;
@@ -1573,6 +1590,28 @@
             if (period === 'mes') return mesNome === refMesNome && (mesAno === null || mesAno === refAno);
             if (period === 'ano') return mesAno === null || mesAno === refAno;
             return true; // hoje/semana tratados por data real
+        }
+
+        // ===== MÊS COMERCIAL CORRENTE =====
+        // O mês comercial NÃO fecha no fim do calendário (ex.: hoje pode ser 3/jul mas a referência
+        // ainda é junho). Por isso o "mês atual" é derivado do ÚLTIMO mês presente nos dados
+        // (coluna Mês Cadastro), e não de new Date(). Assim continua em junho até a planilha virar.
+        const MESES_IDX = { 'Janeiro':0,'Fevereiro':1,'Março':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
+        function getLatestCommercialMonth() {
+            let best = null;
+            (Array.isArray(dataset) ? dataset : []).forEach(r => {
+                const nome = normalizeMes(r['Mês Cadastro']);
+                const idx = MESES_IDX[nome];
+                const ano = getMesAno(r['Mês Cadastro']);
+                if (idx === undefined || ano === null) return;
+                if (!best || ano > best.ano || (ano === best.ano && idx > best.idx)) best = { ano, idx, nome };
+            });
+            return best; // { ano, idx, nome } ou null
+        }
+        // Data de referência do mês comercial corrente (dia 15 do mês, para os cálculos por mês).
+        function commercialRefDate(fallback) {
+            const lc = getLatestCommercialMonth();
+            return lc ? new Date(lc.ano, lc.idx, 15) : fallback;
         }
 
         // Considera venda/ganho quando Ganho = 'Sim' OU Situação-Ganho contém 'Ganho'
@@ -2057,9 +2096,11 @@
             if (selMes) {
                 const mesNomeRef = normalizeMes(selMes);
                 const anoRef = getMesAno(selMes) || referenceDate.getFullYear();
-                const monthMap = { 'Janeiro':0,'Fevereiro':1,'Março':2,'Abril':3,'Maio':4,'Junho':5,'Julho':6,'Agosto':7,'Setembro':8,'Outubro':9,'Novembro':10,'Dezembro':11 };
-                const monthIdx = monthMap[mesNomeRef];
+                const monthIdx = MESES_IDX[mesNomeRef];
                 if (monthIdx !== undefined) referenceDate = new Date(anoRef, monthIdx, 15);
+            } else if (!isMockDataActive && (currentPeriod === 'mes' || currentPeriod === 'ano')) {
+                // Sem filtro: mês de referência = mês comercial corrente (último dos dados), não o calendário.
+                referenceDate = commercialRefDate(referenceDate);
             }
             // Guarda globalmente para drawTables() (chamado também pela busca) usar a mesma referência
             currentRefDate = referenceDate;
