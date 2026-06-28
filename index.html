@@ -684,7 +684,7 @@
                                     <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                         <i class="fa-solid fa-ranking-star text-amber-500"></i> Ranking Geral de Corretores
                                     </h3>
-                                    <p class="text-[10px] text-slate-500">Ordenado por volume total de VGV convertido</p>
+                                    <p class="text-[10px] text-slate-500">Ordene por quem tem mais &#8212; clique nos bot&#245;es abaixo</p>
                                 </div>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500">
@@ -692,6 +692,15 @@
                                     </span>
                                     <input type="text" id="searchCorretor" oninput="drawTables()" placeholder="Procurar corretor..." class="bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-300 w-full sm:w-48 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition">
                                 </div>
+                            </div>
+
+                            <!-- Bot&#245;es de ordena&#231;&#227;o do ranking -->
+                            <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+                                <span class="text-[10px] text-slate-500 font-bold uppercase mr-1">Ordenar por:</span>
+                                <button id="rankSort-vgv" onclick="setRankSort('vgv')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition">VGV</button>
+                                <button id="rankSort-vendas" onclick="setRankSort('vendas')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Vendas</button>
+                                <button id="rankSort-aprovacoes" onclick="setRankSort('aprovacoes')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Aprova&#231;&#245;es</button>
+                                <button id="rankSort-analises" onclick="setRankSort('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">An&#225;lises</button>
                             </div>
 
                             <div class="overflow-x-auto">
@@ -1138,11 +1147,7 @@
         }
 
         function fmtCompact(v, isMoney) {
-            if (isMoney) {
-                if (v >= 1000000) return 'R$ ' + (v / 1000000).toFixed(2).replace('.', ',') + 'M';
-                if (v >= 1000) return 'R$ ' + (v / 1000).toFixed(0) + 'k';
-                return 'R$ ' + Math.round(v);
-            }
+            if (isMoney) return formatBRL(v); // VGV sempre exato (R$ 1.234.567,89)
             return String(Math.round(v));
         }
 
@@ -1170,10 +1175,10 @@
             if (lblPer) lblPer.textContent = mesEhAtual ? `${mesNome}/${ano} \u2014 dia ${diaHoje} de ${diasNoMes}` : `${mesNome}/${ano} (m\u00eas fechado)`;
 
             const cards = [
-                { campo: 'vgv',        label: 'VGV',        icon: 'fa-coins',          cor: 'indigo',  money: true,  atual: kpiValues.vgv },
-                { campo: 'vendas',     label: 'Vendas',     icon: 'fa-house-circle-check', cor: 'brand', money: false, atual: kpiValues.sales },
-                { campo: 'analises',   label: 'An\u00e1lises',   icon: 'fa-file-invoice-dollar', cor: 'sky', money: false, atual: kpiValues.analyses },
-                { campo: 'aprovacoes', label: 'Aprova\u00e7\u00f5es', icon: 'fa-circle-check',    cor: 'amber',   money: false, atual: kpiValues.approvals }
+                { campo: 'vgv',        label: 'VGV (finalizado)', icon: 'fa-coins',      cor: 'indigo',  money: true,  atual: kpiValues.vgv,      info: `Informado (pend.): ${formatBRL(kpiValues.vgvInformada)}` },
+                { campo: 'vendas',     label: 'Vendas (final.)',  icon: 'fa-house-circle-check', cor: 'brand', money: false, atual: kpiValues.sales, info: `Informadas (pend.): ${kpiValues.salesInformada}` },
+                { campo: 'analises',   label: 'An\u00e1lises',   icon: 'fa-file-invoice-dollar', cor: 'sky', money: false, atual: kpiValues.analyses, info: '' },
+                { campo: 'aprovacoes', label: 'Aprova\u00e7\u00f5es', icon: 'fa-circle-check',    cor: 'amber',   money: false, atual: kpiValues.approvals, info: '' }
             ];
 
             grid.innerHTML = cards.map(c => {
@@ -1216,15 +1221,16 @@
                             <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid ${c.icon} text-${c.cor}-400"></i> ${c.label}</span>
                             <span class="text-sm font-extrabold text-${c.cor}-400">${pct.toFixed(0)}%</span>
                         </div>
-                        <div class="flex items-baseline gap-1.5 mb-2">
-                            <span class="text-2xl font-extrabold text-slate-100">${c.money ? fmtCompact(atual, true) : atual}</span>
-                            <span class="text-[11px] text-slate-500 font-bold">/ ${fmtCompact(meta, c.money)}</span>
+                        <div class="flex items-baseline gap-1.5 mb-2 flex-wrap">
+                            <span class="${c.money ? 'text-lg' : 'text-2xl'} font-extrabold text-slate-100">${c.money ? formatBRL(atual) : atual}</span>
+                            <span class="text-[11px] text-slate-500 font-bold">/ ${c.money ? formatBRL(meta) : meta}</span>
                         </div>
                         <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden relative">
                             <div class="h-full bg-gradient-to-r ${barGrad} transition-all duration-500" style="width: ${pctClamp}%"></div>
                             ${mesEhAtual ? `<div class="absolute top-0 bottom-0 w-px bg-slate-400/60" style="left: ${pacePct}%" title="onde deveria estar hoje"></div>` : ''}
                         </div>
                         <p class="text-[11px] font-bold mt-1.5 ${statusCls}">${statusTxt}</p>
+                        ${c.info ? `<p class="text-[10px] text-amber-300/80 mt-1"><i class="fa-regular fa-clock"></i> ${c.info}</p>` : ''}
                         ${projTxt}
                         ${metaCampo}
                     </div>`;
@@ -1605,12 +1611,29 @@
             return row['Ganho'] === 'Sim' || (row['Situa\u00e7\u00e3o - Ganho'] || '').includes('Ganho');
         }
 
+        // Est\u00e1gios que contam como VENDA FINALIZADA (Venda Gerada em diante)
+        const ESTAGIOS_FINALIZADA = ['Venda Gerada', 'Emitir NF', 'Recebido 1', '1\u00ba Parte NF', '1o Parte NF', '1 Parte NF', 'Faturada', 'Recebido Inter', 'Recebido Int'];
+        function isVendaFinalizada(row) {
+            if (!isGanho(row)) return false;
+            const s = row['Situa\u00e7\u00e3o - Ganho'] || '';
+            return ESTAGIOS_FINALIZADA.some(k => s.includes(k));
+        }
+        // Venda informada = ganho que ainda N\u00c3O foi finalizado (Acompanhar, Venda Informada, Filtragem)
+        function isVendaInformada(row) {
+            return isGanho(row) && !isVendaFinalizada(row);
+        }
+
         // Retorna VGV num\u00e9rico de uma linha
         function getVGV(row) {
             const v = row['VGV'];
             if (!v) return 0;
             if (typeof v === 'number') return v;
             return parseFloat(String(v).replace(/R\$\s?/,'').replace(/\./g,'').replace(',','.').trim()) || 0;
+        }
+
+        // Formata em Reais EXATO: R$ 1.234.567,89
+        function formatBRL(v) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0);
         }
 
         function parseDate(dateStr) {
@@ -2104,14 +2127,16 @@
             return true;
         }
 
-        let kpiValues = { analyses: 0, approvals: 0, sales: 0, vgv: 0 };
+        let kpiValues = { analyses: 0, approvals: 0, sales: 0, vgv: 0, salesInformada: 0, vgvInformada: 0 };
         let currentRefDate = new Date(); // refer\u00eancia de per\u00edodo partilhada (definida em applyFilters)
 
         function calculateKPIs(refDate) {
             let analysesCount = 0;
             let approvalsCount = 0;
-            let salesCount = 0;
-            let totalVgv = 0;
+            let salesCount = 0;       // FINALIZADAS (Venda Gerada em diante)
+            let totalVgv = 0;         // VGV finalizado
+            let informadaCount = 0;   // ganho informado, ainda n\u00e3o finalizado
+            let vgvInformada = 0;
 
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
 
@@ -2131,8 +2156,13 @@
                         ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDate)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDate);
                     if (ganhoMatch) {
-                        salesCount++;
-                        totalVgv += getVGV(row);
+                        if (isVendaFinalizada(row)) {
+                            salesCount++;
+                            totalVgv += getVGV(row);
+                        } else {
+                            informadaCount++;
+                            vgvInformada += getVGV(row);
+                        }
                     }
                 }
             });
@@ -2141,11 +2171,13 @@
             kpiValues.approvals = approvalsCount;
             kpiValues.sales = salesCount;
             kpiValues.vgv = totalVgv;
+            kpiValues.salesInformada = informadaCount;
+            kpiValues.vgvInformada = vgvInformada;
 
             document.getElementById('kpiAnalises').textContent = analysesCount;
             document.getElementById('kpiAprovacoes').textContent = approvalsCount;
             document.getElementById('kpiVendas').textContent = salesCount;
-            document.getElementById('kpiVgv').textContent = formatCurrencyMillions(totalVgv);
+            document.getElementById('kpiVgv').textContent = formatBRL(totalVgv);
 
             const periodLabel = `este ${currentPeriod === 'mes' ? 'm\u00eas' : currentPeriod === 'ano' ? 'ano' : currentPeriod}`;
             document.getElementById('kpiAnalisesLabel').textContent = periodLabel;
@@ -2158,8 +2190,8 @@
             const ticketMedio = salesCount > 0 ? (totalVgv / salesCount) : 0;
 
             document.getElementById('kpiAprovacoesTaxa').textContent = `Convers\u00e3o envio \u2192 aprova\u00e7\u00e3o: ${taxaAprov}%`;
-            document.getElementById('kpiVendasTaxa').textContent = `Taxa final de fecho: ${taxaConvTotal}%`;
-            document.getElementById('kpiVgvTicket').textContent = `Ticket M\u00e9dio: ${formatCurrency(ticketMedio)}`;
+            document.getElementById('kpiVendasTaxa').textContent = `Finalizadas: ${salesCount} \u00b7 Informadas (pend.): ${informadaCount}`;
+            document.getElementById('kpiVgvTicket').textContent = `Finalizado \u00b7 Informado: ${formatBRL(vgvInformada)}`;
         }
 
         function formatCurrencyMillions(val) {
@@ -2216,8 +2248,8 @@
                     equipesVolume[equipe].analises++;
                 }
 
-                // Vendas e VGV: por M\u00eas Ganho (faturamento)
-                if (isGanho(row)) {
+                // Vendas e VGV: FINALIZADAS, por M\u00eas Ganho (faturamento)
+                if (isVendaFinalizada(row)) {
                     const ganhoMatch = useMes
                         ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDate)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDate);
@@ -2246,8 +2278,8 @@
             let corretoresMes = {};
 
             filteredDataset.forEach(row => {
-                if (isGanho(row)) {
-                    // Faturamento: vendas que fecharam no m\u00eas de refer\u00eancia (M\u00eas Ganho)
+                if (isVendaFinalizada(row)) {
+                    // Faturamento finalizado no m\u00eas de refer\u00eancia (M\u00eas Ganho)
                     const mesGanhoNorm = normalizeMes(row['M\u00eas Ganho']);
                     const anoGanho = getMesAno(row['M\u00eas Ganho']);
                     if (mesGanhoNorm === mesAtualNome && (anoGanho === null || anoGanho === mesAtualAno)) {
@@ -2545,6 +2577,26 @@
 
         // =========================================================================
 
+        // Ordena\u00e7\u00e3o dos rankings (corretores e equipas)
+        let rankSort = 'vgv'; // vgv | vendas | aprovacoes | analises
+        function rankSorter(a, b) {
+            const diff = (b[rankSort] || 0) - (a[rankSort] || 0);
+            if (diff !== 0) return diff;
+            // tie-breakers
+            return (b.vgv - a.vgv) || (b.vendas - a.vendas) || (b.analises - a.analises);
+        }
+        function setRankSort(campo) {
+            rankSort = campo;
+            // atualiza visual dos bot\u00f5es
+            ['analises','aprovacoes','vendas','vgv'].forEach(k => {
+                const b = document.getElementById('rankSort-' + k);
+                if (b) b.className = (k === campo)
+                    ? 'rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition'
+                    : 'rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition';
+            });
+            drawTables();
+        }
+
         function drawTables() {
             const searchCorretorTerm = document.getElementById('searchCorretor').value.toLowerCase();
             const searchEquipeTerm = document.getElementById('searchEquipe').value.toLowerCase();
@@ -2572,8 +2624,8 @@
                     if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) corretoresMap[c].aprovacoes++;
                 }
 
-                // Vendas/VGV: por M\u00eas Ganho (faturamento)
-                if (isGanho(row)) {
+                // Vendas/VGV: FINALIZADAS, por M\u00eas Ganho (faturamento)
+                if (isVendaFinalizada(row)) {
                     const ganhoMatch = useMesTables
                         ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDateTables)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDateTables);
@@ -2587,7 +2639,7 @@
 
             let rankingCorretores = Object.values(corretoresMap)
                 .filter(c => c.corretor && c.corretor.toLowerCase().includes(searchCorretorTerm))
-                .sort((a, b) => b.vgv - a.vgv || b.analises - a.analises || a.corretor.localeCompare(b.corretor, 'pt-BR'));
+                .sort(rankSorter);
 
             const corrBody = document.getElementById('rankingCorretoresBody');
             corrBody.innerHTML = '';
@@ -2610,7 +2662,7 @@
                             <td class="py-3 text-center text-amber-500 font-semibold">${c.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold">${c.vendas}</td>
                             <td class="py-3 text-center font-medium">${conversao}%</td>
-                            <td class="py-3 text-right pr-2 font-bold text-indigo-400">${formatCurrencyMillions(c.vgv)}</td>
+                            <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
                         </tr>
                     `;
                     corrBody.insertAdjacentHTML('beforeend', rowHtml);
@@ -2632,8 +2684,8 @@
                     if ((row['Situa\u00e7\u00e3o - Analise'] || '').includes('Aprovado')) equipesMap[eq].aprovacoes++;
                 }
 
-                // Vendas/VGV: por M\u00eas Ganho (faturamento)
-                if (isGanho(row)) {
+                // Vendas/VGV: FINALIZADAS, por M\u00eas Ganho (faturamento)
+                if (isVendaFinalizada(row)) {
                     const ganhoMatch = useMesTables
                         ? checkMesPeriodMatch(row['M\u00eas Ganho'], currentPeriod, refDateTables)
                         : checkPeriodMatch(row['Data Ganho'], currentPeriod, refDateTables);
@@ -2647,7 +2699,7 @@
 
             let rankingEquipes = Object.values(equipesMap)
                 .filter(eq => eq.equipe.toLowerCase().includes(searchEquipeTerm))
-                .sort((a, b) => b.vgv - a.vgv);
+                .sort(rankSorter);
 
             const eqBody = document.getElementById('rankingEquipesBody');
             eqBody.innerHTML = '';
@@ -2669,7 +2721,7 @@
                             <td class="py-3 text-center text-amber-500 font-semibold">${eq.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold">${eq.vendas}</td>
                             <td class="py-3 text-center font-medium">${conversao}%</td>
-                            <td class="py-3 text-right pr-2 font-bold text-indigo-400">${formatCurrencyMillions(eq.vgv)}</td>
+                            <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(eq.vgv)}</td>
                         </tr>
                     `;
                     eqBody.insertAdjacentHTML('beforeend', rowHtml);
