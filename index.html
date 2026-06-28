@@ -684,6 +684,14 @@
                     </div>
                 </section>
 
+                <!-- 3.6 RANKINGS RÁPIDOS (estilo Habitnet): Análises/Aprovações Hoje+Semana, Vendas Semana+Mês -->
+                <section class="space-y-3">
+                    <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2 px-1">
+                        <i class="fa-solid fa-ranking-star text-amber-500"></i> Rankings Rápidos — Hoje · Semana · Mês
+                    </h3>
+                    <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4"></div>
+                </section>
+
                 <!-- 4. TABELAS DE RANKINGS EXECUTIVOS -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="rankingsSection">
                     
@@ -1314,6 +1322,103 @@
 
             html += `</div>`;
             return html;
+        }
+
+        // Rankings rápidos estilo Habitnet: Análises/Aprovações (Hoje e Semana) e Vendas (Semana e Mês).
+        // Snapshot por data atual; respeita só os filtros de corretor/equipe/construtora/empreendimento.
+        function drawQuickRankings() {
+            const grid = document.getElementById('quickRankingsGrid');
+            if (!grid) return;
+            const refDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            const mesAtual = getMesName(refDate.getMonth() + 1);
+            const anoAtual = refDate.getFullYear();
+
+            const selCorr = document.getElementById('filterCorretor').value;
+            const selEq = document.getElementById('filterEquipe').value;
+            const selCons = document.getElementById('filterConstrutora').value;
+            const selEmp = document.getElementById('filterEmpreendimento').value;
+            const base = dataset.filter(row => {
+                if (selCorr && row.Corretor !== selCorr) return false;
+                if (selEq && row.Equipe !== selEq) return false;
+                if (selCons && row.Construtora !== selCons) return false;
+                if (selEmp && row.Empreendimento !== selEmp) return false;
+                return isCorretorActive(row.Corretor);
+            });
+
+            function addTo(map, nome, vgv) {
+                if (!nome) return;
+                if (!map[nome]) map[nome] = { count: 0, vgv: 0 };
+                map[nome].count++;
+                map[nome].vgv += (vgv || 0);
+            }
+
+            const anHoje = {}, anSem = {}, apHoje = {}, apSem = {}, vdSem = {}, vdMes = {};
+            base.forEach(row => {
+                const c = row.Corretor;
+                if (checkPeriodMatch(row['Data Cadastro'], 'hoje', refDate)) addTo(anHoje, c, 0);
+                if (checkPeriodMatch(row['Data Cadastro'], 'semana', refDate)) addTo(anSem, c, 0);
+                const aprovado = (row['Situação - Analise'] || '').includes('Aprovado');
+                if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'hoje', refDate)) addTo(apHoje, c, 0);
+                if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'semana', refDate)) addTo(apSem, c, 0);
+                if (isVendaModo(row)) {
+                    const vgv = getVGV(row);
+                    if (checkPeriodMatch(row['Data Ganho'], 'semana', refDate)) addTo(vdSem, c, vgv);
+                    const anoG = getMesAno(row['Mês Ganho']);
+                    if (normalizeMes(row['Mês Ganho']) === mesAtual && (anoG === null || anoG === anoAtual)) addTo(vdMes, c, vgv);
+                }
+            });
+
+            const fmtInt = n => Math.round(n).toLocaleString('pt-BR');
+            const cards = [
+                { title: 'Análises · Hoje',     icon: 'fa-file-lines',   col: 'AN', map: anHoje, vgv: false },
+                { title: 'Aprovações · Hoje',   icon: 'fa-circle-check', col: 'AP', map: apHoje, vgv: false },
+                { title: 'Análises · Semana',   icon: 'fa-file-lines',   col: 'AN', map: anSem,  vgv: false },
+                { title: 'Aprovações · Semana', icon: 'fa-circle-check', col: 'AP', map: apSem,  vgv: false },
+                { title: 'Vendas · Semana',     icon: 'fa-trophy',       col: 'VD', map: vdSem,  vgv: true },
+                { title: 'Vendas · Mês',        icon: 'fa-trophy',       col: 'VD', map: vdMes,  vgv: true }
+            ];
+
+            grid.innerHTML = cards.map(card => {
+                const list = Object.entries(card.map)
+                    .map(([nome, v]) => ({ nome, count: v.count, vgv: v.vgv }))
+                    .sort((a, b) => card.vgv ? (b.vgv - a.vgv) : (b.count - a.count))
+                    .slice(0, 10);
+                const totalCount = Object.values(card.map).reduce((s, v) => s + v.count, 0);
+                const totalVgv = Object.values(card.map).reduce((s, v) => s + v.vgv, 0);
+
+                let rows;
+                if (list.length === 0) {
+                    rows = `<div class="text-center text-[11px] text-slate-500 py-5">Sem registros</div>`;
+                } else {
+                    rows = list.map((r, i) => {
+                        let pos = 'text-slate-500';
+                        if (i === 0) pos = 'text-amber-400'; else if (i === 1) pos = 'text-slate-300'; else if (i === 2) pos = 'text-amber-600';
+                        return `<div class="flex items-center px-2 py-1.5 rounded hover:bg-slate-800/40 text-xs">
+                            <span class="w-7 font-extrabold ${pos}">${i + 1}º</span>
+                            <span class="flex-1 font-semibold text-slate-200 truncate">${r.nome}</span>
+                            <span class="w-9 text-right font-bold text-slate-300">${r.count}</span>
+                            ${card.vgv ? `<span class="w-24 text-right font-semibold text-indigo-300">${fmtInt(r.vgv)}</span>` : ''}
+                        </div>`;
+                    }).join('');
+                }
+
+                return `<div class="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden flex flex-col">
+                    <div class="bg-gradient-to-r from-blue-900 to-blue-800 px-4 py-2.5 flex items-center gap-2">
+                        <i class="fa-solid ${card.icon} text-blue-300 text-xs"></i>
+                        <h4 class="text-[11px] font-bold tracking-wider text-white uppercase">${card.title}</h4>
+                    </div>
+                    <div class="bg-slate-800/60 px-4 py-2 flex items-center justify-between text-[11px] font-extrabold">
+                        <span class="text-brand-400">AUDAZ</span>
+                        <span class="flex items-center gap-4"><span class="text-slate-100">${totalCount}</span>${card.vgv ? `<span class="text-indigo-300">${fmtInt(totalVgv)}</span>` : ''}</span>
+                    </div>
+                    <div class="px-2 py-1.5 flex-1">
+                        <div class="flex items-center px-2 pb-1 text-[9px] text-slate-500 uppercase font-bold border-b border-slate-800/60 mb-1">
+                            <span class="w-7">#</span><span class="flex-1">Corretor</span><span class="w-9 text-right">${card.col}</span>${card.vgv ? `<span class="w-24 text-right">VGV</span>` : ''}
+                        </div>
+                        ${rows}
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function drawDailyAnalysisRanking() {
@@ -2139,6 +2244,7 @@
             drawIntelligence(referenceDate);
             drawTables();
             drawDailyAnalysisRanking();
+            drawQuickRankings();
             renderCharts();
             renderAlerts(referenceDate);
 
