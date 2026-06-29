@@ -638,13 +638,24 @@
 
                 <!-- 3.6 RANKINGS RÁPIDOS (estilo Habitnet): Análises/Aprovações Hoje+Semana+Mês, Vendas Semana+Mês -->
                 <section class="space-y-3">
-                    <div class="flex items-center justify-between gap-3 px-1">
-                        <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                            <i class="fa-solid fa-ranking-star text-amber-500"></i> Rankings Rápidos — Hoje · Semana · Mês
-                        </h3>
-                        <button onclick="toggleRankingsEdit()" id="btnEditRankingsMetas" class="text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
-                            <i class="fa-solid fa-pen"></i> Editar metas
-                        </button>
+                    <div class="flex flex-col gap-1.5 px-1">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-ranking-star text-amber-500"></i> Rankings Rápidos — Hoje · Semana · Mês
+                            </h3>
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Semana/Mês:</span>
+                                <button onclick="shiftQuickRef(-7)" title="Semana anterior" class="h-7 w-7 rounded-lg border border-slate-700 text-slate-300 hover:text-brand-400 hover:border-brand-500/40 flex items-center justify-center transition"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                                <input type="date" id="quickRefDate" onchange="setQuickRef(this.value)" class="bg-slate-950 border border-slate-800 text-[11px] rounded-lg px-2 py-1 text-slate-300 outline-none focus:border-brand-500 transition">
+                                <button onclick="shiftQuickRef(7)" title="Próxima semana" class="h-7 w-7 rounded-lg border border-slate-700 text-slate-300 hover:text-brand-400 hover:border-brand-500/40 flex items-center justify-center transition"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                                <button onclick="resetQuickRef()" id="btnQuickRefHoje" class="text-[11px] font-bold rounded-lg px-2.5 py-1.5 border transition text-slate-500 border-slate-800">Atual</button>
+                                <span class="h-4 w-px bg-slate-700 mx-1"></span>
+                                <button onclick="toggleRankingsEdit()" id="btnEditRankingsMetas" class="text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
+                                    <i class="fa-solid fa-pen"></i> Editar metas
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-500" id="quickRefHint">Semana atual e mês comercial corrente.</p>
                     </div>
                     <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </section>
@@ -1237,16 +1248,37 @@
             drawQuickRankings();
         }
 
+        // ====== REFERÊNCIA DE SEMANA/MÊS DOS RANKINGS RÁPIDOS ======
+        // quickRef = data escolhida (Date) para os cards de Semana e Mês; null = atual. "Hoje" ignora isto.
+        let quickRef = null;
+        function setQuickRef(val) {
+            if (!val) { quickRef = null; }
+            else { const p = val.split('-'); quickRef = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2])); }
+            drawQuickRankings();
+        }
+        function shiftQuickRef(days) {
+            const base = quickRef || (isMockDataActive ? new Date(2026, 5, 9) : new Date());
+            const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+            d.setDate(d.getDate() + days);
+            quickRef = d;
+            drawQuickRankings();
+        }
+        function resetQuickRef() {
+            quickRef = null;
+            drawQuickRankings();
+        }
+
         // Rankings rápidos estilo Habitnet: Análises/Aprovações (Hoje e Semana) e Vendas (Semana e Mês).
         // Snapshot por data atual; respeita só os filtros de corretor/equipe/construtora/empreendimento.
         function drawQuickRankings() {
             const grid = document.getElementById('quickRankingsGrid');
             if (!grid) return;
-            const refDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
-            // Mês comercial corrente (último dos dados) para os cards de "Mês"; hoje/semana usam a data real.
-            const lc = !isMockDataActive ? getLatestCommercialMonth() : null;
-            const mesAtual = lc ? lc.nome : getMesName(refDate.getMonth() + 1);
-            const anoAtual = lc ? lc.ano : refDate.getFullYear();
+            const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date(); // cards "Hoje" = sempre hoje
+            const refSM = quickRef || hojeReal;                                    // "Semana" e "Mês" = referência escolhida
+            // Sem referência manual: mês comercial corrente (último dos dados). Com referência: mês da data escolhida.
+            const lc = (!quickRef && !isMockDataActive) ? getLatestCommercialMonth() : null;
+            const mesAtual = lc ? lc.nome : getMesName(refSM.getMonth() + 1);
+            const anoAtual = lc ? lc.ano : refSM.getFullYear();
 
             const selCorr = document.getElementById('filterCorretor').value;
             const selEq = document.getElementById('filterEquipe').value;
@@ -1278,20 +1310,40 @@
             };
             base.forEach(row => {
                 const c = row.Corretor;
-                if (checkPeriodMatch(row['Data Cadastro'], 'hoje', refDate)) addTo(anHoje, c, 0);
-                if (checkPeriodMatch(row['Data Cadastro'], 'semana', refDate)) addTo(anSem, c, 0);
+                if (checkPeriodMatch(row['Data Cadastro'], 'hoje', hojeReal)) addTo(anHoje, c, 0);
+                if (checkPeriodMatch(row['Data Cadastro'], 'semana', refSM)) addTo(anSem, c, 0);
                 if (ehMesCadastro(row)) addTo(anMes, c, 0);
                 const aprovado = (row['Situação - Analise'] || '').includes('Aprovado');
-                if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'hoje', refDate)) addTo(apHoje, c, 0);
-                if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'semana', refDate)) addTo(apSem, c, 0);
+                if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'hoje', hojeReal)) addTo(apHoje, c, 0);
+                if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'semana', refSM)) addTo(apSem, c, 0);
                 if (aprovado && ehMesCadastro(row)) addTo(apMes, c, 0);
                 if (isVendaModo(row)) {
                     const vgv = getVGV(row);
-                    if (checkPeriodMatch(row['Data Ganho'], 'semana', refDate)) addTo(vdSem, c, vgv);
+                    if (checkPeriodMatch(row['Data Ganho'], 'semana', refSM)) addTo(vdSem, c, vgv);
                     const anoG = getMesAno(row['Mês Ganho']);
                     if (normalizeMes(row['Mês Ganho']) === mesAtual && (anoG === null || anoG === anoAtual)) addTo(vdMes, c, vgv);
                 }
             });
+
+            // Sincroniza os controles de referência (Semana/Mês) e o texto de contexto.
+            const refInput = document.getElementById('quickRefDate');
+            if (refInput) refInput.value = quickRef ? `${refSM.getFullYear()}-${String(refSM.getMonth() + 1).padStart(2, '0')}-${String(refSM.getDate()).padStart(2, '0')}` : '';
+            const refHintEl = document.getElementById('quickRefHint');
+            if (refHintEl) {
+                const r = new Date(refSM.getFullYear(), refSM.getMonth(), refSM.getDate());
+                const ds = (r.getDay() === 0) ? 6 : (r.getDay() - 1);
+                const seg = new Date(r); seg.setDate(r.getDate() - ds);
+                const dom = new Date(seg); dom.setDate(seg.getDate() + 6);
+                const fmtD = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+                refHintEl.textContent = quickRef
+                    ? `Referência manual — Semana ${fmtD(seg)} a ${fmtD(dom)} · Mês ${mesAtual}/${anoAtual}. (Os cards "Hoje" continuam em hoje.)`
+                    : `Semana atual e mês comercial corrente. Use a data ao lado para ver outra semana/mês.`;
+            }
+            const btnAtual = document.getElementById('btnQuickRefHoje');
+            if (btnAtual) {
+                const baseB = "text-[11px] font-bold rounded-lg px-2.5 py-1.5 border transition";
+                btnAtual.className = baseB + (quickRef ? ' bg-brand-500 text-white border-brand-500' : ' text-slate-500 border-slate-800');
+            }
 
             const fmtInt = n => Math.round(n).toLocaleString('pt-BR');
             const cards = [
