@@ -2164,9 +2164,13 @@
             }
 
             if (period === 'semana') {
-                const diffTime = Math.abs(referenceDate - rowDate);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 7 && rowDate <= referenceDate;
+                // Semana ATUAL: de segunda-feira desta semana até domingo (reinicia toda segunda).
+                const ref = new Date(refYear, refMonth, refDateVal);
+                const dow = ref.getDay();                       // 0=Dom, 1=Seg ... 6=Sáb
+                const desdeSegunda = (dow === 0) ? 6 : (dow - 1);
+                const segunda = new Date(ref); segunda.setDate(ref.getDate() - desdeSegunda); segunda.setHours(0, 0, 0, 0);
+                const domingo = new Date(segunda); domingo.setDate(segunda.getDate() + 6); domingo.setHours(23, 59, 59, 999);
+                return rowDate >= segunda && rowDate <= domingo;
             }
 
             if (period === 'mes') {
