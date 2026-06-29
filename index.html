@@ -78,7 +78,7 @@
     <div class="flex flex-col lg:flex-row min-h-screen">
         
         <!-- Sidebar Esquerda -->
-        <aside class="w-full lg:w-72 bg-slate-950/80 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 flex flex-col justify-between backdrop-blur-premium shrink-0">
+        <aside id="sidebar" class="w-full lg:w-72 bg-slate-950/80 border-b lg:border-b-0 lg:border-r border-slate-800 p-6 flex flex-col justify-between backdrop-blur-premium shrink-0">
             <div>
                 <!-- Cabeçalho da Marca -->
                 <div class="flex items-center gap-3 mb-8">
@@ -174,6 +174,9 @@
             <!-- Header Superior -->
             <header class="h-16 border-b border-slate-800 px-6 lg:px-8 flex items-center justify-between bg-slate-950/40 backdrop-blur-premium z-10 shrink-0">
                 <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" id="btnToggleSidebar" title="Ocultar / mostrar menu" class="h-8 w-8 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 hover:text-brand-400 hover:border-brand-500/40 flex items-center justify-center transition shrink-0">
+                        <i class="fa-solid fa-bars text-sm"></i>
+                    </button>
                     <span class="text-sm font-semibold text-slate-400 hidden sm:inline">Modo Executivo</span>
                     <span class="h-4 w-px bg-slate-800 hidden sm:inline"></span>
                     
@@ -755,10 +758,8 @@
                     </div>
                 </section>
 
-            </div>
-
-            <!-- VIEW 2: CALENDÁRIO DE PRODUÇÃO COM HEATMAP -->
-            <div id="calendarView" class="hidden flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+                <!-- CALENDÁRIO DE PRODUÇÃO (inline no painel, sempre visível) -->
+                <div id="calendarView" class="space-y-6 pt-5 mt-2 border-t border-slate-800/60">
                 
                 <!-- Cabeçalho Informativo do Calendário -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -853,6 +854,8 @@
                         </p>
                     </div>
                 </div>
+
+            </div>
 
             </div>
 
@@ -1664,28 +1667,28 @@
             return isNaN(parsed.getTime()) ? null : parsed;
         }
 
+        // Dashboard e Calendário agora ficam na MESMA página (calendário inline).
+        // O link da sidebar apenas rola até a seção e destaca o ativo.
         function switchView(viewName) {
             activeView = viewName;
-            const dashboardView = document.getElementById('dashboardView');
-            const calendarView = document.getElementById('calendarView');
+            drawProductionCalendar();
+            const onCls = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-100 border border-slate-800 transition";
+            const offCls = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition";
             const linkDashboard = document.getElementById('linkDashboard');
             const linkCalendar = document.getElementById('linkCalendar');
+            if (linkDashboard) linkDashboard.className = viewName === 'calendar' ? offCls : onCls;
+            if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
+            const target = document.getElementById(viewName === 'calendar' ? 'calendarView' : 'dashboardView');
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
 
-            if (viewName === 'dashboard') {
-                dashboardView.classList.remove('hidden');
-                calendarView.classList.add('hidden');
-                
-                linkDashboard.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-100 border border-slate-800 transition";
-                linkCalendar.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition";
-            } else {
-                dashboardView.classList.add('hidden');
-                calendarView.classList.remove('hidden');
-                
-                linkDashboard.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition";
-                linkCalendar.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-100 border border-slate-800 transition";
-                
-                drawProductionCalendar();
-            }
+        // Oculta / mostra a barra lateral (mais espaço para o painel). Persiste no navegador.
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            if (!sb) return;
+            const hide = sb.style.display !== 'none';
+            sb.style.display = hide ? 'none' : ''; // inline vence o conflito hidden x flex
+            localStorage.setItem(`${appId}-sidebar-hidden`, hide ? '1' : '0');
         }
 
         window.onload = function() {
@@ -1693,6 +1696,10 @@
             loadCorretorRoster();
             loadMetasMensais();
             loadRankingsMetas();
+            if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
+                const sb = document.getElementById('sidebar');
+                if (sb) sb.style.display = 'none';
+            }
             const savedVendasMode = localStorage.getItem(`${appId}-vendas-mode`);
             if (savedVendasMode === 'gerais' || savedVendasMode === 'finalizadas') vendasMode = savedVendasMode;
             updateVendasModeUI();
@@ -3242,12 +3249,12 @@
         }
 
         function drawProductionCalendar() {
-            if (activeView !== 'calendar') return;
-
+            // Calendário agora é inline e sempre renderiza (sem guard de view).
             const rawMes = document.getElementById('filterMes').value;
-            const activeMonth = rawMes ? normalizeMes(rawMes) : getMesName(new Date().getMonth() + 1);
             const rawAno = document.getElementById('filterAno').value;
-            const activeYear = rawAno || (rawMes ? (getMesAno(rawMes) || new Date().getFullYear()) : new Date().getFullYear());
+            const lcCal = (!rawMes && !isMockDataActive) ? getLatestCommercialMonth() : null;
+            const activeMonth = rawMes ? normalizeMes(rawMes) : (lcCal ? lcCal.nome : getMesName(new Date().getMonth() + 1));
+            const activeYear = rawAno || (rawMes ? (getMesAno(rawMes) || new Date().getFullYear()) : (lcCal ? lcCal.ano : new Date().getFullYear()));
 
             document.getElementById('calMonthLabel').textContent = `${activeMonth}/${activeYear}`;
 
