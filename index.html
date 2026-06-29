@@ -3270,6 +3270,28 @@
 
             // Roster de corretores ativos (inclui pré-cadastrados, exclui desativados)
             const activeCorretores = getActiveCorretores();
+            const activeSet = new Set(activeCorretores);
+
+            // ===== CONTINUIDADE DO MÊS COMERCIAL =====
+            // O mês comercial pode terminar já no calendário seguinte (ex.: junho fecha em 3/jul).
+            // Por isso o "dia" é um índice CONTÍNUO a partir do 1º do mês: jun/1=1 ... jun/30=30, jul/1=31, jul/2=32...
+            const inicioMes = new Date(yearNum, monthNum - 1, 1);
+            const noMes = (mesStr) => normalizeMes(mesStr) === activeMonth && (getMesAno(mesStr) || yearNum) === yearNum;
+            const diaDe = (dataStr) => {
+                const dt = parseDate(dataStr);
+                if (!dt) return 1;
+                const idx = Math.floor((dt - inicioMes) / 86400000) + 1;
+                return idx < 1 ? 1 : idx;
+            };
+            // Estende as colunas até o último dia realmente usado pelos lançamentos do mês comercial.
+            let maxDia = daysInMonth;
+            filteredDataset.forEach(row => {
+                if (!activeSet.has(row.Corretor)) return;
+                if (noMes(row['Mês Cadastro'])) maxDia = Math.max(maxDia, diaDe(row['Data Cadastro']));
+                if ((row['Situação - Analise'] || '').includes('Aprovado') && noMes(row['Mês Aprovação'])) maxDia = Math.max(maxDia, diaDe(row['Data Aprovação']));
+                if (isGanho(row) && noMes(row['Mês Ganho'])) maxDia = Math.max(maxDia, diaDe(row['Data Ganho']));
+            });
+            maxDia = Math.min(maxDia, daysInMonth + 15); // trava de segurança contra data muito fora
 
             // Cada célula guarda 3 métricas: a=análises, ap=aprovados, v=vendas — cada uma pela sua própria data
             let cellMatrix = {};       // `${c}_${d}` -> { a, ap, v }
@@ -3280,10 +3302,9 @@
                 aprovados: { cell: {}, day: {}, month: [] },
                 vendas:    { cell: {}, day: {}, month: [] }
             };
-            const activeSet = new Set(activeCorretores);
 
             activeCorretores.forEach(c => {
-                for (let d = 1; d <= daysInMonth; d++) {
+                for (let d = 1; d <= maxDia; d++) {
                     cellMatrix[`${c}_${d}`] = { a: 0, ap: 0, v: 0 };
                     productionMatrix[`${c}_${d}`] = 0;
                     calDetail.analises.cell[`${c}_${d}`] = [];
@@ -3291,14 +3312,11 @@
                     calDetail.vendas.cell[`${c}_${d}`] = [];
                 }
             });
-            for (let d = 1; d <= daysInMonth; d++) {
+            for (let d = 1; d <= maxDia; d++) {
                 calDetail.analises.day[d] = [];
                 calDetail.aprovados.day[d] = [];
                 calDetail.vendas.day[d] = [];
             }
-
-            const noMes = (mesStr) => normalizeMes(mesStr) === activeMonth && (getMesAno(mesStr) || yearNum) === yearNum;
-            const diaDe = (dataStr) => { const dt = parseDate(dataStr); return dt ? dt.getDate() : 1; };
 
             filteredDataset.forEach(row => {
                 const corr = row.Corretor;
@@ -3348,14 +3366,18 @@
             const headerRow = document.getElementById('calendarHeaderRow');
             headerRow.innerHTML = `<th class="p-3 pl-4 text-left min-w-[150px] bg-slate-950 sticky left-0 z-20">Corretor</th>`;
             
-            for (let d = 1; d <= daysInMonth; d++) {
-                const tempDateObj = new Date(yearNum, monthNum - 1, d);
+            for (let d = 1; d <= maxDia; d++) {
+                const tempDateObj = new Date(yearNum, monthNum - 1, d); // normaliza: d=31 -> 1/jul, d=32 -> 2/jul...
                 const weekDayName = tempDateObj.toLocaleDateString('pt-BR', { weekday: 'short' }).substring(0, 3).toUpperCase();
-                
+                const ehSpill = tempDateObj.getMonth() !== (monthNum - 1); // dia já no calendário seguinte
+                const diaReal = String(tempDateObj.getDate()).padStart(2, '0');
+                const mesTag = ehSpill ? `<div class="text-[7px] text-amber-400 font-extrabold uppercase leading-none mt-0.5">${tempDateObj.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</div>` : '';
+
                 headerRow.insertAdjacentHTML('beforeend', `
-                    <th class="p-2 border-l border-slate-800 text-center min-w-[55px]">
-                        <div class="text-xs font-extrabold">${String(d).padStart(2, '0')}</div>
+                    <th class="p-2 border-l ${ehSpill ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-800'} text-center min-w-[55px]">
+                        <div class="text-xs font-extrabold ${ehSpill ? 'text-amber-300' : ''}">${diaReal}</div>
                         <div class="text-[8px] text-slate-500 font-medium">${weekDayName}</div>
+                        ${mesTag}
                     </th>
                 `);
             }
@@ -3364,10 +3386,10 @@
             const tableBody = document.getElementById('calendarTableBody');
             tableBody.innerHTML = '';
 
-            let totalDiarioList = Array(daysInMonth + 1).fill(0);       // total análises (heatmap/KPIs)
-            let totalDiaA = Array(daysInMonth + 1).fill(0);
-            let totalDiaAp = Array(daysInMonth + 1).fill(0);
-            let totalDiaV = Array(daysInMonth + 1).fill(0);
+            let totalDiarioList = Array(maxDia + 1).fill(0);       // total análises (heatmap/KPIs)
+            let totalDiaA = Array(maxDia + 1).fill(0);
+            let totalDiaAp = Array(maxDia + 1).fill(0);
+            let totalDiaV = Array(maxDia + 1).fill(0);
 
             // Métrica selecionada (mostra uma de cada vez, separada)
             const metricKey = CAL_METRICS[calendarMetric].key; // a | ap | v
@@ -3375,7 +3397,7 @@
             atualizarLegendaCalendario();
 
             if (activeCorretores.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${daysInMonth + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor ativo neste período.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="${maxDia + 2}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor ativo neste período.</td></tr>`;
             } else {
                 activeCorretores.forEach(c => {
                     const cEsc = c.replace(/'/g, "\\'");
@@ -3384,7 +3406,7 @@
 
                     let totMetric = 0;
 
-                    for (let d = 1; d <= daysInMonth; d++) {
+                    for (let d = 1; d <= maxDia; d++) {
                         const cell = cellMatrix[`${c}_${d}`] || { a: 0, ap: 0, v: 0 };
                         const val = cell[metricKey];
                         totMetric += val;
@@ -3410,7 +3432,7 @@
                 totalRowHtml += `<td class="p-3 pl-4 text-left text-xs uppercase font-extrabold tracking-wider bg-slate-950 sticky left-0 border-r border-slate-800 z-10">Total Geral</td>`;
 
                 let somaMetric = 0;
-                for (let d = 1; d <= daysInMonth; d++) {
+                for (let d = 1; d <= maxDia; d++) {
                     const v = totalDiaMetric[d];
                     somaMetric += v;
                     let totalClass = "text-slate-400";
@@ -3425,7 +3447,7 @@
                 tableBody.insertAdjacentHTML('beforeend', totalRowHtml);
             }
 
-            calculateCalendarKPIs(activeCorretores, daysInMonth, productionMatrix, totalDiarioList, activeMonth);
+            calculateCalendarKPIs(activeCorretores, maxDia, productionMatrix, totalDiarioList, activeMonth, yearNum, monthNum);
         }
 
         function atualizarLegendaCalendario() {
@@ -3459,7 +3481,7 @@
             return 'bg-blue-800 text-white font-extrabold hover:bg-blue-700 border border-blue-600 shadow-inner'; 
         }
 
-        function calculateCalendarKPIs(corretoresList, daysCount, matrix, totalDiarioList, mesNome) {
+        function calculateCalendarKPIs(corretoresList, daysCount, matrix, totalDiarioList, mesNome, yearNum, monthNum) {
             let maxDiaProduction = 0;
             let maxDiaNum = 1;
             let diasZeradosCount = 0;
@@ -3476,7 +3498,15 @@
             }
 
             if (maxDiaProduction > 0) {
-                document.getElementById('calKpiDiaMaior').textContent = `Dia ${String(maxDiaNum).padStart(2, '0')}/${mesNome}`;
+                let diaMaiorLbl;
+                if (yearNum && monthNum) {
+                    const dMaior = new Date(yearNum, monthNum - 1, maxDiaNum); // normaliza dias de spillover
+                    const mesLbl = dMaior.toLocaleDateString('pt-BR', { month: 'long' });
+                    diaMaiorLbl = `Dia ${String(dMaior.getDate()).padStart(2, '0')}/${mesLbl.charAt(0).toUpperCase() + mesLbl.slice(1)}`;
+                } else {
+                    diaMaiorLbl = `Dia ${String(maxDiaNum).padStart(2, '0')}/${mesNome}`;
+                }
+                document.getElementById('calKpiDiaMaior').textContent = diaMaiorLbl;
                 document.getElementById('calKpiDiaMaiorQtd').textContent = `${maxDiaProduction} análises enviadas`;
             } else {
                 document.getElementById('calKpiDiaMaior').textContent = "Sem envios";
@@ -3589,11 +3619,20 @@
         }
 
         // Detalhe de uma célula (corretor + dia) — respeita a métrica ativa
+        // Converte o índice de dia CONTÍNUO (jun/1=1 ... jul/2=32) na data real "DD de mês de ano".
+        function fmtDiaContinuo(dia, mesNome, ano) {
+            const idx = MESES_IDX[mesNome];
+            if (idx === undefined) return `${String(dia).padStart(2, '0')} de ${mesNome} de ${ano}`;
+            const dt = new Date(parseInt(ano), idx, dia); // normaliza dias de spillover (ex.: 32 -> 2/jul)
+            const mLbl = dt.toLocaleDateString('pt-BR', { month: 'long' });
+            return `${String(dt.getDate()).padStart(2, '0')} de ${mLbl} de ${dt.getFullYear()}`;
+        }
+
         function openCalendarCellDetail(corretor, dia, mes, ano) {
             const m = calDetail[calendarMetric] || calDetail.analises;
             const rows = m.cell[`${corretor}_${dia}`] || [];
             const lbl = metricaDetalheLabel();
-            renderCalendarDetail(`${corretor} — ${lbl.tit}`, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, false);
+            renderCalendarDetail(`${corretor} — ${lbl.tit}`, fmtDiaContinuo(dia, mes, ano), rows, false);
         }
 
         // Detalhe do total do dia (todos os corretores) — respeita a métrica ativa
@@ -3601,7 +3640,7 @@
             const m = calDetail[calendarMetric] || calDetail.analises;
             const rows = m.day[dia] || [];
             const lbl = metricaDetalheLabel();
-            renderCalendarDetail(`Todos os corretores — ${lbl.tit}`, `${String(dia).padStart(2, '0')} de ${mes} de ${ano}`, rows, true);
+            renderCalendarDetail(`Todos os corretores — ${lbl.tit}`, fmtDiaContinuo(dia, mes, ano), rows, true);
         }
 
         // Detalhe do total geral do mês — respeita a métrica ativa
