@@ -1308,6 +1308,10 @@
                 const anoC = getMesAno(row['Mês Cadastro']);
                 return normalizeMes(row['Mês Cadastro']) === mesAtual && (anoC === null || anoC === anoAtual);
             };
+            const ehMesAprovacao = (row) => {
+                const anoA = getMesAno(row['Mês Aprovação']);
+                return normalizeMes(row['Mês Aprovação']) === mesAtual && (anoA === null || anoA === anoAtual);
+            };
             base.forEach(row => {
                 const c = row.Corretor;
                 if (checkPeriodMatch(row['Data Cadastro'], 'hoje', hojeReal)) addTo(anHoje, c, 0);
@@ -1316,7 +1320,7 @@
                 const aprovado = (row['Situação - Analise'] || '').includes('Aprovado');
                 if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'hoje', hojeReal)) addTo(apHoje, c, 0);
                 if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'semana', refSM)) addTo(apSem, c, 0);
-                if (aprovado && ehMesCadastro(row)) addTo(apMes, c, 0);
+                if (aprovado && ehMesAprovacao(row)) addTo(apMes, c, 0);
                 if (isVendaModo(row)) {
                     const vgv = getVGV(row);
                     if (checkPeriodMatch(row['Data Ganho'], 'semana', refSM)) addTo(vdSem, c, vgv);
@@ -2251,13 +2255,17 @@
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
 
             filteredDataset.forEach(row => {
-                // Análises e Aprovações: por safra (Mês Cadastro)
+                // Análises: por safra (Mês Cadastro)
                 const safraMatch = useMesRef
                     ? checkMesPeriodMatch(row['Mês Cadastro'], currentPeriod, refDate)
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDate);
-                if (safraMatch) {
-                    analysesCount++;
-                    if ((row['Situação - Analise'] || '').includes('Aprovado')) approvalsCount++;
+                if (safraMatch) analysesCount++;
+                // Aprovações: por DATA DE APROVAÇÃO (quando aprovou), não pela safra
+                if ((row['Situação - Analise'] || '').includes('Aprovado')) {
+                    const aprovMatch = useMesRef
+                        ? checkMesPeriodMatch(row['Mês Aprovação'], currentPeriod, refDate)
+                        : checkPeriodMatch(row['Data Aprovação'], currentPeriod, refDate);
+                    if (aprovMatch) approvalsCount++;
                 }
 
                 // Vendas e VGV: por Mês Ganho. Geral = todas as ganhas; Finalizada = geral sem "Venda Informada".
@@ -2741,7 +2749,16 @@
                 if (safraMatch) {
                     if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     corretoresMap[c].analises++;
-                    if ((row['Situação - Analise'] || '').includes('Aprovado')) corretoresMap[c].aprovacoes++;
+                }
+                // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
+                if ((row['Situação - Analise'] || '').includes('Aprovado')) {
+                    const aprovMatch = useMesTables
+                        ? checkMesPeriodMatch(row['Mês Aprovação'], currentPeriod, refDateTables)
+                        : checkPeriodMatch(row['Data Aprovação'], currentPeriod, refDateTables);
+                    if (aprovMatch) {
+                        if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                        corretoresMap[c].aprovacoes++;
+                    }
                 }
 
                 // Vendas/VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
@@ -2801,7 +2818,16 @@
                 if (safraMatch) {
                     if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].analises++;
-                    if ((row['Situação - Analise'] || '').includes('Aprovado')) equipesMap[eq].aprovacoes++;
+                }
+                // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
+                if ((row['Situação - Analise'] || '').includes('Aprovado')) {
+                    const aprovMatch = useMesTables
+                        ? checkMesPeriodMatch(row['Mês Aprovação'], currentPeriod, refDateTables)
+                        : checkPeriodMatch(row['Data Aprovação'], currentPeriod, refDateTables);
+                    if (aprovMatch) {
+                        if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                        equipesMap[eq].aprovacoes++;
+                    }
                 }
 
                 // Vendas/VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
