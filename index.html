@@ -36,6 +36,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- PapaParse para ler CSV do Google Sheets -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Firebase (Auth + Firestore) para login e sincronização de configurações -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
     <style>
         body {
@@ -73,6 +77,23 @@
     </style>
 </head>
 <body class="text-slate-100 min-h-screen overflow-x-hidden">
+
+    <!-- TELA DE LOGIN (Firebase Auth) -->
+    <div id="loginOverlay" class="fixed inset-0 z-[200] bg-slate-950 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-slate-900/70 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+            <div class="flex items-center gap-3 mb-6 justify-center">
+                <div class="h-10 w-10 bg-gradient-to-tr from-brand-600 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20"><i class="fa-solid fa-chart-line text-white text-xl"></i></div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-wider text-white">AUDAZ BI</h1>
+                    <p class="text-[10px] text-slate-500 font-medium tracking-widest uppercase">Acesso restrito</p>
+                </div>
+            </div>
+            <input id="loginEmail" type="email" autocomplete="username" placeholder="E-mail" class="w-full mb-3 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-brand-500 transition">
+            <input id="loginPass" type="password" autocomplete="current-password" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()" class="w-full mb-4 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-brand-500 transition">
+            <button onclick="doLogin()" id="loginBtn" class="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-sm transition">Entrar</button>
+            <p id="loginError" class="hidden text-[11px] text-rose-400 mt-3 text-center"></p>
+        </div>
+    </div>
 
     <!-- Wrapper Principal -->
     <div class="flex flex-col lg:flex-row min-h-screen">
@@ -160,10 +181,11 @@
                     <div class="h-9 w-9 bg-slate-800 rounded-full flex items-center justify-center">
                         <i class="fa-solid fa-user-tie text-slate-300"></i>
                     </div>
-                    <div>
-                        <p class="text-xs font-semibold text-slate-300">Diretoria Executiva</p>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold text-slate-300 truncate" id="loggedUserLabel">Diretoria Executiva</p>
                         <p class="text-[10px] text-slate-500">Acesso Administrativo</p>
                     </div>
+                    <button onclick="doLogout()" title="Sair" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 flex items-center justify-center transition shrink-0"><i class="fa-solid fa-right-from-bracket text-xs"></i></button>
                 </div>
             </div>
         </aside>
@@ -1072,6 +1094,7 @@
         function saveCorretorRoster() {
             localStorage.setItem(`${appId}-corretores-added`, JSON.stringify(addedCorretores));
             localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores));
+            pushCloudSettings();
         }
         // Todos os nomes conhecidos = os da planilha + os pré-cadastrados
         function getAllKnownCorretores() {
@@ -1102,6 +1125,7 @@
             const n = parseFloat(String(val).replace(/\./g, '').replace(',', '.')) || 0;
             metasMensais[campo] = n;
             localStorage.setItem(`${appId}-metas-mensais`, JSON.stringify(metasMensais));
+            pushCloudSettings();
             drawMetasMensais();
         }
         function toggleMetasEdit() {
@@ -1237,6 +1261,7 @@
         function setRankingMeta(key, val) {
             rankingsMetas[key] = parseInt(String(val).replace(/\D/g, '')) || 0;
             localStorage.setItem(`${appId}-rankings-metas`, JSON.stringify(rankingsMetas));
+            pushCloudSettings();
             drawQuickRankings();
         }
         function toggleRankingsEdit() {
@@ -1747,7 +1772,10 @@
             localStorage.setItem(`${appId}-sidebar-hidden`, hide ? '1' : '0');
         }
 
-        window.onload = function() {
+        // Boot: primeiro o login (Firebase), depois carrega o app.
+        window.onload = function() { initFirebaseAuthGate(); };
+
+        function bootApp() {
             restoreRefreshRate();
             loadCorretorRoster();
             loadMetasMensais();
@@ -1767,7 +1795,128 @@
             } else {
                 showEmptyState();
             }
+        }
+
+        // ================= FIREBASE: LOGIN + SINCRONIZAÇÃO DE CONFIGURAÇÕES =================
+        // Dados continuam vindo do Google Sheets. O Firebase guarda apenas as CONFIGURAÇÕES
+        // compartilhadas (corretores ativos/inativos, metas, modo, URL) e exige login.
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5aXpCt-bCN5wr_DfPBAhxOCJy8LDTKWo",
+            authDomain: "audazbi.firebaseapp.com",
+            projectId: "audazbi",
+            storageBucket: "audazbi.firebasestorage.app",
+            messagingSenderId: "754247262325",
+            appId: "1:754247262325:web:695e1e308f464eb7e4583c",
+            measurementId: "G-YPSG2D1WXV"
         };
+        let fbAuth = null, fbDb = null, cloudUnsub = null, appBooted = false, applyingCloud = false;
+
+        function initFirebaseAuthGate() {
+            if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+                console.warn('Firebase indisponível — abrindo em modo local (sem login/sync).');
+                hideLogin();
+                if (!appBooted) { appBooted = true; bootApp(); }
+                return;
+            }
+            try {
+                if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                fbAuth = firebase.auth();
+                fbDb = firebase.firestore();
+            } catch (e) {
+                console.warn('Erro ao iniciar Firebase, modo local:', e);
+                hideLogin();
+                if (!appBooted) { appBooted = true; bootApp(); }
+                return;
+            }
+            fbAuth.onAuthStateChanged(function (user) {
+                if (user) {
+                    hideLogin();
+                    const lbl = document.getElementById('loggedUserLabel'); if (lbl && user.email) lbl.textContent = user.email;
+                    startCloudSync().then(function () {
+                        if (!appBooted) { appBooted = true; bootApp(); }
+                    });
+                } else {
+                    if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+                    showLogin();
+                }
+            });
+        }
+
+        function startCloudSync() {
+            return new Promise(function (resolve) {
+                if (!fbDb) { resolve(); return; }
+                let first = true;
+                try {
+                    cloudUnsub = fbDb.collection('config').doc('settings').onSnapshot(function (snap) {
+                        if (snap.exists) {
+                            applyCloudSettings(snap.data());
+                        } else if (first) {
+                            setTimeout(pushCloudSettings, 1500); // doc ainda não existe: semeia com o local
+                        }
+                        if (first) { first = false; resolve(); }
+                        else if (appBooted) { reRenderAfterSettings(); }
+                    }, function (err) { console.warn('Firestore snapshot erro:', err); if (first) { first = false; resolve(); } });
+                } catch (e) { console.warn(e); resolve(); }
+            });
+        }
+
+        function applyCloudSettings(data) {
+            if (!data) return;
+            applyingCloud = true;
+            try {
+                if (Array.isArray(data.corretoresAdded)) { addedCorretores = data.corretoresAdded; localStorage.setItem(`${appId}-corretores-added`, JSON.stringify(addedCorretores)); }
+                if (Array.isArray(data.corretoresInactive)) { inactiveCorretores = data.corretoresInactive; localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores)); }
+                if (data.metasMensais && typeof data.metasMensais === 'object') { metasMensais = Object.assign({ vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60 }, data.metasMensais); localStorage.setItem(`${appId}-metas-mensais`, JSON.stringify(metasMensais)); }
+                if (data.rankingsMetas && typeof data.rankingsMetas === 'object') { rankingsMetas = data.rankingsMetas; localStorage.setItem(`${appId}-rankings-metas`, JSON.stringify(rankingsMetas)); }
+                if (data.vendasMode === 'gerais' || data.vendasMode === 'finalizadas') { vendasMode = data.vendasMode; localStorage.setItem(`${appId}-vendas-mode`, vendasMode); }
+                if (typeof data.gsheetsUrl === 'string' && data.gsheetsUrl) { googleSheetsUrl = data.gsheetsUrl; localStorage.setItem(`${appId}-gsheets-url`, googleSheetsUrl); }
+            } catch (e) { console.warn(e); }
+            applyingCloud = false;
+        }
+
+        function reRenderAfterSettings() {
+            try {
+                updateVendasModeUI();
+                const inp = document.getElementById('sheetUrlInput'); if (inp) inp.value = googleSheetsUrl;
+                if (typeof applyFilters === 'function' && dataset && dataset.length) applyFilters();
+            } catch (e) {}
+        }
+
+        // Salva as CONFIGURAÇÕES atuais na nuvem (chamada após qualquer mudança do usuário).
+        function pushCloudSettings() {
+            if (applyingCloud) return;
+            if (!fbDb || !fbAuth || !fbAuth.currentUser) return;
+            try {
+                fbDb.collection('config').doc('settings').set({
+                    corretoresAdded: addedCorretores,
+                    corretoresInactive: inactiveCorretores,
+                    metasMensais: metasMensais,
+                    rankingsMetas: rankingsMetas,
+                    vendasMode: vendasMode,
+                    gsheetsUrl: googleSheetsUrl,
+                    _updatedAt: Date.now()
+                }, { merge: true }).catch(function (e) { console.warn('Falha ao salvar na nuvem:', e); });
+            } catch (e) { console.warn(e); }
+        }
+
+        function showLogin() { const o = document.getElementById('loginOverlay'); if (o) o.classList.remove('hidden'); }
+        function hideLogin() { const o = document.getElementById('loginOverlay'); if (o) o.classList.add('hidden'); }
+        function doLogout() { if (fbAuth) fbAuth.signOut(); }
+        function doLogin() {
+            const email = (document.getElementById('loginEmail').value || '').trim();
+            const pass = document.getElementById('loginPass').value || '';
+            const err = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+            if (err) err.classList.add('hidden');
+            if (!email || !pass) { if (err) { err.textContent = 'Informe e-mail e senha.'; err.classList.remove('hidden'); } return; }
+            if (!fbAuth) { if (err) { err.textContent = 'Login indisponível no momento.'; err.classList.remove('hidden'); } return; }
+            if (btn) btn.textContent = 'Entrando...';
+            fbAuth.signInWithEmailAndPassword(email, pass).then(function () {
+                const p = document.getElementById('loginPass'); if (p) p.value = '';
+            }).catch(function () {
+                if (err) { err.textContent = 'E-mail ou senha inválidos.'; err.classList.remove('hidden'); }
+            }).finally(function () { if (btn) btn.textContent = 'Entrar'; });
+        }
 
         function useMockData() {
             dataset = generateMockData();
@@ -1796,6 +1945,7 @@
 
             googleSheetsUrl = urlInput;
             localStorage.setItem(`${appId}-gsheets-url`, urlInput);
+            pushCloudSettings();
             fetchFromGoogleSheets(urlInput);
         }
 
@@ -2113,6 +2263,7 @@
         function setVendasMode(mode) {
             vendasMode = (mode === 'finalizadas') ? 'finalizadas' : 'gerais';
             localStorage.setItem(`${appId}-vendas-mode`, vendasMode);
+            pushCloudSettings();
             updateVendasModeUI();
             applyFilters();
         }
