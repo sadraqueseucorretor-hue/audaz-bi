@@ -1323,7 +1323,7 @@
                 if (checkPeriodMatch(row['Data Cadastro'], 'hoje', hojeReal)) addTo(anHoje, c, 0);
                 if (checkPeriodMatch(row['Data Cadastro'], 'semana', refSM)) addTo(anSem, c, 0);
                 if (ehMesCadastro(row)) addTo(anMes, c, 0);
-                const aprovado = (row['Situação - Analise'] || '').includes('Aprovado');
+                const aprovado = isAprovado(row['Situação - Analise']);
                 if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'hoje', hojeReal)) addTo(apHoje, c, 0);
                 if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'semana', refSM)) addTo(apSem, c, 0);
                 if (aprovado && ehMesAprovacao(row)) addTo(apMes, c, 0);
@@ -1682,6 +1682,11 @@
         // Considera venda/ganho quando Ganho = 'Sim' OU Situação-Ganho contém 'Ganho'
         function isGanho(row) {
             return row['Ganho'] === 'Sim' || (row['Situação - Ganho'] || '').includes('Ganho');
+        }
+        // Aprovado = a PRIMEIRA palavra da Situação - Analise é "Aprovado".
+        // Pega "Aprovado", "Aprovado em validação", "Aprovado Stand By", "Aprovado Stand-by"; ignora "Reprovado", "Não Aprovado".
+        function isAprovado(sit) {
+            return /^\s*aprovado\b/i.test(sit || '');
         }
 
         // GERAL ("informadas" no sentido amplo) = TODAS as vendas ganhas no mês,
@@ -2364,7 +2369,7 @@
                     : checkPeriodMatch(row['Data Cadastro'], currentPeriod, refDate);
                 if (safraMatch) analysesCount++;
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou), não pela safra
-                if ((row['Situação - Analise'] || '').includes('Aprovado')) {
+                if (isAprovado(row['Situação - Analise'])) {
                     const aprovMatch = useMesRef
                         ? checkMesPeriodMatch(row['Mês Aprovação'], currentPeriod, refDate)
                         : checkPeriodMatch(row['Data Aprovação'], currentPeriod, refDate);
@@ -2854,7 +2859,7 @@
                     corretoresMap[c].analises++;
                 }
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
-                if ((row['Situação - Analise'] || '').includes('Aprovado')) {
+                if (isAprovado(row['Situação - Analise'])) {
                     const aprovMatch = useMesTables
                         ? checkMesPeriodMatch(row['Mês Aprovação'], currentPeriod, refDateTables)
                         : checkPeriodMatch(row['Data Aprovação'], currentPeriod, refDateTables);
@@ -2923,7 +2928,7 @@
                     equipesMap[eq].analises++;
                 }
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
-                if ((row['Situação - Analise'] || '').includes('Aprovado')) {
+                if (isAprovado(row['Situação - Analise'])) {
                     const aprovMatch = useMesTables
                         ? checkMesPeriodMatch(row['Mês Aprovação'], currentPeriod, refDateTables)
                         : checkPeriodMatch(row['Data Aprovação'], currentPeriod, refDateTables);
@@ -3000,7 +3005,7 @@
                 if (mesCad && evolucaoMes[mesCad]) {
                     evolucaoMes[mesCad].analises++;
                 }
-                if ((row['Situação - Analise'] || '').includes('Aprovado') && mesAprov && evolucaoMes[mesAprov]) {
+                if (isAprovado(row['Situação - Analise']) && mesAprov && evolucaoMes[mesAprov]) {
                     evolucaoMes[mesAprov].aprovacoes++;
                 }
                 if (isGanho(row) && mesGanho && evolucaoMes[mesGanho]) {
@@ -3163,7 +3168,7 @@
                 const c = row.Corretor;
                 if (!corrData[c]) corrData[c] = { analises: 0, aprovacoes: 0, vendas: 0 };
                 corrData[c].analises++;
-                if ((row['Situação - Analise'] || '').includes('Aprovado')) corrData[c].aprovacoes++;
+                if (isAprovado(row['Situação - Analise'])) corrData[c].aprovacoes++;
                 if (isGanho(row)) corrData[c].vendas++;
             });
 
@@ -3473,7 +3478,7 @@
             filteredDataset.forEach(row => {
                 if (!activeSet.has(row.Corretor)) return;
                 if (noMes(row['Mês Cadastro'])) maxDia = Math.max(maxDia, diaDe(row['Data Cadastro']));
-                if ((row['Situação - Analise'] || '').includes('Aprovado') && noMes(row['Mês Aprovação'])) maxDia = Math.max(maxDia, diaDe(row['Data Aprovação']));
+                if (isAprovado(row['Situação - Analise']) && noMes(row['Mês Aprovação'])) maxDia = Math.max(maxDia, diaDe(row['Data Aprovação']));
                 if (isGanho(row) && noMes(row['Mês Ganho'])) maxDia = Math.max(maxDia, diaDe(row['Data Ganho']));
             });
             maxDia = Math.min(maxDia, daysInMonth + 15); // trava de segurança contra data muito fora
@@ -3520,7 +3525,7 @@
                     }
                 }
                 // Aprovado -> Data Aprovação / Mês Aprovação
-                if ((row['Situação - Analise'] || '').includes('Aprovado') && noMes(row['Mês Aprovação'])) {
+                if (isAprovado(row['Situação - Analise']) && noMes(row['Mês Aprovação'])) {
                     const day = diaDe(row['Data Aprovação']);
                     const key = `${corr}_${day}`;
                     if (cellMatrix[key]) {
@@ -3774,7 +3779,7 @@
                     const vgvText = formatCurrency(parseFloat(r.VGV) || 0);
 
                     let situationClass = "text-slate-400";
-                    if ((sitText || '').includes('Aprovado')) situationClass = "text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded";
+                    if (isAprovado(sitText)) situationClass = "text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded";
                     if (sitText === 'Reprovado') situationClass = "text-rose-500 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded";
 
                     const corretorTag = showCorretor && r.Corretor ? `<div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">${r.Corretor}</div>` : '';
