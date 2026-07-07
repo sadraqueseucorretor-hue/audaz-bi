@@ -78,20 +78,22 @@
 </head>
 <body class="text-slate-100 min-h-screen overflow-x-hidden">
 
-    <!-- TELA DE LOGIN (Firebase Auth) -->
-    <div id="loginOverlay" class="fixed inset-0 z-[200] bg-slate-950 flex items-center justify-center p-4">
-        <div class="w-full max-w-sm bg-slate-900/70 border border-slate-800 rounded-2xl p-8 shadow-2xl">
-            <div class="flex items-center gap-3 mb-6 justify-center">
-                <div class="h-10 w-10 bg-gradient-to-tr from-brand-600 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20"><i class="fa-solid fa-chart-line text-white text-xl"></i></div>
+    <!-- MODAL: ACESSO DO ADMINISTRADOR (senha para editar) -->
+    <div id="adminModal" class="hidden fixed inset-0 z-[200] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="w-full max-w-xs bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="h-10 w-10 bg-brand-500/10 border border-brand-500/20 rounded-xl flex items-center justify-center text-brand-400"><i class="fa-solid fa-lock text-base"></i></div>
                 <div>
-                    <h1 class="text-xl font-extrabold tracking-wider text-white">AUDAZ BI</h1>
-                    <p class="text-[10px] text-slate-500 font-medium tracking-widest uppercase">Acesso restrito</p>
+                    <h3 class="text-base font-bold text-slate-200">Acesso do administrador</h3>
+                    <p class="text-[11px] text-slate-500">Digite a senha para editar</p>
                 </div>
             </div>
-            <input id="loginEmail" type="email" autocomplete="username" placeholder="E-mail" class="w-full mb-3 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-brand-500 transition">
-            <input id="loginPass" type="password" autocomplete="current-password" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()" class="w-full mb-4 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-brand-500 transition">
-            <button onclick="doLogin()" id="loginBtn" class="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-sm transition">Entrar</button>
-            <p id="loginError" class="hidden text-[11px] text-rose-400 mt-3 text-center"></p>
+            <input id="adminPass" type="password" autocomplete="current-password" placeholder="Senha do admin" onkeydown="if(event.key==='Enter')adminLogin()" class="w-full mb-4 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-brand-500 transition">
+            <div class="flex items-center justify-end gap-2">
+                <button onclick="closeAdminModal()" class="text-xs font-semibold text-slate-400 hover:text-slate-200 px-3 py-2 transition">Cancelar</button>
+                <button onclick="adminLogin()" class="text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-lg px-4 py-2 transition">Entrar</button>
+            </div>
+            <p id="adminError" class="hidden text-[11px] text-rose-400 mt-3 text-center"></p>
         </div>
     </div>
 
@@ -125,12 +127,12 @@
                     <p class="text-xs text-slate-400 mb-4 leading-relaxed">
                         Ligue diretamente a folha de cálculo pública do Google Sheets para sincronizar a sua equipa em tempo real.
                     </p>
-                    <button onclick="toggleConnectionModal()" class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150">
+                    <button onclick="toggleConnectionModal()" style="display:none" class="admin-only w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150">
                         <i class="fa-solid fa-link text-brand-500"></i>
                         Configurar Planilha
                     </button>
 
-                    <button onclick="toggleCorretorModal()" class="w-full mt-2 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150">
+                    <button onclick="toggleCorretorModal()" style="display:none" class="admin-only w-full mt-2 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150">
                         <i class="fa-solid fa-users-gear text-indigo-400"></i>
                         Gerir Corretores
                     </button>
@@ -182,10 +184,10 @@
                         <i class="fa-solid fa-user-tie text-slate-300"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-xs font-semibold text-slate-300 truncate" id="loggedUserLabel">Diretoria Executiva</p>
-                        <p class="text-[10px] text-slate-500">Acesso Administrativo</p>
+                        <p class="text-xs font-semibold text-slate-300 truncate">Diretoria Executiva</p>
+                        <span id="adminBadge" class="text-[10px] font-bold text-slate-500">Visualização</span>
                     </div>
-                    <button onclick="doLogout()" title="Sair" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 flex items-center justify-center transition shrink-0"><i class="fa-solid fa-right-from-bracket text-xs"></i></button>
+                    <button onclick="onAdminBtn()" id="btnAdmin" title="Acesso do administrador" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-brand-400 hover:border-brand-500/40 flex items-center justify-center transition shrink-0"><i class="fa-solid fa-lock text-xs"></i></button>
                 </div>
             </div>
         </aside>
@@ -312,7 +314,7 @@
                                 <p class="text-[10px] text-slate-500" id="metasPeriodoLabel">Acompanhamento do mês atual</p>
                             </div>
                         </div>
-                        <button onclick="toggleMetasEdit()" id="btnEditMetas" class="text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
+                        <button onclick="toggleMetasEdit()" id="btnEditMetas" style="display:none" class="admin-only text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
                             <i class="fa-solid fa-pen"></i> Editar metas
                         </button>
                     </div>
@@ -672,7 +674,7 @@
                                 <button onclick="shiftQuickRef(7)" title="Próxima semana" class="h-7 w-7 rounded-lg border border-slate-700 text-slate-300 hover:text-brand-400 hover:border-brand-500/40 flex items-center justify-center transition"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
                                 <button onclick="resetQuickRef()" id="btnQuickRefHoje" class="text-[11px] font-bold rounded-lg px-2.5 py-1.5 border transition text-slate-500 border-slate-800">Atual</button>
                                 <span class="h-4 w-px bg-slate-700 mx-1"></span>
-                                <button onclick="toggleRankingsEdit()" id="btnEditRankingsMetas" class="text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
+                                <button onclick="toggleRankingsEdit()" id="btnEditRankingsMetas" style="display:none" class="admin-only text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
                                     <i class="fa-solid fa-pen"></i> Editar metas
                                 </button>
                             </div>
@@ -1772,8 +1774,8 @@
             localStorage.setItem(`${appId}-sidebar-hidden`, hide ? '1' : '0');
         }
 
-        // Boot: primeiro o login (Firebase), depois carrega o app.
-        window.onload = function() { initFirebaseAuthGate(); };
+        // Boot: painel é PÚBLICO. Firebase entra só para ler configs e permitir edição via senha de admin.
+        window.onload = function() { initFirebaseAdmin(); };
 
         function bootApp() {
             restoreRefreshRate();
@@ -1810,11 +1812,12 @@
             measurementId: "G-YPSG2D1WXV"
         };
         let fbAuth = null, fbDb = null, cloudUnsub = null, appBooted = false, applyingCloud = false;
+        let isAdmin = false;
+        const ADMIN_EMAIL = 'admin@audazbi.com'; // conta fixa do admin; a senha é o que o usuário digita
 
-        function initFirebaseAuthGate() {
+        function initFirebaseAdmin() {
             if (typeof firebase === 'undefined' || !firebase.initializeApp) {
-                console.warn('Firebase indisponível — abrindo em modo local (sem login/sync).');
-                hideLogin();
+                console.warn('Firebase indisponível — abrindo sem sync/admin.');
                 if (!appBooted) { appBooted = true; bootApp(); }
                 return;
             }
@@ -1823,22 +1826,43 @@
                 fbAuth = firebase.auth();
                 fbDb = firebase.firestore();
             } catch (e) {
-                console.warn('Erro ao iniciar Firebase, modo local:', e);
-                hideLogin();
+                console.warn('Erro ao iniciar Firebase:', e);
                 if (!appBooted) { appBooted = true; bootApp(); }
                 return;
             }
+            // Painel PÚBLICO: lê as configurações compartilhadas (leitura liberada) e abre para todos.
+            startCloudSync().then(function () {
+                if (!appBooted) { appBooted = true; bootApp(); }
+            });
+            // Estado do modo administrador (edição liberada com senha).
             fbAuth.onAuthStateChanged(function (user) {
-                if (user) {
-                    hideLogin();
-                    const lbl = document.getElementById('loggedUserLabel'); if (lbl && user.email) lbl.textContent = user.email;
-                    startCloudSync().then(function () {
-                        if (!appBooted) { appBooted = true; bootApp(); }
-                    });
-                } else {
-                    if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
-                    showLogin();
-                }
+                isAdmin = !!user;
+                if (isAdmin) pushCloudSettings(); // garante/semeia o doc de configs na nuvem
+                updateAdminUI();
+            });
+        }
+
+        function updateAdminUI() {
+            document.querySelectorAll('.admin-only').forEach(function (el) { el.style.display = isAdmin ? '' : 'none'; });
+            const btn = document.getElementById('btnAdmin');
+            if (btn) { btn.innerHTML = isAdmin ? '<i class="fa-solid fa-lock-open text-xs"></i>' : '<i class="fa-solid fa-lock text-xs"></i>'; btn.title = isAdmin ? 'Sair do modo administrador' : 'Acesso do administrador'; }
+            const badge = document.getElementById('adminBadge');
+            if (badge) { badge.textContent = isAdmin ? 'Administrador' : 'Visualização'; badge.className = 'text-[10px] font-bold ' + (isAdmin ? 'text-emerald-400' : 'text-slate-500'); }
+        }
+        function onAdminBtn() { if (isAdmin) doLogout(); else openAdminModal(); }
+        function openAdminModal() { const m = document.getElementById('adminModal'); if (m) { m.classList.remove('hidden'); const p = document.getElementById('adminPass'); if (p) { p.value = ''; setTimeout(function () { p.focus(); }, 60); } } }
+        function closeAdminModal() { const m = document.getElementById('adminModal'); if (m) m.classList.add('hidden'); const e = document.getElementById('adminError'); if (e) e.classList.add('hidden'); }
+        function adminLogin() {
+            const pass = (document.getElementById('adminPass').value) || '';
+            const err = document.getElementById('adminError');
+            if (err) err.classList.add('hidden');
+            if (!pass) { if (err) { err.textContent = 'Digite a senha.'; err.classList.remove('hidden'); } return; }
+            if (!fbAuth) { if (err) { err.textContent = 'Indisponível no momento.'; err.classList.remove('hidden'); } return; }
+            fbAuth.signInWithEmailAndPassword(ADMIN_EMAIL, pass).then(function () {
+                closeAdminModal();
+                if (typeof showToast === 'function') showToast('Modo administrador ativado.');
+            }).catch(function () {
+                if (err) { err.textContent = 'Senha incorreta.'; err.classList.remove('hidden'); }
             });
         }
 
@@ -1899,24 +1923,7 @@
             } catch (e) { console.warn(e); }
         }
 
-        function showLogin() { const o = document.getElementById('loginOverlay'); if (o) o.classList.remove('hidden'); }
-        function hideLogin() { const o = document.getElementById('loginOverlay'); if (o) o.classList.add('hidden'); }
-        function doLogout() { if (fbAuth) fbAuth.signOut(); }
-        function doLogin() {
-            const email = (document.getElementById('loginEmail').value || '').trim();
-            const pass = document.getElementById('loginPass').value || '';
-            const err = document.getElementById('loginError');
-            const btn = document.getElementById('loginBtn');
-            if (err) err.classList.add('hidden');
-            if (!email || !pass) { if (err) { err.textContent = 'Informe e-mail e senha.'; err.classList.remove('hidden'); } return; }
-            if (!fbAuth) { if (err) { err.textContent = 'Login indisponível no momento.'; err.classList.remove('hidden'); } return; }
-            if (btn) btn.textContent = 'Entrando...';
-            fbAuth.signInWithEmailAndPassword(email, pass).then(function () {
-                const p = document.getElementById('loginPass'); if (p) p.value = '';
-            }).catch(function () {
-                if (err) { err.textContent = 'E-mail ou senha inválidos.'; err.classList.remove('hidden'); }
-            }).finally(function () { if (btn) btn.textContent = 'Entrar'; });
-        }
+        function doLogout() { if (fbAuth) fbAuth.signOut(); if (typeof showToast === 'function') showToast('Modo administrador encerrado.'); }
 
         function useMockData() {
             dataset = generateMockData();
