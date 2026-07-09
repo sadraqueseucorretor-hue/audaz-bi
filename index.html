@@ -36,6 +36,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- PapaParse para ler CSV do Google Sheets -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- html2canvas: exportar um card (ex.: ranking) como imagem para copiar/baixar -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Firebase (Firestore) para sincronizar as configurações entre computadores -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -1567,14 +1569,19 @@
                     }).join('');
                 }
 
-                return `<div class="bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden flex flex-col">
+                return `<div class="rk-card bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden flex flex-col" data-rk-title="${card.title}">
                     <div class="bg-gradient-to-r from-blue-700 to-blue-600 px-3 py-1.5 flex items-center justify-between gap-2">
                         <div class="flex items-center gap-1.5 min-w-0">
                             <div class="h-5 w-5 rounded bg-white/15 flex items-center justify-center shrink-0"><i class="fa-solid ${card.icon} text-white text-[10px]"></i></div>
                             <h4 class="text-[11px] font-extrabold tracking-wide text-white uppercase truncate">${card.title}</h4>
                         </div>
-                        <div class="bg-white/15 rounded px-1.5 py-0.5 text-[9px] font-bold text-white flex items-center gap-1 shrink-0 whitespace-nowrap">
-                            <i class="fa-solid fa-calendar-days"></i> ${periodoPorCadencia[card.cadence]}
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <div class="bg-white/15 rounded px-1.5 py-0.5 text-[9px] font-bold text-white flex items-center gap-1 whitespace-nowrap">
+                                <i class="fa-solid fa-calendar-days"></i> ${periodoPorCadencia[card.cadence]}
+                            </div>
+                            <button onclick="exportRankingCardImage(this)" title="Copiar este ranking como imagem" class="rk-no-export h-5 w-5 rounded bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-[10px] transition">
+                                <i class="fa-solid fa-camera"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -1605,7 +1612,7 @@
                         <p class="text-center text-[9px] text-slate-500 mt-0.5">${totalCount} de ${meta || '–'}${card.vgv ? ` · ${fmtInt(totalVgv)}` : ''}</p>
                     </div>
 
-                    <div class="px-1 overflow-x-auto overflow-y-auto max-h-40 flex-1">
+                    <div class="px-1 overflow-x-auto flex-1">
                         <table class="w-full border-collapse">
                             <thead class="sticky top-0 bg-slate-900/95">
                                 <tr class="text-[8px] text-slate-500 uppercase font-bold border-b border-slate-800">
@@ -1637,6 +1644,47 @@
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        // Exporta um card de Ranking Rápido (o elemento .rk-card mais próximo do botão) como imagem PNG.
+        // Tenta copiar direto pra área de transferência; se o navegador não suportar, baixa o arquivo.
+        async function exportRankingCardImage(btnEl) {
+            const card = btnEl.closest('.rk-card');
+            if (!card || typeof html2canvas === 'undefined') {
+                showToast('Não foi possível gerar a imagem.', true);
+                return;
+            }
+            const icon = btnEl.querySelector('i');
+            const iconClassOriginal = icon ? icon.className : '';
+            if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
+            try {
+                const canvas = await html2canvas(card, {
+                    backgroundColor: '#0f172a',
+                    scale: 2,
+                    ignoreElements: (el) => el.classList && el.classList.contains('rk-no-export')
+                });
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                if (!blob) throw new Error('Falha ao gerar imagem');
+
+                const nomeArquivo = `ranking-${(card.dataset.rkTitle || 'audaz').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
+                try {
+                    if (!navigator.clipboard || !window.ClipboardItem) throw new Error('Clipboard API indisponível');
+                    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                    showToast(`Imagem de "${card.dataset.rkTitle}" copiada! Cole onde quiser (Ctrl+V).`);
+                } catch (clipErr) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = nomeArquivo;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showToast(`Não deu pra copiar direto — baixei a imagem de "${card.dataset.rkTitle}".`);
+                }
+            } catch (e) {
+                console.warn('Erro ao exportar ranking como imagem:', e);
+                showToast('Erro ao gerar a imagem do ranking.', true);
+            } finally {
+                if (icon) icon.className = iconClassOriginal;
+            }
         }
 
         function toggleCorretorModal() {
