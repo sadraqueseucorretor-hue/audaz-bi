@@ -36,8 +36,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- PapaParse para ler CSV do Google Sheets -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <!-- html2canvas: exportar um card (ex.: ranking) como imagem para copiar/baixar -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Firebase (Firestore) para sincronizar as configurações entre computadores -->
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -1384,11 +1382,10 @@
 
         // Rankings rápidos estilo Habitnet: Análises/Aprovações (Hoje e Semana) e Vendas (Semana e Mês).
         // Snapshot por data atual; respeita só os filtros de corretor/equipe/construtora/empreendimento.
-        let rankingExportInProgress = false; // true durante exportRankingCardImage(): não redesenha o grid,
-                                              // senão o auto-refresh/sync troca o DOM no meio da captura e
-                                              // gera uma imagem com texto "fantasma"/rasgado.
+        let rankingCardsSnapshot = []; // dados "crus" de cada card, na mesma ordem do grid — usado por
+                                        // exportRankingCardImage() pra desenhar a imagem via Canvas 2D
+                                        // (sem depender de tirar print do DOM, que se mostrou instável).
         function drawQuickRankings() {
-            if (rankingExportInProgress) return;
             const grid = document.getElementById('quickRankingsGrid');
             if (!grid) return;
             const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date(); // cards "Hoje" = sempre hoje
@@ -1492,7 +1489,8 @@
                 { title: 'Vendas · Mês',        icon: 'fa-trophy',       col: 'VD', map: vdMes,  vgv: true,  key: 'vdMes',  cadence: 'Mês' }
             ];
 
-            grid.innerHTML = cards.map(card => {
+            rankingCardsSnapshot = [];
+            grid.innerHTML = cards.map((card, cardIdx) => {
                 const list = Object.entries(card.map)
                     .map(([nome, v]) => ({ nome, count: v.count, vgv: v.vgv }))
                     .sort((a, b) => {
@@ -1535,6 +1533,28 @@
 
                 const donutStyle = `background:conic-gradient(#10b981 ${pct}%, #1e293b ${pct}% 100%)`;
 
+                rankingCardsSnapshot[cardIdx] = {
+                    title: card.title,
+                    period: periodoPorCadencia[card.cadence],
+                    cadence: card.cadence,
+                    unidade: unidadePorCol[card.col],
+                    showVgv: card.vgv,
+                    totalCount, totalVgv, meta, pct, falta, batida,
+                    melhorTxt, pendenciaTxt,
+                    rows: list.map((r, i) => {
+                        const m = (metasPorCorretor[r.nome] && metasPorCorretor[r.nome][card.key]) || 0;
+                        return {
+                            pos: i + 1,
+                            nome: r.nome,
+                            count: r.count,
+                            vgv: r.vgv,
+                            faltaC: m > 0 ? Math.max(0, m - r.count) : null,
+                            pctC: m > 0 ? Math.min(100, Math.round((r.count / m) * 100)) : null,
+                            iniciais: initials(r.nome)
+                        };
+                    })
+                };
+
                 const metaStat = rankingsEditMode
                     ? `<input type="number" min="0" value="${meta || ''}" placeholder="meta" onchange="setRankingMeta('${card.key}', this.value)" class="w-12 bg-slate-950 border border-slate-700 text-xs rounded px-1 py-0.5 text-slate-100 text-center font-extrabold focus:border-brand-500 outline-none">`
                     : `<div class="text-base font-extrabold text-white leading-tight">${meta || '–'}</div>`;
@@ -1573,7 +1593,7 @@
                     }).join('');
                 }
 
-                return `<div class="rk-card bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden flex flex-col" data-rk-title="${card.title}">
+                return `<div class="rk-card bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden flex flex-col" data-rk-title="${card.title}" data-rk-index="${cardIdx}">
                     <div class="bg-gradient-to-r from-blue-700 to-blue-600 px-3 py-1.5 flex items-center justify-between gap-2">
                         <div class="flex items-center gap-1.5 min-w-0">
                             <div class="h-5 w-5 rounded bg-white/15 flex items-center justify-center shrink-0"><i class="fa-solid ${card.icon} text-white text-[10px]"></i></div>
@@ -1652,11 +1672,272 @@
 
         // Exporta um card de Ranking Rápido (o elemento .rk-card mais próximo do botão) como imagem PNG.
         // Tenta copiar direto pra área de transferência; se o navegador não suportar, baixa o arquivo.
-        let anyRankingExportBusy = false; // trava contra clique duplo: 2 capturas concorrentes no mesmo card também dão texto fantasma
+        // ===== Exportação do ranking como imagem: desenhada manualmente via Canvas 2D =====
+        // Não usa mais html2canvas (tirava "print" do DOM e dava texto fantasma/duplicado em algumas
+        // máquinas, de forma consistente e não reproduzível nos nossos testes). Desenhando direto com
+        // os dados (rankingCardsSnapshot) o resultado é determinístico e idêntico em qualquer navegador.
+        function rrPath(ctx, x, y, w, h, r) {
+            const rad = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + rad, y);
+            ctx.arcTo(x + w, y, x + w, y + h, rad);
+            ctx.arcTo(x + w, y + h, x, y + h, rad);
+            ctx.arcTo(x, y + h, x, y, rad);
+            ctx.arcTo(x, y, x + w, y, rad);
+            ctx.closePath();
+        }
+        function rrFill(ctx, x, y, w, h, r, style) {
+            rrPath(ctx, x, y, w, h, r);
+            ctx.fillStyle = style;
+            ctx.fill();
+        }
+        function rrStroke(ctx, x, y, w, h, r, style, lw) {
+            rrPath(ctx, x, y, w, h, r);
+            ctx.strokeStyle = style;
+            ctx.lineWidth = lw;
+            ctx.stroke();
+        }
+        function truncateToWidth(ctx, text, maxWidth) {
+            if (ctx.measureText(text).width <= maxWidth) return text;
+            let t = text;
+            while (t.length > 1 && ctx.measureText(t + '…').width > maxWidth) t = t.slice(0, -1);
+            return t + '…';
+        }
+
+        function drawRankingCardCanvas(data) {
+            const FONT = 'Plus Jakarta Sans, Arial, sans-serif';
+            const scale = 2;
+            const W = 640, pad = 14;
+            const headerH = 48, statsH = 76, progressH = 34, tableHeadH = 24, rowH = 26, footerH = 50;
+            const rows = data.rows.length ? data.rows : [];
+            const tableH = tableHeadH + Math.max(rows.length, 1) * rowH + 8;
+            const H = headerH + statsH + progressH + tableH + footerH;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(W * scale);
+            canvas.height = Math.round(H * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
+
+            // fundo + cantos arredondados
+            rrFill(ctx, 0, 0, W, H, 12, '#0f172a');
+            ctx.save();
+            rrPath(ctx, 0, 0, W, H, 12);
+            ctx.clip();
+
+            // ---- header ----
+            const grad = ctx.createLinearGradient(0, 0, W, 0);
+            grad.addColorStop(0, '#1d4ed8');
+            grad.addColorStop(1, '#2563eb');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, headerH);
+
+            rrFill(ctx, pad, headerH / 2 - 11, 22, 22, 6, 'rgba(255,255,255,0.18)');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `800 14px ${FONT}`;
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'left';
+            ctx.fillText(data.title.toUpperCase(), pad + 30, headerH / 2 + 1);
+
+            ctx.font = `700 11px ${FONT}`;
+            const badgeTextW = ctx.measureText(data.period).width;
+            const badgeW = badgeTextW + 18;
+            const badgeX = W - pad - badgeW;
+            rrFill(ctx, badgeX, headerH / 2 - 11, badgeW, 22, 6, 'rgba(255,255,255,0.18)');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(data.period, badgeX + 9, headerH / 2 + 1);
+
+            // ---- stats (Feitas / donut / Faltam / Meta) ----
+            const y0 = headerH + 10;
+            const gap = 8;
+            const statW = (W - pad * 2 - gap * 3) / 4;
+            const boxH = statsH - 18;
+
+            const drawStatBox = (x, value, label, boxBg, boxBorder, labelColor) => {
+                rrFill(ctx, x, y0, statW, boxH, 9, boxBg);
+                rrStroke(ctx, x, y0, statW, boxH, 9, boxBorder, 1);
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `800 20px ${FONT}`;
+                ctx.fillText(value, x + statW / 2, y0 + boxH / 2 - 6);
+                ctx.fillStyle = labelColor;
+                ctx.font = `800 10px ${FONT}`;
+                ctx.fillText(label, x + statW / 2, y0 + boxH / 2 + 15);
+            };
+
+            drawStatBox(pad, String(data.totalCount), 'FEITAS', 'rgba(16,185,129,0.12)', 'rgba(16,185,129,0.3)', '#34d399');
+
+            // donut
+            const donutCx = pad + statW + gap + statW / 2;
+            const donutCy = y0 + boxH / 2;
+            const donutR = Math.min(statW, boxH) / 2 - 3;
+            ctx.beginPath();
+            ctx.arc(donutCx, donutCy, donutR, 0, Math.PI * 2);
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+            if (data.pct > 0) {
+                ctx.beginPath();
+                ctx.arc(donutCx, donutCy, donutR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, data.pct / 100));
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 6;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                ctx.lineCap = 'butt';
+            }
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `800 11px ${FONT}`;
+            ctx.textAlign = 'center';
+            ctx.fillText(`${data.pct}%`, donutCx, donutCy + 1);
+
+            drawStatBox(pad + (statW + gap) * 2, String(data.falta), 'FALTAM', 'rgba(245,158,11,0.12)', 'rgba(245,158,11,0.3)', '#fbbf24');
+            drawStatBox(pad + (statW + gap) * 3, data.meta ? String(data.meta) : '–', 'META', 'rgba(99,102,241,0.12)', 'rgba(99,102,241,0.3)', '#a5b4fc');
+
+            // ---- progresso geral ----
+            const yP = headerH + statsH + 6;
+            rrFill(ctx, pad, yP, W - pad * 2, 7, 3.5, '#1e293b');
+            const progW = (W - pad * 2) * Math.min(1, data.pct / 100);
+            if (progW > 1) {
+                const pg = ctx.createLinearGradient(pad, 0, pad + progW, 0);
+                if (data.batida) { pg.addColorStop(0, '#059669'); pg.addColorStop(1, '#34d399'); }
+                else { pg.addColorStop(0, '#10b981'); pg.addColorStop(1, '#f59e0b'); }
+                rrFill(ctx, pad, yP, progW, 7, 3.5, pg);
+            }
+            ctx.fillStyle = '#64748b';
+            ctx.font = `600 11px ${FONT}`;
+            ctx.textAlign = 'center';
+            const progLbl = `${data.totalCount} de ${data.meta || '–'}` + (data.showVgv ? ` · ${Math.round(data.totalVgv).toLocaleString('pt-BR')}` : '');
+            ctx.fillText(progLbl, W / 2, yP + 22);
+
+            // ---- tabela ----
+            const yT = headerH + statsH + progressH;
+            const rankW = 24, feitoW = 46, faltaW = 46, progColW = 100, vgvW = data.showVgv ? 78 : 0;
+            const nameW = W - pad * 2 - rankW - feitoW - faltaW - progColW - vgvW;
+            const xRank = pad, xName = xRank + rankW, xFeito = xName + nameW, xFalta = xFeito + feitoW, xProg = xFalta + faltaW, xVgv = xProg + progColW;
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#64748b';
+            ctx.font = `800 10px ${FONT}`;
+            ctx.fillText('#', xRank, yT + tableHeadH / 2 + 1);
+            ctx.fillText('CORRETOR', xName, yT + tableHeadH / 2 + 1);
+            ctx.textAlign = 'center';
+            ctx.fillText('FEITO', xFeito + feitoW / 2, yT + tableHeadH / 2 + 1);
+            ctx.fillText('FALTA', xFalta + faltaW / 2, yT + tableHeadH / 2 + 1);
+            ctx.textAlign = 'left';
+            ctx.fillText('PROGRESSO', xProg, yT + tableHeadH / 2 + 1);
+            if (data.showVgv) { ctx.textAlign = 'right'; ctx.fillText('VGV', xVgv + vgvW, yT + tableHeadH / 2 + 1); }
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(pad, yT + tableHeadH); ctx.lineTo(W - pad, yT + tableHeadH); ctx.stroke();
+
+            if (rows.length === 0) {
+                ctx.fillStyle = '#64748b';
+                ctx.font = `600 11px ${FONT}`;
+                ctx.textAlign = 'center';
+                ctx.fillText('Sem registros', W / 2, yT + tableHeadH + rowH / 2 + 1);
+            }
+
+            rows.forEach((r, i) => {
+                const yRow = yT + tableHeadH + i * rowH;
+                const yMid = yRow + rowH / 2;
+                if (i > 0) {
+                    ctx.strokeStyle = 'rgba(30,41,59,0.6)';
+                    ctx.beginPath(); ctx.moveTo(pad, yRow); ctx.lineTo(W - pad, yRow); ctx.stroke();
+                }
+                const zero = r.count === 0;
+                let posColor = '#64748b';
+                if (!zero && i === 0) posColor = '#fbbf24'; else if (!zero && i === 1) posColor = '#cbd5e1'; else if (!zero && i === 2) posColor = '#d97706';
+
+                ctx.textAlign = 'left';
+                ctx.fillStyle = posColor;
+                ctx.font = `800 11px ${FONT}`;
+                ctx.fillText(`${r.pos}º`, xRank, yMid + 1);
+
+                // avatar
+                const avR = 9;
+                const avCx = xName + avR, avCy = yMid;
+                const avGrad = ctx.createLinearGradient(avCx - avR, avCy - avR, avCx + avR, avCy + avR);
+                avGrad.addColorStop(0, '#6366f1');
+                avGrad.addColorStop(1, '#10b981');
+                ctx.beginPath(); ctx.arc(avCx, avCy, avR, 0, Math.PI * 2); ctx.fillStyle = avGrad; ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `800 8px ${FONT}`;
+                ctx.textAlign = 'center';
+                ctx.fillText(r.iniciais, avCx, avCy + 0.5);
+
+                ctx.textAlign = 'left';
+                ctx.fillStyle = zero ? '#94a3b8' : '#e2e8f0';
+                ctx.font = `600 11px ${FONT}`;
+                const nameX = xName + avR * 2 + 6;
+                ctx.fillText(truncateToWidth(ctx, r.nome, nameW - avR * 2 - 6), nameX, yMid + 1);
+
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#34d399';
+                ctx.font = `800 11px ${FONT}`;
+                ctx.fillText(String(r.count), xFeito + feitoW / 2, yMid + 1);
+
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillText(r.faltaC === null ? '–' : String(r.faltaC), xFalta + faltaW / 2, yMid + 1);
+
+                if (r.pctC !== null) {
+                    const barW = 42, barH = 5;
+                    const barY = yMid - barH / 2;
+                    rrFill(ctx, xProg, barY, barW, barH, 2.5, '#334155');
+                    const fillW = barW * Math.min(1, r.pctC / 100);
+                    let barColor = '#334155';
+                    if (r.pctC >= 100) barColor = '#10b981'; else if (r.pctC >= 50) barColor = '#fbbf24'; else if (r.pctC > 0) barColor = '#f97316';
+                    if (fillW > 0) rrFill(ctx, xProg, barY, fillW, barH, 2.5, barColor);
+                    ctx.textAlign = 'left';
+                    ctx.fillStyle = r.pctC >= 100 ? '#34d399' : (r.pctC >= 50 ? '#fcd34d' : '#fb923c');
+                    ctx.font = `700 10px ${FONT}`;
+                    ctx.fillText(`${r.pctC}%`, xProg + barW + 8, yMid + 1);
+                } else {
+                    ctx.textAlign = 'left';
+                    ctx.fillStyle = '#475569';
+                    ctx.font = `600 9px ${FONT}`;
+                    ctx.fillText('sem meta', xProg, yMid + 1);
+                }
+
+                if (data.showVgv) {
+                    ctx.textAlign = 'right';
+                    ctx.fillStyle = '#a5b4fc';
+                    ctx.font = `700 10px ${FONT}`;
+                    ctx.fillText(Math.round(r.vgv).toLocaleString('pt-BR'), xVgv + vgvW, yMid + 1);
+                }
+            });
+
+            // ---- rodapé ----
+            const yF = yT + tableHeadH + Math.max(rows.length, 1) * rowH + 8;
+            ctx.strokeStyle = '#1e293b';
+            ctx.beginPath(); ctx.moveTo(0, yF); ctx.lineTo(W, yF); ctx.stroke();
+            const colW = (W - pad * 2 - gap * 2) / 3;
+            const footerCols = [
+                { label: 'MELHOR', value: data.melhorTxt, color: '#34d399' },
+                { label: 'PENDÊNCIA', value: data.pendenciaTxt, color: '#fbbf24' },
+                { label: `META ${data.cadence.toUpperCase()}`, value: `${data.meta || '–'} ${data.unidade}`, color: '#a5b4fc' }
+            ];
+            ctx.textAlign = 'left';
+            footerCols.forEach((c, i) => {
+                const x = pad + i * (colW + gap);
+                ctx.fillStyle = c.color;
+                ctx.font = `800 9px ${FONT}`;
+                ctx.fillText(c.label, x, yF + 20);
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = `600 10px ${FONT}`;
+                ctx.fillText(truncateToWidth(ctx, c.value, colW), x, yF + 36);
+            });
+
+            ctx.restore();
+            return canvas;
+        }
+
+        let anyRankingExportBusy = false; // trava contra clique duplo enquanto copia/baixa
 
         async function exportRankingCardImage(btnEl) {
             const card = btnEl.closest('.rk-card');
-            if (!card || typeof html2canvas === 'undefined') {
+            const data = card ? rankingCardsSnapshot[parseInt(card.dataset.rkIndex)] : null;
+            if (!card || !data) {
                 showToast('Não foi possível gerar a imagem.', true);
                 return;
             }
@@ -1669,39 +1950,26 @@
             const icon = btnEl.querySelector('i');
             const iconClassOriginal = icon ? icon.className : '';
             if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
-            // Trava o redesenho do grid (auto-refresh/sync ao vivo) enquanto captura — senão o DOM pode
-            // mudar no meio da captura e a imagem sai com texto "rasgado"/fantasma.
-            rankingExportInProgress = true;
             try {
-                // Espera as fontes carregarem — sem isso o html2canvas às vezes desenha o texto
-                // duas vezes (uma com a fonte web, outra com a de fallback), dando esse efeito "fantasma".
+                // Espera as fontes carregarem pra garantir que o Canvas 2D desenha com a fonte certa
+                // (Plus Jakarta Sans), não com a de fallback do sistema.
                 if (document.fonts && document.fonts.ready) await document.fonts.ready;
-                // Safari (WebKit) e Chrome têm bugs OPOSTOS no html2canvas: no Chrome o modo
-                // foreignObjectRendering=true às vezes duplica o texto; no Safari é o modo manual
-                // (foreignObjectRendering=false) que costuma duplicar/desalinhar. Detecta e escolhe.
-                const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
-                const canvas = await html2canvas(card, {
-                    backgroundColor: '#0f172a',
-                    scale: 2,
-                    foreignObjectRendering: isSafari,
-                    imageTimeout: 0,
-                    ignoreElements: (el) => el.classList && el.classList.contains('rk-no-export')
-                });
+                const canvas = drawRankingCardCanvas(data);
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 if (!blob) throw new Error('Falha ao gerar imagem');
 
-                const nomeArquivo = `ranking-${(card.dataset.rkTitle || 'audaz').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
+                const nomeArquivo = `ranking-${(data.title || 'audaz').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
                 try {
                     if (!navigator.clipboard || !window.ClipboardItem) throw new Error('Clipboard API indisponível');
                     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                    showToast(`Imagem de "${card.dataset.rkTitle}" copiada! Cole onde quiser (Ctrl+V).`);
+                    showToast(`Imagem de "${data.title}" copiada! Cole onde quiser (Ctrl+V).`);
                 } catch (clipErr) {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url; a.download = nomeArquivo;
                     document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                    showToast(`Não deu pra copiar direto — baixei a imagem de "${card.dataset.rkTitle}".`);
+                    showToast(`Não deu pra copiar direto — baixei a imagem de "${data.title}".`);
                 }
             } catch (e) {
                 console.warn('Erro ao exportar ranking como imagem:', e);
@@ -1710,8 +1978,6 @@
                 if (icon) icon.className = iconClassOriginal;
                 btnEl.disabled = false;
                 anyRankingExportBusy = false;
-                rankingExportInProgress = false;
-                drawQuickRankings(); // aplica agora qualquer atualização que tenha chegado durante a captura
             }
         }
 
