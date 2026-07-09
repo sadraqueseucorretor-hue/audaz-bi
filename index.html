@@ -1017,6 +1017,13 @@
                 </button>
             </div>
 
+            <div class="flex items-center gap-4 mb-3 pb-2.5 border-b border-slate-800/80">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 shrink-0">
+                    <i class="fa-solid fa-users text-indigo-400"></i> Exibir Corretores
+                </p>
+                <div id="corretorRosterFilterPills" class="flex items-center gap-4"></div>
+            </div>
+
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Corretores</p>
             <div id="corretorRosterList" class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                 <!-- Preenchido dinamicamente -->
@@ -1481,15 +1488,45 @@
             renderCorretorRoster();
         }
 
+        // ===== FILTRO "EXIBIR CORRETORES" (Ativos / Inativos / Todos) no modal Gerir Corretores =====
+        let corretorRosterFilter = 'todos'; // 'ativos' | 'inativos' | 'todos'
+
+        function setCorretorRosterFilter(val) {
+            corretorRosterFilter = val;
+            renderCorretorRoster();
+        }
+
+        function renderCorretorRosterFilterPills() {
+            const container = document.getElementById('corretorRosterFilterPills');
+            if (!container) return;
+            const opts = [['ativos', 'Ativos'], ['inativos', 'Inativos'], ['todos', 'Todos']];
+            container.innerHTML = opts.map(([val, label]) => {
+                const active = corretorRosterFilter === val;
+                const circle = active
+                    ? '<span class="h-3.5 w-3.5 rounded-full bg-rose-900 border-2 border-rose-700 inline-block shrink-0"></span>'
+                    : '<span class="h-3.5 w-3.5 rounded-full border-2 border-slate-700 inline-block shrink-0"></span>';
+                const textClass = active ? 'text-slate-100' : 'text-slate-500 hover:text-slate-300';
+                return `<button type="button" onclick="setCorretorRosterFilter('${val}')" class="flex items-center gap-1.5 text-xs font-bold ${textClass} transition">${circle}${label}</button>`;
+            }).join('');
+        }
+
         function renderCorretorRoster() {
             const list = document.getElementById('corretorRosterList');
             if (!list) return;
-            const todos = getAllKnownCorretores();
+            renderCorretorRosterFilterPills();
+
             const naPlanilha = new Set();
             dataset.forEach(r => { if (r.Corretor) naPlanilha.add(r.Corretor); });
 
+            let todos = getAllKnownCorretores();
+            if (corretorRosterFilter === 'ativos') todos = todos.filter(n => isCorretorActive(n));
+            else if (corretorRosterFilter === 'inativos') todos = todos.filter(n => !isCorretorActive(n));
+
             if (todos.length === 0) {
-                list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Nenhum corretor ainda. Adicione acima ou conecte a planilha.</p>`;
+                const msg = getAllKnownCorretores().length === 0
+                    ? 'Nenhum corretor ainda. Adicione acima ou conecte a planilha.'
+                    : (corretorRosterFilter === 'inativos' ? 'Nenhum corretor inativo.' : 'Nenhum corretor ativo.');
+                list.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">${msg}</p>`;
                 return;
             }
 
