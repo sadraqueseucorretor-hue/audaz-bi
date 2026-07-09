@@ -211,7 +211,7 @@
                 </div>
 
                 <!-- Grid de Seleções Dinâmicas -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                     <!-- Filtro Corretor -->
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Corretor</label>
@@ -240,33 +240,30 @@
                             <option value="">Todos</option>
                         </select>
                     </div>
-                    <!-- Filtro Mês -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Mês</label>
-                        <select id="filterMes" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
-                            <option value="">Todos</option>
-                        </select>
+                </div>
+
+                <!-- Filtros de Mês Comercial + Semana (pills) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <!-- Mês Comercial -->
+                    <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                            <i class="fa-solid fa-calendar-days text-rose-500"></i> Mês Comercial
+                        </p>
+                        <div id="mesComercialPills" class="grid grid-cols-3 gap-1.5"></div>
                     </div>
-                    <!-- Filtro Ano -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Ano</label>
-                        <select id="filterAno" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                    <!-- Filtro Semana -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Semana do Mês</label>
-                        <select id="filterSemana" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
-                            <option value="">Todas</option>
-                            <option value="1">Semana 1</option>
-                            <option value="2">Semana 2</option>
-                            <option value="3">Semana 3</option>
-                            <option value="4">Semana 4</option>
-                            <option value="5">Semana 5</option>
-                        </select>
+                    <!-- Semana -->
+                    <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                            <i class="fa-solid fa-calendar-week text-indigo-400"></i> Semana
+                        </p>
+                        <div id="semanaPills" class="grid grid-cols-3 gap-1.5"></div>
                     </div>
                 </div>
+
+                <!-- Selects ocultos: mantêm a lógica de filtros/calendário existente; a UI real são os pills acima -->
+                <select id="filterMes" class="hidden"><option value="">Todos</option></select>
+                <select id="filterAno" class="hidden"><option value="">Todos</option></select>
+                <select id="filterSemana" class="hidden"><option value="">Todas</option></select>
             </section>
 
             <!-- Painel de Notificações / Toasts -->
@@ -2188,6 +2185,120 @@
             fillSelect('filterEmpreendimento', Array.from(empreendimentos).sort(), "Todos", selEmpreendimento);
             fillSelect('filterMes', Array.from(meses), "Todos", selMes);
             fillSelect('filterAno', Array.from(anos).sort((a,b)=>b-a), "Todos", selAno);
+
+            renderMesComercialPills();
+            renderSemanaPills();
+        }
+
+        // ===== PILLS: MÊS COMERCIAL + SEMANA =====
+        function mesLabelAbbrev(mesStr) {
+            const nome = normalizeMes(mesStr);        // ex.: 'Junho'
+            const ano = getMesAno(mesStr);             // ex.: 2026
+            const abbr = nome.slice(0, 3);
+            return ano ? `${abbr}/${String(ano).slice(-2)}` : abbr;
+        }
+
+        function pillClass(isActive, kind) {
+            const base = 'px-2 py-1.5 rounded-full text-[11px] font-bold text-center border transition';
+            if (!isActive) return base + ' bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200';
+            return kind === 'mes'
+                ? base + ' bg-rose-900/90 border-rose-700 text-white shadow shadow-rose-900/30'
+                : base + ' bg-indigo-600 border-indigo-500 text-white shadow shadow-indigo-500/20';
+        }
+
+        function renderMesComercialPills() {
+            const container = document.getElementById('mesComercialPills');
+            if (!container) return;
+            const select = document.getElementById('filterMes');
+            const selMes = select.value;
+
+            const options = Array.from(select.options)
+                .filter(o => o.value !== '')
+                .sort((a, b) => {
+                    const anoA = getMesAno(a.value) || 0, anoB = getMesAno(b.value) || 0;
+                    if (anoA !== anoB) return anoA - anoB;
+                    const idxA = MESES_IDX[normalizeMes(a.value)] ?? 0;
+                    const idxB = MESES_IDX[normalizeMes(b.value)] ?? 0;
+                    return idxA - idxB;
+                });
+
+            container.innerHTML = '';
+            const allBtn = document.createElement('button');
+            allBtn.type = 'button';
+            allBtn.textContent = 'Todos';
+            allBtn.className = pillClass(selMes === '', 'mes');
+            allBtn.onclick = () => selectMesComercial('');
+            container.appendChild(allBtn);
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = mesLabelAbbrev(opt.value);
+                btn.title = `${normalizeMes(opt.value)}/${getMesAno(opt.value) || ''}`;
+                btn.className = pillClass(selMes === opt.value, 'mes');
+                btn.onclick = () => selectMesComercial(opt.value);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectMesComercial(value) {
+            const mesSelect = document.getElementById('filterMes');
+            const anoSelect = document.getElementById('filterAno');
+            mesSelect.value = value;
+            // O pill de mês comercial já embute o ano; mantém o select de Ano sincronizado (usado no calendário).
+            anoSelect.value = value ? (getMesAno(value) || '') : '';
+            applyFilters();
+            renderMesComercialPills();
+            renderSemanaPills();
+        }
+
+        function renderSemanaPills() {
+            const container = document.getElementById('semanaPills');
+            if (!container) return;
+            const select = document.getElementById('filterSemana');
+            const selSemana = select.value;
+            const selMes = document.getElementById('filterMes').value;
+
+            // Semana = ceil(dia-do-mês / 7); calcula o máximo real no recorte atual (mínimo 5).
+            let maxSemana = 5;
+            (Array.isArray(dataset) ? dataset : []).forEach(row => {
+                if (selMes && row['Mês Cadastro'] !== selMes) return;
+                const d = parseDate(row['Data Cadastro']);
+                if (d) maxSemana = Math.max(maxSemana, Math.ceil(d.getDate() / 7));
+            });
+
+            // Garante que o select oculto tem uma <option> para cada semana (senão select.value não "gruda").
+            select.innerHTML = '<option value="">Todas</option>';
+            for (let i = 1; i <= maxSemana; i++) {
+                const opt = document.createElement('option');
+                opt.value = String(i);
+                opt.textContent = `Semana ${i}`;
+                select.appendChild(opt);
+            }
+            select.value = (selSemana && Number(selSemana) <= maxSemana) ? selSemana : '';
+
+            container.innerHTML = '';
+            const allBtn = document.createElement('button');
+            allBtn.type = 'button';
+            allBtn.textContent = 'Todas';
+            allBtn.className = pillClass(select.value === '', 'semana');
+            allBtn.onclick = () => selectSemana('');
+            container.appendChild(allBtn);
+
+            for (let i = 1; i <= maxSemana; i++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = `${i}ª SEM`;
+                btn.className = pillClass(select.value === String(i), 'semana');
+                btn.onclick = () => selectSemana(String(i));
+                container.appendChild(btn);
+            }
+        }
+
+        function selectSemana(value) {
+            document.getElementById('filterSemana').value = value;
+            applyFilters();
+            renderSemanaPills();
         }
 
         function fillSelect(selectId, items, placeholderText, selectedValue) {
@@ -2249,6 +2360,8 @@
             document.getElementById('filterMes').value = "";
             document.getElementById('filterAno').value = "";
             document.getElementById('filterSemana').value = "";
+            renderMesComercialPills();
+            renderSemanaPills();
             applyFilters();
             showToast("Todos os filtros foram limpos!");
         }
