@@ -653,6 +653,9 @@
                                 <button onclick="toggleRankingsEdit()" id="btnEditRankingsMetas" class="text-[11px] font-bold text-slate-400 hover:text-brand-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
                                     <i class="fa-solid fa-pen"></i> Editar metas
                                 </button>
+                                <button onclick="toggleMetasCorretorModal()" class="text-[11px] font-bold text-slate-400 hover:text-amber-400 flex items-center gap-1.5 transition border border-slate-700 rounded-lg px-2.5 py-1.5">
+                                    <i class="fa-solid fa-bullseye"></i> Metas por Corretor
+                                </button>
                             </div>
                         </div>
                         <p class="text-[10px] text-slate-500" id="quickRefHint">Semana atual e mês comercial corrente.</p>
@@ -1042,6 +1045,40 @@
         </div>
     </div>
 
+    <!-- MODAL: METAS POR CORRETOR (dia/semana/mês, por parâmetro dos Rankings Rápidos) -->
+    <div id="metasCorretorModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl p-6 relative shadow-2xl">
+            <button onclick="toggleMetasCorretorModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-5">
+                <div class="h-10 w-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-bullseye text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-slate-200">Metas por Corretor</h4>
+                    <p class="text-xs text-slate-500">Meta individual de cada corretor para os 8 parâmetros dos Rankings Rápidos (dia/semana/mês)</p>
+                </div>
+            </div>
+
+            <div id="metasCorretorTableWrap" class="max-h-[60vh] overflow-auto rounded-lg border border-slate-800/60">
+                <!-- Preenchido dinamicamente -->
+            </div>
+
+            <div class="mt-4 p-3 bg-slate-950/40 rounded-lg border border-slate-800/60 flex items-start gap-2">
+                <i class="fa-solid fa-circle-info text-amber-400 mt-0.5 text-xs"></i>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Deixe em branco (0) o que não quiser cobrar. Nos cards de <strong class="text-slate-300">Rankings Rápidos</strong>, quem bater a própria meta aparece em <strong class="text-emerald-400">verde</strong>; quem não bater, em <strong class="text-amber-300">âmbar</strong>.
+                </p>
+            </div>
+
+            <button onclick="toggleMetasCorretorModal()" class="w-full mt-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700">
+                Concluir
+            </button>
+        </div>
+    </div>
+
     <!-- CÓDIGO JS PRINCIPAL: PROCESSAMENTO DE DADOS, REGRA DE NEGÓCIO E RENDERIZAÇÃO -->
     <script>
         // CONFIGURAÇÕES GERAIS E BASE DE DADOS DE DEMONSTRAÇÃO (120 Lançamentos Realistas para Junho 2026)
@@ -1258,6 +1295,71 @@
             drawQuickRankings();
         }
 
+        // ====== METAS POR CORRETOR (dia/semana/mês, um valor por parâmetro dos Rankings Rápidos) ======
+        // { [nomeCorretor]: { anHoje, anSem, anMes, apHoje, apSem, apMes, vdSem, vdMes } }
+        let metasPorCorretor = {};
+        function loadMetasPorCorretor() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`${appId}-metas-corretor`) || 'null');
+                if (saved) metasPorCorretor = saved;
+            } catch (e) {}
+        }
+        function setMetaCorretor(nome, campo, val) {
+            const n = parseInt(String(val).replace(/\D/g, '')) || 0;
+            if (!metasPorCorretor[nome]) metasPorCorretor[nome] = {};
+            metasPorCorretor[nome][campo] = n;
+            localStorage.setItem(`${appId}-metas-corretor`, JSON.stringify(metasPorCorretor));
+            pushCloudSettings();
+            drawQuickRankings();
+        }
+
+        const METAS_CORRETOR_CAMPOS = [
+            { key: 'anHoje', label: 'An. Dia' },
+            { key: 'anSem',  label: 'An. Sem' },
+            { key: 'anMes',  label: 'An. Mês' },
+            { key: 'apHoje', label: 'Apr. Dia' },
+            { key: 'apSem',  label: 'Apr. Sem' },
+            { key: 'apMes',  label: 'Apr. Mês' },
+            { key: 'vdSem',  label: 'Vd. Sem' },
+            { key: 'vdMes',  label: 'Vd. Mês' }
+        ];
+
+        function toggleMetasCorretorModal() {
+            const m = document.getElementById('metasCorretorModal');
+            m.classList.toggle('hidden');
+            if (!m.classList.contains('hidden')) renderMetasCorretorTable();
+        }
+
+        function renderMetasCorretorTable() {
+            const wrap = document.getElementById('metasCorretorTableWrap');
+            if (!wrap) return;
+            const ativos = getActiveCorretores();
+
+            if (ativos.length === 0) {
+                wrap.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">Nenhum corretor ativo. Cadastre em "Gerir Corretores" primeiro.</p>`;
+                return;
+            }
+
+            const headCols = METAS_CORRETOR_CAMPOS.map(c => `<th class="p-2 text-center font-bold text-slate-500 whitespace-nowrap">${c.label}</th>`).join('');
+            const bodyRows = ativos.map(nome => {
+                const cols = METAS_CORRETOR_CAMPOS.map(c => {
+                    const val = (metasPorCorretor[nome] && metasPorCorretor[nome][c.key]) || '';
+                    const nomeEsc = nome.replace(/'/g, "\\'");
+                    return `<td class="p-1.5 text-center"><input type="number" min="0" value="${val}" placeholder="0" onchange="setMetaCorretor('${nomeEsc}', '${c.key}', this.value)" class="w-14 bg-slate-950 border border-slate-800 text-[11px] rounded px-1.5 py-1 text-slate-200 text-center focus:border-brand-500 outline-none"></td>`;
+                }).join('');
+                return `<tr class="border-b border-slate-800/40"><td class="p-2 font-semibold text-slate-200 whitespace-nowrap sticky left-0 bg-slate-900">${nome}</td>${cols}</tr>`;
+            }).join('');
+
+            wrap.innerHTML = `
+                <table class="w-full text-xs border-collapse">
+                    <thead><tr class="border-b border-slate-700">
+                        <th class="p-2 text-left font-bold text-slate-500 sticky left-0 bg-slate-900">Corretor</th>
+                        ${headCols}
+                    </tr></thead>
+                    <tbody>${bodyRows}</tbody>
+                </table>`;
+        }
+
         // ====== REFERÊNCIA DE SEMANA/MÊS DOS RANKINGS RÁPIDOS ======
         // quickRef = data escolhida (Date) para os cards de Semana e Mês; null = atual. "Hoje" ignora isto.
         let quickRef = null;
@@ -1400,10 +1502,17 @@
                         const zero = r.count === 0;
                         let pos = 'text-slate-500';
                         if (!zero && i === 0) pos = 'text-amber-400'; else if (!zero && i === 1) pos = 'text-slate-300'; else if (!zero && i === 2) pos = 'text-amber-600';
+
+                        // Meta individual desse corretor para este parâmetro (0 = não configurada, sem cor especial)
+                        const metaC = (metasPorCorretor[r.nome] && metasPorCorretor[r.nome][card.key]) || 0;
+                        const batidaC = metaC > 0 && r.count >= metaC;
+                        const countColor = metaC > 0 ? (batidaC ? 'text-emerald-400' : 'text-amber-300') : (zero ? 'text-slate-500' : 'text-slate-300');
+                        const metaSuffix = metaC > 0 ? `<span class="text-slate-600 font-normal">/${metaC}</span>` : '';
+
                         return `<div class="flex items-center px-2 py-1.5 rounded hover:bg-slate-800/40 text-xs ${zero ? 'opacity-45' : ''}">
                             <span class="w-7 font-extrabold ${pos}">${i + 1}º</span>
                             <span class="flex-1 font-semibold ${zero ? 'text-slate-400' : 'text-slate-200'} truncate">${r.nome}</span>
-                            <span class="w-9 text-right font-bold ${zero ? 'text-slate-500' : 'text-slate-300'}">${r.count}</span>
+                            <span class="w-14 text-right font-bold ${countColor}">${r.count}${metaSuffix}</span>
                             ${card.vgv ? `<span class="w-24 text-right font-semibold ${zero ? 'text-slate-600' : 'text-indigo-300'}">${fmtInt(r.vgv)}</span>` : ''}
                         </div>`;
                     }).join('');
@@ -1800,6 +1909,7 @@
             loadCorretorRoster();
             loadMetasMensais();
             loadRankingsMetas();
+            loadMetasPorCorretor();
             if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
                 const sb = document.getElementById('sidebar');
                 if (sb) sb.style.display = 'none';
@@ -1877,6 +1987,7 @@
                 if (Array.isArray(data.corretoresInactive)) { inactiveCorretores = data.corretoresInactive; localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores)); }
                 if (data.metasMensais && typeof data.metasMensais === 'object') { metasMensais = Object.assign({ vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60 }, data.metasMensais); localStorage.setItem(`${appId}-metas-mensais`, JSON.stringify(metasMensais)); }
                 if (data.rankingsMetas && typeof data.rankingsMetas === 'object') { rankingsMetas = data.rankingsMetas; localStorage.setItem(`${appId}-rankings-metas`, JSON.stringify(rankingsMetas)); }
+                if (data.metasPorCorretor && typeof data.metasPorCorretor === 'object') { metasPorCorretor = data.metasPorCorretor; localStorage.setItem(`${appId}-metas-corretor`, JSON.stringify(metasPorCorretor)); }
                 if (data.vendasMode === 'gerais' || data.vendasMode === 'finalizadas') { vendasMode = data.vendasMode; localStorage.setItem(`${appId}-vendas-mode`, vendasMode); }
                 if (typeof data.gsheetsUrl === 'string' && data.gsheetsUrl) { googleSheetsUrl = data.gsheetsUrl; localStorage.setItem(`${appId}-gsheets-url`, googleSheetsUrl); }
             } catch (e) { console.warn(e); }
@@ -1901,6 +2012,7 @@
                     corretoresInactive: inactiveCorretores,
                     metasMensais: metasMensais,
                     rankingsMetas: rankingsMetas,
+                    metasPorCorretor: metasPorCorretor,
                     vendasMode: vendasMode,
                     gsheetsUrl: googleSheetsUrl,
                     _updatedAt: Date.now()
@@ -3567,6 +3679,30 @@
             const activeCorretores = getActiveCorretores();
             const activeSet = new Set(activeCorretores);
 
+            // ===== STATUS DE ATIVIDADE (dias sem subir análise) — bolinha vermelho/amarelo/verde =====
+            // Sempre pelo HOJE real (não pelo mês em exibição) e por TODA a base (não só o mês do calendário),
+            // pra refletir a atividade recente de verdade do corretor.
+            const hojeStatusCal = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            hojeStatusCal.setHours(0, 0, 0, 0);
+            let ultimaAnaliseCorretor = {};
+            dataset.forEach(row => {
+                const c = row.Corretor;
+                if (!activeSet.has(c)) return;
+                const d = parseDate(row['Data Cadastro']);
+                if (d && (!ultimaAnaliseCorretor[c] || d > ultimaAnaliseCorretor[c])) ultimaAnaliseCorretor[c] = d;
+            });
+            const diasSemAnaliseCorretor = (c) => {
+                const ultima = ultimaAnaliseCorretor[c];
+                if (!ultima) return Infinity; // nunca lançou análise
+                return Math.floor((hojeStatusCal - ultima) / 86400000);
+            };
+            const statusDotInfo = (dias) => {
+                if (dias <= 0) return { cls: 'bg-emerald-500', title: 'Lançou análise hoje' };
+                if (dias <= 2) return { cls: 'bg-amber-400', title: `${dias} dia(s) sem subir análise` };
+                const lbl = dias === Infinity ? 'Nunca lançou análise' : `${dias} dias sem subir análise`;
+                return { cls: 'bg-rose-500', title: lbl };
+            };
+
             // ===== CONTINUIDADE DO MÊS COMERCIAL =====
             // O mês comercial pode terminar já no calendário seguinte (ex.: junho fecha em 3/jul).
             // Por isso o "dia" é um índice CONTÍNUO a partir do 1º do mês: jun/1=1 ... jun/30=30, jul/1=31, jul/2=32...
@@ -3696,8 +3832,9 @@
             } else {
                 activeCorretores.forEach(c => {
                     const cEsc = c.replace(/'/g, "\\'");
+                    const statusDot = statusDotInfo(diasSemAnaliseCorretor(c));
                     let corretorRowHtml = `<tr class="cal-corretor-row hover:bg-slate-900/10 transition">`;
-                    corretorRowHtml += `<td onclick="toggleCalRowHighlight(this)" title="Clique para destacar a linha" class="p-3 pl-4 text-left font-bold text-slate-300 bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 truncate max-w-[150px] cursor-pointer hover:text-brand-400 transition"><i class="fa-solid fa-user text-[9px] text-slate-600 mr-1.5"></i>${c}</td>`;
+                    corretorRowHtml += `<td onclick="toggleCalRowHighlight(this)" title="Clique para destacar a linha · ${statusDot.title}" class="p-3 pl-4 text-left font-bold text-slate-300 bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 truncate max-w-[150px] cursor-pointer hover:text-brand-400 transition"><span class="inline-block h-2 w-2 rounded-full ${statusDot.cls} mr-1.5 align-middle"></span><i class="fa-solid fa-user text-[9px] text-slate-600 mr-1.5"></i>${c}</td>`;
 
                     let totMetric = 0;
 
@@ -3757,7 +3894,13 @@
                     <span class="text-slate-500">(${m.sub})</span>
                 </div>
                 <span class="text-slate-600">•</span>
-                <span class="text-slate-500">Use os botões acima para alternar entre Análises, Aprovados e Vendas.</span>`;
+                <span class="text-slate-500">Use os botões acima para alternar entre Análises, Aprovados e Vendas.</span>
+                <span class="text-slate-600">•</span>
+                <span class="text-slate-500 flex items-center gap-1.5">Bolinha ao lado do nome = dias sem subir análise:
+                    <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>hoje</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-400"></span>1-2 dias</span>
+                    <span class="inline-flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-rose-500"></span>3+ dias</span>
+                </span>`;
         }
 
         function getHeatmapClass(qty) {
