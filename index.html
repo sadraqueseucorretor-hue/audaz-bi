@@ -1384,7 +1384,11 @@
 
         // Rankings rápidos estilo Habitnet: Análises/Aprovações (Hoje e Semana) e Vendas (Semana e Mês).
         // Snapshot por data atual; respeita só os filtros de corretor/equipe/construtora/empreendimento.
+        let rankingExportInProgress = false; // true durante exportRankingCardImage(): não redesenha o grid,
+                                              // senão o auto-refresh/sync troca o DOM no meio da captura e
+                                              // gera uma imagem com texto "fantasma"/rasgado.
         function drawQuickRankings() {
+            if (rankingExportInProgress) return;
             const grid = document.getElementById('quickRankingsGrid');
             if (!grid) return;
             const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date(); // cards "Hoje" = sempre hoje
@@ -1657,6 +1661,9 @@
             const icon = btnEl.querySelector('i');
             const iconClassOriginal = icon ? icon.className : '';
             if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
+            // Trava o redesenho do grid (auto-refresh/sync ao vivo) enquanto captura — senão o DOM pode
+            // mudar no meio da captura e a imagem sai com texto "rasgado"/fantasma.
+            rankingExportInProgress = true;
             try {
                 // Espera as fontes carregarem — sem isso o html2canvas às vezes desenha o texto
                 // duas vezes (uma com a fonte web, outra com a de fallback), dando esse efeito "fantasma".
@@ -1688,6 +1695,8 @@
                 showToast('Erro ao gerar a imagem do ranking.', true);
             } finally {
                 if (icon) icon.className = iconClassOriginal;
+                rankingExportInProgress = false;
+                drawQuickRankings(); // aplica agora qualquer atualização que tenha chegado durante a captura
             }
         }
 
