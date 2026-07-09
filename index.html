@@ -1513,39 +1513,58 @@
                     })
                     .filter(Boolean);
 
-                let melhorTxt = '—';
+                // "Nome - Cargo" (ex.: "Sadraque Ribeiro - Acesso Gerente") vira nome + badge de cargo
+                const parseNomeCargo = (nomeCompleto) => {
+                    const m = nomeCompleto.match(/^(.+?)\s*[-–]\s*(.+)$/);
+                    return m ? { nome: m[1].trim(), cargo: m[2].trim() } : { nome: nomeCompleto, cargo: null };
+                };
+
+                let melhorNome = '—', melhorPct = null;
                 if (comMetaIndiv.length) {
                     const best = comMetaIndiv.reduce((a, b) => (b.pctC > a.pctC ? b : a));
-                    melhorTxt = `${best.nome} (${best.pctC}%)`;
+                    melhorNome = parseNomeCargo(best.nome).nome;
+                    melhorPct = best.pctC;
                 }
-                let pendenciaTxt = 'Sem metas individuais';
+                let pendenciaLine1 = 'Sem metas', pendenciaLine2 = 'individuais';
                 if (comMetaIndiv.length) {
                     const maxFalta = Math.max(...comMetaIndiv.map(r => r.faltaC));
                     if (maxFalta === 0) {
-                        pendenciaTxt = 'Ninguém — todos em dia';
+                        pendenciaLine1 = 'Ninguém'; pendenciaLine2 = 'todos em dia';
                     } else {
                         const piores = comMetaIndiv.filter(r => r.faltaC === maxFalta);
-                        pendenciaTxt = piores.length === 1
-                            ? `${piores[0].nome} (${maxFalta} faltando)`
-                            : `${piores.length} corretores com ${maxFalta} faltando`;
+                        if (piores.length === 1) {
+                            pendenciaLine1 = parseNomeCargo(piores[0].nome).nome;
+                            pendenciaLine2 = `${maxFalta} faltando`;
+                        } else {
+                            pendenciaLine1 = `${piores.length} corretores`;
+                            pendenciaLine2 = `com ${maxFalta} faltando`;
+                        }
                     }
                 }
 
-                const donutStyle = `background:conic-gradient(#10b981 ${pct}%, #1e293b ${pct}% 100%)`;
+                const CADENCIA_ADJ = { 'Hoje': 'diárias', 'Semana': 'semanais', 'Mês': 'mensais' };
+                const unidadeCap = unidadePorCol[card.col].charAt(0).toUpperCase() + unidadePorCol[card.col].slice(1);
+                const metaSubtext = `${unidadeCap} ${CADENCIA_ADJ[card.cadence]}`;
+
+                const agora = new Date();
+                const pad2 = n => String(n).padStart(2, '0');
+                const updatedLabel = `Atualizado em ${pad2(agora.getDate())}/${pad2(agora.getMonth() + 1)} às ${pad2(agora.getHours())}:${pad2(agora.getMinutes())}`;
 
                 rankingCardsSnapshot[cardIdx] = {
                     title: card.title,
                     period: periodoPorCadencia[card.cadence],
                     cadence: card.cadence,
                     unidade: unidadePorCol[card.col],
+                    metaSubtext, updatedLabel,
                     showVgv: card.vgv,
                     totalCount, totalVgv, meta, pct, falta, batida,
-                    melhorTxt, pendenciaTxt,
+                    melhorNome, melhorPct, pendenciaLine1, pendenciaLine2,
                     rows: list.map((r, i) => {
                         const m = (metasPorCorretor[r.nome] && metasPorCorretor[r.nome][card.key]) || 0;
+                        const { nome, cargo } = parseNomeCargo(r.nome);
                         return {
                             pos: i + 1,
-                            nome: r.nome,
+                            nome, cargo,
                             count: r.count,
                             vgv: r.vgv,
                             faltaC: m > 0 ? Math.max(0, m - r.count) : null,
@@ -1556,115 +1575,143 @@
                 };
 
                 const metaStat = rankingsEditMode
-                    ? `<input type="number" min="0" value="${meta || ''}" placeholder="meta" onchange="setRankingMeta('${card.key}', this.value)" class="w-12 bg-slate-950 border border-slate-700 text-xs rounded px-1 py-0.5 text-slate-100 text-center font-extrabold focus:border-brand-500 outline-none">`
-                    : `<div class="text-base font-extrabold text-white leading-tight">${meta || '–'}</div>`;
+                    ? `<input type="number" min="0" value="${meta || ''}" placeholder="meta" onchange="setRankingMeta('${card.key}', this.value)" class="w-14 bg-slate-950 border border-slate-700 text-lg rounded px-1 py-0.5 text-slate-100 text-center font-extrabold focus:border-brand-500 outline-none">`
+                    : `<div class="text-3xl font-extrabold text-white leading-none">${meta || '–'}</div>`;
 
                 let bodyRows;
                 if (list.length === 0) {
-                    bodyRows = `<tr><td colspan="5" class="text-center text-[11px] text-slate-500 py-5">Sem registros</td></tr>`;
+                    bodyRows = `<tr><td colspan="5" class="text-center text-xs text-slate-500 py-6">Sem registros</td></tr>`;
                 } else {
                     bodyRows = list.map((r, i) => {
                         const zero = r.count === 0;
                         let pos = 'text-slate-500';
                         if (!zero && i === 0) pos = 'text-amber-400'; else if (!zero && i === 1) pos = 'text-slate-300'; else if (!zero && i === 2) pos = 'text-amber-600';
 
+                        const { nome, cargo } = parseNomeCargo(r.nome);
                         const metaC = (metasPorCorretor[r.nome] && metasPorCorretor[r.nome][card.key]) || 0;
                         const faltaC = metaC > 0 ? Math.max(0, metaC - r.count) : null;
                         const pctC = metaC > 0 ? Math.min(100, Math.round((r.count / metaC) * 100)) : null;
-                        const barColor = pctC === null ? 'bg-slate-700' : (pctC >= 100 ? 'bg-emerald-500' : pctC >= 50 ? 'bg-amber-400' : pctC > 0 ? 'bg-orange-500' : 'bg-slate-700');
-                        const pctColor = pctC === null ? 'text-slate-600' : (pctC >= 100 ? 'text-emerald-400' : pctC >= 50 ? 'text-amber-300' : 'text-orange-400');
+                        const pctColor = pctC === null ? 'text-slate-600' : (pctC >= 100 ? 'text-emerald-400' : pctC >= 50 ? 'text-amber-300' : pctC > 0 ? 'text-orange-400' : 'text-rose-400');
+                        const avatarGrad = i === 0 ? 'from-emerald-400 to-teal-500' : i === 1 ? 'from-teal-400 to-cyan-500' : 'from-indigo-500 to-purple-600';
                         const progressoCell = pctC === null
-                            ? `<span class="text-[9px] text-slate-600">sem meta</span>`
-                            : `<div class="flex items-center gap-1.5"><div class="flex-1 h-1.5 rounded-full bg-slate-800 overflow-hidden min-w-[36px]"><div class="h-full ${barColor}" style="width:${pctC}%"></div></div><span class="text-[9px] font-bold ${pctColor} w-7 text-right">${pctC}%</span></div>`;
+                            ? `<span class="text-[10px] text-slate-600">sem meta</span>`
+                            : `<div class="flex items-center gap-2"><div class="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden min-w-[60px] max-w-[120px]"><div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400" style="width:${pctC}%"></div></div><span class="text-xs font-bold ${pctColor} w-9 text-right">${pctC}%</span></div>`;
 
-                        return `<tr class="border-b border-slate-800/40 hover:bg-slate-800/30 transition ${zero && metaC === 0 ? 'opacity-60' : ''}">
-                            <td class="py-1 pl-2 font-extrabold ${pos} text-[10px]">${i + 1}º</td>
-                            <td class="py-1 pr-2">
-                                <div class="flex items-center gap-1.5 min-w-0">
-                                    <div class="h-5 w-5 rounded-full bg-gradient-to-br from-indigo-500 to-brand-500 flex items-center justify-center text-[7px] font-extrabold text-white shrink-0">${initials(r.nome)}</div>
-                                    <span class="text-[11px] font-semibold ${zero ? 'text-slate-400' : 'text-slate-200'} truncate">${r.nome}</span>
+                        return `<tr class="border-b border-slate-800/60 hover:bg-slate-800/30 transition ${zero && metaC === 0 ? 'opacity-70' : ''}">
+                            <td class="py-3 pl-3 font-extrabold ${pos} text-sm align-top">${i + 1}º</td>
+                            <td class="py-3 pr-2">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="h-8 w-8 rounded-full bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-[10px] font-extrabold text-white shrink-0">${initials(r.nome)}</div>
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-semibold ${zero ? 'text-slate-400' : 'text-slate-100'} truncate">${nome}</div>
+                                        ${cargo ? `<span class="inline-block mt-0.5 text-[9px] font-bold text-slate-300 bg-slate-700/60 rounded px-1.5 py-0.5">${cargo}</span>` : ''}
+                                    </div>
                                 </div>
                             </td>
-                            <td class="py-1 text-center text-[11px] font-extrabold text-emerald-400">${r.count}</td>
-                            <td class="py-1 text-center text-[11px] font-extrabold text-amber-400">${faltaC === null ? '–' : faltaC}</td>
-                            <td class="py-1 pr-3 w-24">${progressoCell}</td>
-                            ${card.vgv ? `<td class="py-1 pr-3 text-right text-[10px] font-semibold text-indigo-300 whitespace-nowrap">${fmtInt(r.vgv)}</td>` : ''}
+                            <td class="py-3 text-center text-base font-extrabold text-emerald-400 align-top">${r.count}</td>
+                            <td class="py-3 text-center text-base font-extrabold text-amber-400 align-top">${faltaC === null ? '–' : faltaC}</td>
+                            <td class="py-3 pr-4 align-top">${progressoCell}</td>
+                            ${card.vgv ? `<td class="py-3 pr-4 text-right text-xs font-semibold text-indigo-300 whitespace-nowrap align-top">${fmtInt(r.vgv)}</td>` : ''}
                         </tr>`;
                     }).join('');
                 }
 
-                return `<div class="rk-card bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden flex flex-col" data-rk-title="${card.title}" data-rk-index="${cardIdx}">
-                    <div class="bg-gradient-to-r from-blue-700 to-blue-600 px-3 py-1.5 flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                            <div class="h-5 w-5 rounded bg-white/15 flex items-center justify-center shrink-0"><i class="fa-solid ${card.icon} text-white text-[10px]"></i></div>
-                            <h4 class="text-[11px] font-extrabold text-white uppercase truncate">${card.title}</h4>
+                return `<div class="rk-card bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden flex flex-col" data-rk-title="${card.title}" data-rk-index="${cardIdx}">
+                    <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-4 py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="h-9 w-9 rounded-xl bg-white/15 flex items-center justify-center shrink-0"><i class="fa-solid ${card.icon} text-white text-sm"></i></div>
+                            <h4 class="text-base font-extrabold text-white uppercase truncate">${card.title}</h4>
                         </div>
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <div class="bg-white/15 rounded px-1.5 py-0.5 text-[9px] font-bold text-white flex items-center gap-1 whitespace-nowrap">
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div class="bg-white/15 rounded-lg px-3 py-2 text-xs font-bold text-white flex items-center gap-1.5 whitespace-nowrap">
                                 <i class="fa-solid fa-calendar-days"></i> ${periodoPorCadencia[card.cadence]}
                             </div>
-                            <button onclick="exportRankingCardImage(this)" title="Copiar este ranking como imagem" class="rk-no-export h-5 w-5 rounded bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-[10px] transition">
+                            <button onclick="exportRankingCardImage(this)" title="Copiar este ranking como imagem" class="rk-no-export h-9 w-9 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-sm transition">
                                 <i class="fa-solid fa-camera"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-4 gap-1.5 p-2">
-                        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg py-1.5 text-center flex flex-col items-center justify-center">
-                            <div class="text-base font-extrabold text-white leading-tight">${totalCount}</div>
-                            <div class="text-[8px] text-emerald-400 font-bold uppercase">Feitas</div>
-                        </div>
-                        <div class="flex flex-col items-center justify-center">
-                            <div class="relative h-9 w-9 rounded-full shrink-0" style="${donutStyle}">
-                                <div class="absolute inset-1 bg-slate-900 rounded-full flex items-center justify-center text-[9px] font-extrabold text-white">${pct}%</div>
+                    <div class="grid grid-cols-4 gap-3 p-4">
+                        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center gap-2.5">
+                            <div class="h-10 w-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-white"></i></div>
+                            <div class="min-w-0">
+                                <div class="text-2xl font-extrabold text-white leading-none">${totalCount}</div>
+                                <div class="text-[10px] text-emerald-400 font-bold uppercase mt-1">Feitas</div>
+                                <div class="text-[10px] text-slate-500 leading-tight">${pct}% da meta</div>
                             </div>
                         </div>
-                        <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg py-1.5 text-center flex flex-col items-center justify-center">
-                            <div class="text-base font-extrabold text-white leading-tight">${falta}</div>
-                            <div class="text-[8px] text-amber-400 font-bold uppercase">Faltam</div>
+                        <div class="bg-slate-800/40 border border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                            <div class="relative h-12 w-12 mb-1" style="background:conic-gradient(#10b981 ${pct}%, #1e293b ${pct}% 100%); border-radius:9999px;">
+                                <div class="absolute inset-1.5 bg-slate-900 rounded-full flex items-center justify-center text-[11px] font-extrabold text-white">${pct}%</div>
+                            </div>
+                            <div class="text-[10px] text-white font-bold uppercase">Progresso</div>
+                            <div class="text-[10px] text-slate-500">${totalCount} de ${meta || '–'}</div>
                         </div>
-                        <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-lg py-1.5 text-center flex flex-col items-center justify-center">
-                            ${metaStat}
-                            <div class="text-[8px] text-indigo-400 font-bold uppercase">Meta</div>
+                        <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-center gap-2.5">
+                            <div class="h-10 w-10 rounded-full bg-amber-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-hourglass-half text-white"></i></div>
+                            <div class="min-w-0">
+                                <div class="text-2xl font-extrabold text-white leading-none">${falta}</div>
+                                <div class="text-[10px] text-amber-400 font-bold uppercase mt-1">Faltam</div>
+                                <div class="text-[10px] text-slate-500 leading-tight">Para a meta</div>
+                            </div>
+                        </div>
+                        <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 flex items-center gap-2.5">
+                            <div class="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-bullseye text-white"></i></div>
+                            <div class="min-w-0">
+                                ${metaStat}
+                                <div class="text-[10px] text-indigo-400 font-bold uppercase mt-1">Meta</div>
+                                <div class="text-[10px] text-slate-500 leading-tight">${metaSubtext}</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="px-2 pb-1.5">
-                        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                            <div class="h-full bg-gradient-to-r ${batida ? 'from-emerald-600 to-emerald-400' : 'from-emerald-500 to-amber-500'}" style="width:${pct}%"></div>
+                    <div class="px-4 pb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-bold text-slate-300 uppercase tracking-wider">Progresso Geral</p>
+                            <p class="text-xs text-slate-500">${totalCount} de ${meta || '–'} ${unidadePorCol[card.col]}</p>
                         </div>
-                        <p class="text-center text-[9px] text-slate-500 mt-0.5">${totalCount} de ${meta || '–'}${card.vgv ? ` · ${fmtInt(totalVgv)}` : ''}</p>
+                        <div class="relative h-3 rounded-full bg-slate-800 overflow-visible">
+                            <div class="h-full rounded-full bg-gradient-to-r ${batida ? 'from-emerald-600 to-emerald-400' : 'from-emerald-500 to-amber-500'}" style="width:${pct}%"></div>
+                            <span class="absolute top-1/2 -translate-y-1/2 bg-amber-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow" style="left:${Math.min(92, Math.max(2, pct))}%; transform:translate(-50%,-50%);">${pct}%</span>
+                        </div>
                     </div>
 
                     <div class="px-1 overflow-x-auto flex-1">
                         <table class="w-full border-collapse">
                             <thead class="sticky top-0 bg-slate-900/95">
-                                <tr class="text-[8px] text-slate-500 uppercase font-bold border-b border-slate-800">
-                                    <th class="py-1 pl-2 text-left">#</th>
-                                    <th class="py-1 text-left">Corretor</th>
-                                    <th class="py-1 text-center">Feito</th>
-                                    <th class="py-1 text-center">Falta</th>
-                                    <th class="py-1 pr-3 text-left">Progresso</th>
-                                    ${card.vgv ? `<th class="py-1 pr-3 text-right">VGV</th>` : ''}
+                                <tr class="text-[10px] text-slate-500 uppercase font-bold border-b border-slate-800">
+                                    <th class="py-2 pl-3 text-left">#</th>
+                                    <th class="py-2 text-left">Corretor</th>
+                                    <th class="py-2 text-center">Feito</th>
+                                    <th class="py-2 text-center">Falta</th>
+                                    <th class="py-2 pr-4 text-left">Progresso</th>
+                                    ${card.vgv ? `<th class="py-2 pr-4 text-right">VGV</th>` : ''}
                                 </tr>
                             </thead>
                             <tbody>${bodyRows}</tbody>
                         </table>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-1.5 px-2.5 py-1.5 border-t border-slate-800 text-[9px] mt-auto">
-                        <div class="min-w-0">
-                            <p class="text-emerald-400 font-bold flex items-center gap-1 truncate"><i class="fa-solid fa-medal"></i> Melhor</p>
-                            <p class="text-slate-400 truncate">${melhorTxt}</p>
+                    <div class="grid grid-cols-3 gap-2.5 px-3 pb-3 pt-1 mt-auto">
+                        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2.5 min-w-0">
+                            <p class="text-emerald-400 font-bold flex items-center gap-1.5 text-[10px] uppercase truncate"><i class="fa-solid fa-trophy"></i> Melhor desempenho</p>
+                            <p class="text-slate-200 text-sm font-semibold truncate mt-1">${melhorNome}</p>
+                            ${melhorPct !== null ? `<p class="text-emerald-400 text-lg font-extrabold leading-tight">${melhorPct}%</p>` : ''}
                         </div>
-                        <div class="min-w-0">
-                            <p class="text-amber-400 font-bold flex items-center gap-1 truncate"><i class="fa-solid fa-triangle-exclamation"></i> Pendência</p>
-                            <p class="text-slate-400 truncate">${pendenciaTxt}</p>
+                        <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 min-w-0">
+                            <p class="text-amber-400 font-bold flex items-center gap-1.5 text-[10px] uppercase truncate"><i class="fa-solid fa-triangle-exclamation"></i> Pendências</p>
+                            <p class="text-slate-200 text-sm font-semibold truncate mt-1">${pendenciaLine1}</p>
+                            <p class="text-slate-400 text-xs truncate">${pendenciaLine2}</p>
                         </div>
-                        <div class="min-w-0">
-                            <p class="text-indigo-400 font-bold flex items-center gap-1 truncate"><i class="fa-solid fa-users"></i> Meta ${card.cadence.toLowerCase()}</p>
-                            <p class="text-slate-400 truncate">${meta || '–'} ${unidadePorCol[card.col]}</p>
+                        <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-2.5 min-w-0">
+                            <p class="text-indigo-400 font-bold flex items-center gap-1.5 text-[10px] uppercase truncate"><i class="fa-solid fa-users"></i> Meta ${card.cadence.toLowerCase()}</p>
+                            <p class="text-slate-200 text-sm font-semibold truncate mt-1">${meta || '–'} ${unidadePorCol[card.col]}</p>
                         </div>
+                    </div>
+
+                    <div class="px-3 py-2 border-t border-slate-800/80 text-[10px] text-slate-500 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info"></i> ${updatedLabel}
                     </div>
                 </div>`;
             }).join('');
@@ -1704,13 +1751,33 @@
             return t + '…';
         }
 
+        function wrapLines(ctx, text, maxWidth, maxLines) {
+            const words = String(text).split(' ');
+            const lines = [];
+            let line = '';
+            for (const w of words) {
+                const test = line ? `${line} ${w}` : w;
+                if (ctx.measureText(test).width > maxWidth && line) {
+                    lines.push(line);
+                    line = w;
+                    if (lines.length === maxLines) break;
+                } else {
+                    line = test;
+                }
+            }
+            if (line && lines.length < maxLines) lines.push(line);
+            return lines;
+        }
+
         function drawRankingCardCanvas(data) {
             const FONT = 'Plus Jakarta Sans, Arial, sans-serif';
             const scale = 2;
-            const W = 640, pad = 14;
-            const headerH = 48, statsH = 76, progressH = 34, tableHeadH = 24, rowH = 26, footerH = 50;
+            const W = 680, pad = 16, gap = 10;
+            const headerH = 64, statsH = 108, progressH = 56, tableHeadH = 28, footerH = 100;
             const rows = data.rows.length ? data.rows : [];
-            const tableH = tableHeadH + Math.max(rows.length, 1) * rowH + 8;
+            const rowHeights = rows.length ? rows.map(r => 44 + (r.cargo ? 16 : 0)) : [40];
+            const tableRowsH = rowHeights.reduce((s, h) => s + h, 0);
+            const tableH = tableHeadH + tableRowsH + 8;
             const H = headerH + statsH + progressH + tableH + footerH;
 
             const canvas = document.createElement('canvas');
@@ -1718,107 +1785,135 @@
             canvas.height = Math.round(H * scale);
             const ctx = canvas.getContext('2d');
             ctx.scale(scale, scale);
+            ctx.textBaseline = 'middle';
 
-            // fundo + cantos arredondados
-            rrFill(ctx, 0, 0, W, H, 12, '#0f172a');
+            rrFill(ctx, 0, 0, W, H, 16, '#0f172a');
             ctx.save();
-            rrPath(ctx, 0, 0, W, H, 12);
+            rrPath(ctx, 0, 0, W, H, 16);
             ctx.clip();
 
             // ---- header ----
             const grad = ctx.createLinearGradient(0, 0, W, 0);
-            grad.addColorStop(0, '#1d4ed8');
+            grad.addColorStop(0, '#1e40af');
             grad.addColorStop(1, '#2563eb');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, W, headerH);
 
-            rrFill(ctx, pad, headerH / 2 - 11, 22, 22, 6, 'rgba(255,255,255,0.18)');
-
+            rrFill(ctx, pad, headerH / 2 - 18, 36, 36, 10, 'rgba(255,255,255,0.18)');
             ctx.fillStyle = '#ffffff';
-            ctx.font = `800 14px ${FONT}`;
-            ctx.textBaseline = 'middle';
+            ctx.font = `800 17px ${FONT}`;
             ctx.textAlign = 'left';
-            ctx.fillText(data.title.toUpperCase(), pad + 30, headerH / 2 + 1);
+            ctx.fillText(data.title.toUpperCase(), pad + 48, headerH / 2 + 1);
 
-            ctx.font = `700 11px ${FONT}`;
+            ctx.font = `700 12px ${FONT}`;
+            const camW = 36;
+            const camX = W - pad - camW;
             const badgeTextW = ctx.measureText(data.period).width;
-            const badgeW = badgeTextW + 18;
-            const badgeX = W - pad - badgeW;
-            rrFill(ctx, badgeX, headerH / 2 - 11, badgeW, 22, 6, 'rgba(255,255,255,0.18)');
+            const badgeW = badgeTextW + 22;
+            const badgeX = camX - 10 - badgeW;
+            rrFill(ctx, badgeX, headerH / 2 - 15, badgeW, 30, 8, 'rgba(255,255,255,0.18)');
             ctx.fillStyle = '#ffffff';
-            ctx.fillText(data.period, badgeX + 9, headerH / 2 + 1);
+            ctx.fillText(data.period, badgeX + 11, headerH / 2 + 1);
+            rrFill(ctx, camX, headerH / 2 - 15, camW, 30, 8, 'rgba(255,255,255,0.18)');
 
-            // ---- stats (Feitas / donut / Faltam / Meta) ----
-            const y0 = headerH + 10;
-            const gap = 8;
+            // ---- stats (Feitas / Progresso / Faltam / Meta) ----
+            const y0 = headerH + 12;
             const statW = (W - pad * 2 - gap * 3) / 4;
-            const boxH = statsH - 18;
+            const boxH = statsH - 16;
 
-            const drawStatBox = (x, value, label, boxBg, boxBorder, labelColor) => {
-                rrFill(ctx, x, y0, statW, boxH, 9, boxBg);
-                rrStroke(ctx, x, y0, statW, boxH, 9, boxBorder, 1);
-                ctx.textAlign = 'center';
+            const drawIconStatBox = (x, dotColor, value, label, labelColor, subLines) => {
+                rrFill(ctx, x, y0, statW, boxH, 12, labelColor.boxBg);
+                rrStroke(ctx, x, y0, statW, boxH, 12, labelColor.boxBorder, 1);
+                const iconR = 17;
+                const iconCx = x + 12 + iconR, iconCy = y0 + 30;
+                ctx.beginPath(); ctx.arc(iconCx, iconCy, iconR, 0, Math.PI * 2);
+                ctx.fillStyle = dotColor; ctx.fill();
+                const textX = iconCx + iconR + 10;
+                ctx.textAlign = 'left';
                 ctx.fillStyle = '#ffffff';
                 ctx.font = `800 20px ${FONT}`;
-                ctx.fillText(value, x + statW / 2, y0 + boxH / 2 - 6);
-                ctx.fillStyle = labelColor;
+                ctx.fillText(value, textX, iconCy - 2);
+                ctx.fillStyle = labelColor.text;
                 ctx.font = `800 10px ${FONT}`;
-                ctx.fillText(label, x + statW / 2, y0 + boxH / 2 + 15);
+                ctx.fillText(label, textX, iconCy + 15);
+                ctx.fillStyle = '#64748b';
+                ctx.font = `600 9px ${FONT}`;
+                const subW = x + statW - textX - 8;
+                wrapLines(ctx, subLines, subW, 2).forEach((ln, li) => {
+                    ctx.fillText(ln, textX, iconCy + 30 + li * 12);
+                });
             };
 
-            drawStatBox(pad, String(data.totalCount), 'FEITAS', 'rgba(16,185,129,0.12)', 'rgba(16,185,129,0.3)', '#34d399');
+            const emerald = { boxBg: 'rgba(16,185,129,0.12)', boxBorder: 'rgba(16,185,129,0.3)', text: '#34d399' };
+            const amber = { boxBg: 'rgba(245,158,11,0.12)', boxBorder: 'rgba(245,158,11,0.3)', text: '#fbbf24' };
+            const indigo = { boxBg: 'rgba(99,102,241,0.12)', boxBorder: 'rgba(99,102,241,0.3)', text: '#a5b4fc' };
+            const slateBox = { boxBg: 'rgba(30,41,59,0.5)', boxBorder: '#334155', text: '#ffffff' };
 
-            // donut
-            const donutCx = pad + statW + gap + statW / 2;
-            const donutCy = y0 + boxH / 2;
-            const donutR = Math.min(statW, boxH) / 2 - 3;
-            ctx.beginPath();
-            ctx.arc(donutCx, donutCy, donutR, 0, Math.PI * 2);
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 6;
-            ctx.stroke();
+            drawIconStatBox(pad, '#10b981', String(data.totalCount), 'FEITAS', emerald, `${data.pct}% da meta`);
+
+            // progresso (donut) — segunda caixa, layout vertical centralizado
+            const progX = pad + statW + gap;
+            rrFill(ctx, progX, y0, statW, boxH, 12, slateBox.boxBg);
+            rrStroke(ctx, progX, y0, statW, boxH, 12, slateBox.boxBorder, 1);
+            const donutCx = progX + statW / 2, donutCy = y0 + 30, donutR = 20;
+            ctx.beginPath(); ctx.arc(donutCx, donutCy, donutR, 0, Math.PI * 2);
+            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 6; ctx.stroke();
             if (data.pct > 0) {
                 ctx.beginPath();
                 ctx.arc(donutCx, donutCy, donutR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, data.pct / 100));
-                ctx.strokeStyle = '#10b981';
-                ctx.lineWidth = 6;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-                ctx.lineCap = 'butt';
+                ctx.strokeStyle = '#10b981'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt';
             }
-            ctx.fillStyle = '#ffffff';
-            ctx.font = `800 11px ${FONT}`;
-            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffffff'; ctx.font = `800 12px ${FONT}`; ctx.textAlign = 'center';
             ctx.fillText(`${data.pct}%`, donutCx, donutCy + 1);
+            ctx.fillStyle = '#ffffff'; ctx.font = `800 10px ${FONT}`;
+            ctx.fillText('PROGRESSO', donutCx, y0 + 62);
+            ctx.fillStyle = '#64748b'; ctx.font = `600 9px ${FONT}`;
+            ctx.fillText(`${data.totalCount} de ${data.meta || '–'}`, donutCx, y0 + 76);
+            ctx.textAlign = 'left';
 
-            drawStatBox(pad + (statW + gap) * 2, String(data.falta), 'FALTAM', 'rgba(245,158,11,0.12)', 'rgba(245,158,11,0.3)', '#fbbf24');
-            drawStatBox(pad + (statW + gap) * 3, data.meta ? String(data.meta) : '–', 'META', 'rgba(99,102,241,0.12)', 'rgba(99,102,241,0.3)', '#a5b4fc');
+            drawIconStatBox(pad + (statW + gap) * 2, '#f59e0b', String(data.falta), 'FALTAM', amber, 'Para a meta');
+            drawIconStatBox(pad + (statW + gap) * 3, '#6366f1', data.meta ? String(data.meta) : '–', 'META', indigo, data.metaSubtext);
 
             // ---- progresso geral ----
-            const yP = headerH + statsH + 6;
-            rrFill(ctx, pad, yP, W - pad * 2, 7, 3.5, '#1e293b');
+            const yP = headerH + statsH + 10;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = `800 12px ${FONT}`;
+            ctx.fillText('PROGRESSO GERAL', pad, yP);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#64748b';
+            ctx.font = `600 11px ${FONT}`;
+            ctx.fillText(`${data.totalCount} de ${data.meta || '–'} ${data.unidade}`, W - pad, yP);
+
+            const barY = yP + 14, barH = 12;
+            rrFill(ctx, pad, barY, W - pad * 2, barH, 6, '#1e293b');
             const progW = (W - pad * 2) * Math.min(1, data.pct / 100);
             if (progW > 1) {
                 const pg = ctx.createLinearGradient(pad, 0, pad + progW, 0);
                 if (data.batida) { pg.addColorStop(0, '#059669'); pg.addColorStop(1, '#34d399'); }
                 else { pg.addColorStop(0, '#10b981'); pg.addColorStop(1, '#f59e0b'); }
-                rrFill(ctx, pad, yP, progW, 7, 3.5, pg);
+                rrFill(ctx, pad, barY, progW, barH, 6, pg);
             }
-            ctx.fillStyle = '#64748b';
-            ctx.font = `600 11px ${FONT}`;
+            // badge flutuante na ponta do preenchimento
+            ctx.font = `800 11px ${FONT}`;
+            const pctLbl = `${data.pct}%`;
+            const pctLblW = ctx.measureText(pctLbl).width + 16;
+            let badgeCx = pad + progW;
+            badgeCx = Math.max(pad + pctLblW / 2, Math.min(W - pad - pctLblW / 2, badgeCx));
+            rrFill(ctx, badgeCx - pctLblW / 2, barY + barH / 2 - 11, pctLblW, 22, 11, '#f59e0b');
+            ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
-            const progLbl = `${data.totalCount} de ${data.meta || '–'}` + (data.showVgv ? ` · ${Math.round(data.totalVgv).toLocaleString('pt-BR')}` : '');
-            ctx.fillText(progLbl, W / 2, yP + 22);
+            ctx.fillText(pctLbl, badgeCx, barY + barH / 2 + 1);
 
             // ---- tabela ----
             const yT = headerH + statsH + progressH;
-            const rankW = 24, feitoW = 46, faltaW = 46, progColW = 100, vgvW = data.showVgv ? 78 : 0;
+            const rankW = 30, feitoW = 56, faltaW = 56, progColW = 120, vgvW = data.showVgv ? 90 : 0;
             const nameW = W - pad * 2 - rankW - feitoW - faltaW - progColW - vgvW;
             const xRank = pad, xName = xRank + rankW, xFeito = xName + nameW, xFalta = xFeito + feitoW, xProg = xFalta + faltaW, xVgv = xProg + progColW;
 
             ctx.textAlign = 'left';
             ctx.fillStyle = '#64748b';
-            ctx.font = `800 10px ${FONT}`;
+            ctx.font = `800 11px ${FONT}`;
             ctx.fillText('#', xRank, yT + tableHeadH / 2 + 1);
             ctx.fillText('CORRETOR', xName, yT + tableHeadH / 2 + 1);
             ctx.textAlign = 'center';
@@ -1833,16 +1928,18 @@
 
             if (rows.length === 0) {
                 ctx.fillStyle = '#64748b';
-                ctx.font = `600 11px ${FONT}`;
+                ctx.font = `600 12px ${FONT}`;
                 ctx.textAlign = 'center';
-                ctx.fillText('Sem registros', W / 2, yT + tableHeadH + rowH / 2 + 1);
+                ctx.fillText('Sem registros', W / 2, yT + tableHeadH + rowHeights[0] / 2 + 1);
             }
 
+            let yCursor = yT + tableHeadH;
             rows.forEach((r, i) => {
-                const yRow = yT + tableHeadH + i * rowH;
-                const yMid = yRow + rowH / 2;
+                const rh = rowHeights[i];
+                const yRow = yCursor;
+                const yMid = yRow + rh / 2 - (r.cargo ? 7 : 0);
                 if (i > 0) {
-                    ctx.strokeStyle = 'rgba(30,41,59,0.6)';
+                    ctx.strokeStyle = 'rgba(30,41,59,0.7)';
                     ctx.beginPath(); ctx.moveTo(pad, yRow); ctx.lineTo(W - pad, yRow); ctx.stroke();
                 }
                 const zero = r.count === 0;
@@ -1851,82 +1948,108 @@
 
                 ctx.textAlign = 'left';
                 ctx.fillStyle = posColor;
-                ctx.font = `800 11px ${FONT}`;
+                ctx.font = `800 13px ${FONT}`;
                 ctx.fillText(`${r.pos}º`, xRank, yMid + 1);
 
                 // avatar
-                const avR = 9;
+                const avR = 14;
                 const avCx = xName + avR, avCy = yMid;
                 const avGrad = ctx.createLinearGradient(avCx - avR, avCy - avR, avCx + avR, avCy + avR);
-                avGrad.addColorStop(0, '#6366f1');
-                avGrad.addColorStop(1, '#10b981');
+                if (i === 0) { avGrad.addColorStop(0, '#34d399'); avGrad.addColorStop(1, '#14b8a6'); }
+                else if (i === 1) { avGrad.addColorStop(0, '#2dd4bf'); avGrad.addColorStop(1, '#06b6d4'); }
+                else { avGrad.addColorStop(0, '#6366f1'); avGrad.addColorStop(1, '#9333ea'); }
                 ctx.beginPath(); ctx.arc(avCx, avCy, avR, 0, Math.PI * 2); ctx.fillStyle = avGrad; ctx.fill();
                 ctx.fillStyle = '#ffffff';
-                ctx.font = `800 8px ${FONT}`;
+                ctx.font = `800 10px ${FONT}`;
                 ctx.textAlign = 'center';
                 ctx.fillText(r.iniciais, avCx, avCy + 0.5);
 
                 ctx.textAlign = 'left';
                 ctx.fillStyle = zero ? '#94a3b8' : '#e2e8f0';
-                ctx.font = `600 11px ${FONT}`;
-                const nameX = xName + avR * 2 + 6;
-                ctx.fillText(truncateToWidth(ctx, r.nome, nameW - avR * 2 - 6), nameX, yMid + 1);
+                ctx.font = `700 13px ${FONT}`;
+                const nameX = xName + avR * 2 + 8;
+                ctx.fillText(truncateToWidth(ctx, r.nome, nameW - avR * 2 - 8), nameX, yMid + 1);
+                if (r.cargo) {
+                    const cargoY = yMid + 16;
+                    ctx.font = `700 9px ${FONT}`;
+                    const cargoW = ctx.measureText(r.cargo).width + 12;
+                    rrFill(ctx, nameX, cargoY - 8, cargoW, 16, 4, 'rgba(51,65,85,0.6)');
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.fillText(r.cargo, nameX + 6, cargoY + 1);
+                }
 
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#34d399';
-                ctx.font = `800 11px ${FONT}`;
+                ctx.font = `800 13px ${FONT}`;
                 ctx.fillText(String(r.count), xFeito + feitoW / 2, yMid + 1);
 
                 ctx.fillStyle = '#fbbf24';
                 ctx.fillText(r.faltaC === null ? '–' : String(r.faltaC), xFalta + faltaW / 2, yMid + 1);
 
                 if (r.pctC !== null) {
-                    const barW = 42, barH = 5;
-                    const barY = yMid - barH / 2;
-                    rrFill(ctx, xProg, barY, barW, barH, 2.5, '#334155');
+                    const barW = 60, barHrow = 7;
+                    const barYrow = yMid - barHrow / 2;
+                    rrFill(ctx, xProg, barYrow, barW, barHrow, 3.5, '#334155');
                     const fillW = barW * Math.min(1, r.pctC / 100);
-                    let barColor = '#334155';
-                    if (r.pctC >= 100) barColor = '#10b981'; else if (r.pctC >= 50) barColor = '#fbbf24'; else if (r.pctC > 0) barColor = '#f97316';
-                    if (fillW > 0) rrFill(ctx, xProg, barY, fillW, barH, 2.5, barColor);
+                    if (fillW > 0) {
+                        const bg = ctx.createLinearGradient(xProg, 0, xProg + barW, 0);
+                        bg.addColorStop(0, '#10b981'); bg.addColorStop(1, '#f59e0b');
+                        rrFill(ctx, xProg, barYrow, fillW, barHrow, 3.5, bg);
+                    }
                     ctx.textAlign = 'left';
-                    ctx.fillStyle = r.pctC >= 100 ? '#34d399' : (r.pctC >= 50 ? '#fcd34d' : '#fb923c');
-                    ctx.font = `700 10px ${FONT}`;
-                    ctx.fillText(`${r.pctC}%`, xProg + barW + 8, yMid + 1);
+                    ctx.fillStyle = r.pctC >= 100 ? '#34d399' : (r.pctC >= 50 ? '#fcd34d' : (r.pctC > 0 ? '#fb923c' : '#fb7185'));
+                    ctx.font = `800 11px ${FONT}`;
+                    ctx.fillText(`${r.pctC}%`, xProg + barW + 10, yMid + 1);
                 } else {
                     ctx.textAlign = 'left';
                     ctx.fillStyle = '#475569';
-                    ctx.font = `600 9px ${FONT}`;
+                    ctx.font = `600 10px ${FONT}`;
                     ctx.fillText('sem meta', xProg, yMid + 1);
                 }
 
                 if (data.showVgv) {
                     ctx.textAlign = 'right';
                     ctx.fillStyle = '#a5b4fc';
-                    ctx.font = `700 10px ${FONT}`;
+                    ctx.font = `700 11px ${FONT}`;
                     ctx.fillText(Math.round(r.vgv).toLocaleString('pt-BR'), xVgv + vgvW, yMid + 1);
                 }
+
+                yCursor += rh;
             });
 
-            // ---- rodapé ----
-            const yF = yT + tableHeadH + Math.max(rows.length, 1) * rowH + 8;
-            ctx.strokeStyle = '#1e293b';
-            ctx.beginPath(); ctx.moveTo(0, yF); ctx.lineTo(W, yF); ctx.stroke();
+            // ---- rodapé: 3 caixas coloridas ----
+            const yF = yT + tableHeadH + tableRowsH + 10;
             const colW = (W - pad * 2 - gap * 2) / 3;
-            const footerCols = [
-                { label: 'MELHOR', value: data.melhorTxt, color: '#34d399' },
-                { label: 'PENDÊNCIA', value: data.pendenciaTxt, color: '#fbbf24' },
-                { label: `META ${data.cadence.toUpperCase()}`, value: `${data.meta || '–'} ${data.unidade}`, color: '#a5b4fc' }
-            ];
+            const footerBoxH = footerH - 34;
+
+            const drawFooterBox = (x, style, iconColor, label, line1, line2) => {
+                rrFill(ctx, x, yF, colW, footerBoxH, 12, style.boxBg);
+                rrStroke(ctx, x, yF, colW, footerBoxH, 12, style.boxBorder, 1);
+                ctx.textAlign = 'left';
+                ctx.fillStyle = style.text;
+                ctx.font = `800 10px ${FONT}`;
+                ctx.fillText(label.toUpperCase(), x + 12, yF + 18);
+                ctx.fillStyle = '#e2e8f0';
+                ctx.font = `700 13px ${FONT}`;
+                ctx.fillText(truncateToWidth(ctx, line1, colW - 24), x + 12, yF + 38);
+                if (line2) {
+                    ctx.fillStyle = style.text;
+                    ctx.font = `800 15px ${FONT}`;
+                    ctx.fillText(truncateToWidth(ctx, line2, colW - 24), x + 12, yF + 55);
+                }
+            };
+
+            drawFooterBox(pad, emerald, '#10b981', 'Melhor desempenho', data.melhorNome, data.melhorPct !== null ? `${data.melhorPct}%` : '');
+            drawFooterBox(pad + colW + gap, amber, '#f59e0b', 'Pendências', data.pendenciaLine1, data.pendenciaLine2);
+            drawFooterBox(pad + (colW + gap) * 2, indigo, '#6366f1', `Meta ${data.cadence.toLowerCase()}`, `${data.meta || '–'} ${data.unidade}`, '');
+
+            // ---- timestamp ----
+            ctx.strokeStyle = 'rgba(30,41,59,0.8)';
+            ctx.beginPath(); ctx.moveTo(pad, yF + footerBoxH + 10); ctx.lineTo(W - pad, yF + footerBoxH + 10); ctx.stroke();
+            ctx.fillStyle = '#64748b';
+            ctx.font = `600 10px ${FONT}`;
             ctx.textAlign = 'left';
-            footerCols.forEach((c, i) => {
-                const x = pad + i * (colW + gap);
-                ctx.fillStyle = c.color;
-                ctx.font = `800 9px ${FONT}`;
-                ctx.fillText(c.label, x, yF + 20);
-                ctx.fillStyle = '#94a3b8';
-                ctx.font = `600 10px ${FONT}`;
-                ctx.fillText(truncateToWidth(ctx, c.value, colW), x, yF + 36);
-            });
+            ctx.fillText(data.updatedLabel, pad, yF + footerBoxH + 24);
 
             ctx.restore();
             return canvas;
