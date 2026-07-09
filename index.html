@@ -1658,9 +1658,13 @@
             const iconClassOriginal = icon ? icon.className : '';
             if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
             try {
+                // Espera as fontes carregarem — sem isso o html2canvas às vezes desenha o texto
+                // duas vezes (uma com a fonte web, outra com a de fallback), dando esse efeito "fantasma".
+                if (document.fonts && document.fonts.ready) await document.fonts.ready;
                 const canvas = await html2canvas(card, {
                     backgroundColor: '#0f172a',
                     scale: 2,
+                    foreignObjectRendering: false,
                     ignoreElements: (el) => el.classList && el.classList.contains('rk-no-export')
                 });
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
