@@ -1652,12 +1652,20 @@
 
         // Exporta um card de Ranking Rápido (o elemento .rk-card mais próximo do botão) como imagem PNG.
         // Tenta copiar direto pra área de transferência; se o navegador não suportar, baixa o arquivo.
+        let anyRankingExportBusy = false; // trava contra clique duplo: 2 capturas concorrentes no mesmo card também dão texto fantasma
+
         async function exportRankingCardImage(btnEl) {
             const card = btnEl.closest('.rk-card');
             if (!card || typeof html2canvas === 'undefined') {
                 showToast('Não foi possível gerar a imagem.', true);
                 return;
             }
+            if (anyRankingExportBusy) {
+                showToast('Já estou gerando uma imagem — aguarde ela terminar.', true);
+                return;
+            }
+            anyRankingExportBusy = true;
+            btnEl.disabled = true;
             const icon = btnEl.querySelector('i');
             const iconClassOriginal = icon ? icon.className : '';
             if (icon) icon.className = 'fa-solid fa-spinner fa-spin';
@@ -1668,10 +1676,15 @@
                 // Espera as fontes carregarem — sem isso o html2canvas às vezes desenha o texto
                 // duas vezes (uma com a fonte web, outra com a de fallback), dando esse efeito "fantasma".
                 if (document.fonts && document.fonts.ready) await document.fonts.ready;
+                // Safari (WebKit) e Chrome têm bugs OPOSTOS no html2canvas: no Chrome o modo
+                // foreignObjectRendering=true às vezes duplica o texto; no Safari é o modo manual
+                // (foreignObjectRendering=false) que costuma duplicar/desalinhar. Detecta e escolhe.
+                const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
                 const canvas = await html2canvas(card, {
                     backgroundColor: '#0f172a',
                     scale: 2,
-                    foreignObjectRendering: false,
+                    foreignObjectRendering: isSafari,
+                    imageTimeout: 0,
                     ignoreElements: (el) => el.classList && el.classList.contains('rk-no-export')
                 });
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -1695,6 +1708,8 @@
                 showToast('Erro ao gerar a imagem do ranking.', true);
             } finally {
                 if (icon) icon.className = iconClassOriginal;
+                btnEl.disabled = false;
+                anyRankingExportBusy = false;
                 rankingExportInProgress = false;
                 drawQuickRankings(); // aplica agora qualquer atualização que tenha chegado durante a captura
             }
