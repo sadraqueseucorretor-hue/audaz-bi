@@ -660,7 +660,7 @@
                         </div>
                         <p class="text-[10px] text-slate-500" id="quickRefHint">Semana atual e mês comercial corrente.</p>
                     </div>
-                    <div id="quickRankingsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-2"></div>
+                    <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-1.5"></div>
                 </section>
 
                 <!-- 4. TABELAS DE RANKINGS EXECUTIVOS -->
@@ -1575,8 +1575,8 @@
                 };
 
                 const metaStat = rankingsEditMode
-                    ? `<input type="number" min="0" value="${meta || ''}" placeholder="meta" onchange="setRankingMeta('${card.key}', this.value)" class="w-14 bg-slate-950 border border-slate-700 text-lg rounded px-1 py-0.5 text-slate-100 text-center font-extrabold focus:border-brand-500 outline-none">`
-                    : `<div class="text-3xl font-extrabold text-white leading-none">${meta || '–'}</div>`;
+                    ? `<input type="number" min="0" value="${meta || ''}" placeholder="meta" onchange="setRankingMeta('${card.key}', this.value)" class="w-9 bg-slate-950 border border-slate-700 text-[10px] rounded px-0.5 py-0 text-slate-100 text-center font-extrabold focus:border-brand-500 outline-none">`
+                    : `<div class="text-[11px] font-extrabold text-white leading-none">${meta || '–'}</div>`;
 
                 let bodyRows;
                 if (list.length === 0) {
@@ -1594,108 +1594,107 @@
                         const pctColor = pctC === null ? 'text-slate-600' : (pctC >= 100 ? 'text-emerald-400' : pctC >= 50 ? 'text-amber-300' : pctC > 0 ? 'text-orange-400' : 'text-rose-400');
                         const avatarGrad = i === 0 ? 'from-emerald-400 to-teal-500' : i === 1 ? 'from-teal-400 to-cyan-500' : 'from-indigo-500 to-purple-600';
                         const progressoCell = pctC === null
-                            ? `<span class="text-[9px] text-slate-600">sem meta</span>`
-                            : `<div class="flex items-center gap-1.5"><div class="flex-1 h-1.5 rounded-full bg-slate-800 overflow-hidden min-w-[40px] max-w-[80px]"><div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400" style="width:${pctC}%"></div></div><span class="text-[10px] font-bold ${pctColor} w-8 text-right">${pctC}%</span></div>`;
+                            ? `<span class="text-[8px] text-slate-600">–</span>`
+                            : `<div class="flex items-center gap-1"><div class="flex-1 h-1 rounded-full bg-slate-800 overflow-hidden min-w-[24px] max-w-[44px]"><div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400" style="width:${pctC}%"></div></div><span class="text-[9px] font-bold ${pctColor} w-6 text-right">${pctC}%</span></div>`;
 
                         return `<tr class="border-b border-slate-800/60 hover:bg-slate-800/30 transition ${zero && metaC === 0 ? 'opacity-70' : ''}">
-                            <td class="py-1 pl-2 font-extrabold ${pos} text-[10px] align-middle">${i + 1}º</td>
-                            <td class="py-1 pr-2">
-                                <div class="flex items-center gap-1.5 min-w-0">
-                                    <div class="h-5 w-5 rounded-full bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-[7px] font-extrabold text-white shrink-0">${initials(r.nome)}</div>
-                                    <div class="min-w-0 flex items-center gap-1.5">
-                                        <span class="text-[11px] font-semibold ${zero ? 'text-slate-400' : 'text-slate-100'} truncate">${nome}</span>
-                                        ${cargo ? `<span class="shrink-0 text-[8px] font-bold text-slate-300 bg-slate-700/60 rounded px-1 py-0.5">${cargo}</span>` : ''}
+                            <td class="py-0.5 pl-1.5 font-extrabold ${pos} text-[9px] align-middle">${i + 1}º</td>
+                            <td class="py-0.5 pr-1">
+                                <div class="flex items-center gap-1 min-w-0">
+                                    <div class="h-4 w-4 rounded-full bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-[6px] font-extrabold text-white shrink-0">${initials(r.nome)}</div>
+                                    <div class="min-w-0 flex items-center gap-1">
+                                        <span class="text-[9px] font-semibold ${zero ? 'text-slate-400' : 'text-slate-100'} truncate">${nome}</span>
+                                        ${cargo ? `<span class="shrink-0 text-[7px] font-bold text-slate-300 bg-slate-700/60 rounded px-1 py-0.5">${cargo}</span>` : ''}
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-1 text-center text-[11px] font-extrabold text-emerald-400 align-middle">${r.count}</td>
-                            <td class="py-1 text-center text-[11px] font-extrabold text-amber-400 align-middle">${faltaC === null ? '–' : faltaC}</td>
-                            <td class="py-1 pr-3 align-middle">${progressoCell}</td>
-                            ${card.vgv ? `<td class="py-1 pr-3 text-right text-[10px] font-semibold text-indigo-300 whitespace-nowrap align-middle">${fmtInt(r.vgv)}</td>` : ''}
+                            <td class="py-0.5 text-center text-[9px] font-extrabold text-emerald-400 align-middle">${r.count}</td>
+                            <td class="py-0.5 text-center text-[9px] font-extrabold text-amber-400 align-middle">${faltaC === null ? '–' : faltaC}</td>
+                            <td class="py-0.5 pr-2 align-middle">${progressoCell}</td>
+                            ${card.vgv ? `<td class="py-0.5 pr-2 text-right text-[9px] font-semibold text-indigo-300 whitespace-nowrap align-middle">${fmtInt(r.vgv)}</td>` : ''}
                         </tr>`;
                     }).join('');
                 }
 
-                return `<div class="rk-card bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden flex flex-col" data-rk-title="${card.title}" data-rk-index="${cardIdx}">
-                    <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-2.5 py-1.5 flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                            <div class="h-5 w-5 rounded bg-white/15 flex items-center justify-center shrink-0"><i class="fa-solid ${card.icon} text-white text-[10px]"></i></div>
-                            <h4 class="text-[11px] font-extrabold text-white uppercase truncate">${card.title}</h4>
+                return `<div class="rk-card bg-slate-900/60 rounded-lg border border-slate-800 overflow-hidden flex flex-col" data-rk-title="${card.title}" data-rk-index="${cardIdx}">
+                    <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-1.5 py-1 flex items-center justify-between gap-1">
+                        <div class="flex items-center gap-1 min-w-0">
+                            <div class="h-4 w-4 rounded bg-white/15 flex items-center justify-center shrink-0"><i class="fa-solid ${card.icon} text-white text-[8px]"></i></div>
+                            <h4 class="text-[9px] font-extrabold text-white uppercase truncate">${card.title}</h4>
                         </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <div class="bg-white/15 rounded px-1.5 py-0.5 text-[9px] font-bold text-white flex items-center gap-1 whitespace-nowrap">
+                        <div class="flex items-center gap-0.5 shrink-0">
+                            <div class="bg-white/15 rounded px-1 py-0.5 text-[7px] font-bold text-white flex items-center gap-0.5 whitespace-nowrap">
                                 <i class="fa-solid fa-calendar-days"></i> ${periodoPorCadencia[card.cadence]}
                             </div>
-                            <button onclick="exportRankingCardImage(this)" title="Copiar este ranking como imagem" class="rk-no-export h-5 w-5 rounded bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-[10px] transition">
+                            <button onclick="exportRankingCardImage(this)" title="Copiar este ranking como imagem" class="rk-no-export h-4 w-4 rounded bg-white/15 hover:bg-white/25 flex items-center justify-center text-white text-[8px] transition">
                                 <i class="fa-solid fa-camera"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-4 gap-1.5 p-2">
-                        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-1.5 flex items-center gap-1.5">
-                            <div class="h-6 w-6 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-white text-[9px]"></i></div>
+                    <div class="grid grid-cols-4 gap-1 p-1">
+                        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded p-1 flex items-center gap-1">
+                            <div class="h-4 w-4 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-white text-[7px]"></i></div>
                             <div class="min-w-0">
-                                <div class="text-sm font-extrabold text-white leading-none">${totalCount}</div>
-                                <div class="text-[8px] text-emerald-400 font-bold uppercase">Feitas</div>
+                                <div class="text-[11px] font-extrabold text-white leading-none">${totalCount}</div>
+                                <div class="text-[6px] text-emerald-400 font-bold uppercase">Feitas</div>
                             </div>
                         </div>
-                        <div class="bg-slate-800/40 border border-slate-700 rounded-lg p-1.5 flex items-center justify-center">
-                            <div class="relative h-7 w-7 shrink-0" style="background:conic-gradient(#10b981 ${pct}%, #1e293b ${pct}% 100%); border-radius:9999px;">
-                                <div class="absolute inset-1 bg-slate-900 rounded-full flex items-center justify-center text-[8px] font-extrabold text-white">${pct}%</div>
+                        <div class="bg-slate-800/40 border border-slate-700 rounded p-1 flex items-center justify-center">
+                            <div class="relative h-5 w-5 shrink-0" style="background:conic-gradient(#10b981 ${pct}%, #1e293b ${pct}% 100%); border-radius:9999px;">
+                                <div class="absolute inset-[3px] bg-slate-900 rounded-full flex items-center justify-center text-[6px] font-extrabold text-white">${pct}%</div>
                             </div>
                         </div>
-                        <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-1.5 flex items-center gap-1.5">
-                            <div class="h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-hourglass-half text-white text-[9px]"></i></div>
+                        <div class="bg-amber-500/10 border border-amber-500/20 rounded p-1 flex items-center gap-1">
+                            <div class="h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-hourglass-half text-white text-[7px]"></i></div>
                             <div class="min-w-0">
-                                <div class="text-sm font-extrabold text-white leading-none">${falta}</div>
-                                <div class="text-[8px] text-amber-400 font-bold uppercase">Faltam</div>
+                                <div class="text-[11px] font-extrabold text-white leading-none">${falta}</div>
+                                <div class="text-[6px] text-amber-400 font-bold uppercase">Faltam</div>
                             </div>
                         </div>
-                        <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-1.5 flex items-center gap-1.5">
-                            <div class="h-6 w-6 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-bullseye text-white text-[9px]"></i></div>
+                        <div class="bg-indigo-500/10 border border-indigo-500/20 rounded p-1 flex items-center gap-1">
+                            <div class="h-4 w-4 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-bullseye text-white text-[7px]"></i></div>
                             <div class="min-w-0">
                                 ${metaStat}
-                                <div class="text-[8px] text-indigo-400 font-bold uppercase">Meta</div>
+                                <div class="text-[6px] text-indigo-400 font-bold uppercase">Meta</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="px-2 pb-1.5">
-                        <div class="relative h-2 rounded-full bg-slate-800 overflow-visible">
+                    <div class="px-1.5 pb-1">
+                        <div class="relative h-1 rounded-full bg-slate-800 overflow-visible">
                             <div class="h-full rounded-full bg-gradient-to-r ${batida ? 'from-emerald-600 to-emerald-400' : 'from-emerald-500 to-amber-500'}" style="width:${pct}%"></div>
                         </div>
-                        <p class="text-center text-[9px] text-slate-500 mt-0.5">${totalCount} de ${meta || '–'} ${unidadePorCol[card.col]}</p>
                     </div>
 
-                    <div class="px-1 overflow-x-auto flex-1">
+                    <div class="px-0.5 overflow-x-auto flex-1">
                         <table class="w-full border-collapse">
                             <thead class="sticky top-0 bg-slate-900/95">
-                                <tr class="text-[8px] text-slate-500 uppercase font-bold border-b border-slate-800">
-                                    <th class="py-1 pl-2 text-left">#</th>
-                                    <th class="py-1 text-left">Corretor</th>
-                                    <th class="py-1 text-center">Feito</th>
-                                    <th class="py-1 text-center">Falta</th>
-                                    <th class="py-1 pr-3 text-left">Progresso</th>
-                                    ${card.vgv ? `<th class="py-1 pr-3 text-right">VGV</th>` : ''}
+                                <tr class="text-[7px] text-slate-500 uppercase font-bold border-b border-slate-800">
+                                    <th class="py-0.5 pl-1.5 text-left">#</th>
+                                    <th class="py-0.5 text-left">Corretor</th>
+                                    <th class="py-0.5 text-center">Ft</th>
+                                    <th class="py-0.5 text-center">Fl</th>
+                                    <th class="py-0.5 pr-2 text-left">%</th>
+                                    ${card.vgv ? `<th class="py-0.5 pr-2 text-right">VGV</th>` : ''}
                                 </tr>
                             </thead>
                             <tbody>${bodyRows}</tbody>
                         </table>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-1.5 px-2 pb-1.5 pt-1 mt-auto text-[9px]">
+                    <div class="grid grid-cols-3 gap-1 px-1.5 pb-1 pt-0.5 mt-auto text-[8px]">
                         <div class="min-w-0">
-                            <p class="text-emerald-400 font-bold flex items-center gap-1 uppercase truncate"><i class="fa-solid fa-trophy"></i> Melhor</p>
-                            <p class="text-slate-300 truncate">${melhorNome}${melhorPct !== null ? ` (${melhorPct}%)` : ''}</p>
+                            <p class="text-emerald-400 font-bold uppercase truncate leading-tight">Melhor</p>
+                            <p class="text-slate-300 truncate leading-tight">${melhorNome}${melhorPct !== null ? ` ${melhorPct}%` : ''}</p>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-amber-400 font-bold flex items-center gap-1 uppercase truncate"><i class="fa-solid fa-triangle-exclamation"></i> Pendências</p>
-                            <p class="text-slate-300 truncate">${pendenciaLine1} ${pendenciaLine2}</p>
+                            <p class="text-amber-400 font-bold uppercase truncate leading-tight">Pendência</p>
+                            <p class="text-slate-300 truncate leading-tight">${pendenciaLine1} ${pendenciaLine2}</p>
                         </div>
                         <div class="min-w-0">
-                            <p class="text-indigo-400 font-bold flex items-center gap-1 uppercase truncate"><i class="fa-solid fa-users"></i> Meta</p>
-                            <p class="text-slate-300 truncate">${meta || '–'} ${unidadePorCol[card.col]}</p>
+                            <p class="text-indigo-400 font-bold uppercase truncate leading-tight">Meta</p>
+                            <p class="text-slate-300 truncate leading-tight">${meta || '–'} ${unidadePorCol[card.col]}</p>
                         </div>
                     </div>
                 </div>`;
