@@ -418,17 +418,26 @@
                                         </linearGradient>
                                     </defs>
                                     <!-- Banda 1: Analises -->
-                                    <polygon points="20,8 400,8 328,92 92,92" fill="url(#fgBlue)"/>
-                                    <text x="210" y="40" text-anchor="middle" fill="#dbeafe" font-size="12" font-weight="700" letter-spacing="1">ANÁLISES</text>
-                                    <text x="210" y="74" text-anchor="middle" fill="#ffffff" font-size="26" font-weight="800" id="funnelAnalisesQty">0</text>
+                                    <g onclick="openFunnelDetail('analises')" style="cursor:pointer" class="hover:opacity-90">
+                                        <title>Ver clientes desta etapa</title>
+                                        <polygon points="20,8 400,8 328,92 92,92" fill="url(#fgBlue)"/>
+                                        <text x="210" y="40" text-anchor="middle" fill="#dbeafe" font-size="12" font-weight="700" letter-spacing="1">ANÁLISES</text>
+                                        <text x="210" y="74" text-anchor="middle" fill="#ffffff" font-size="26" font-weight="800" id="funnelAnalisesQty">0</text>
+                                    </g>
                                     <!-- Banda 2: Aprovacoes -->
-                                    <polygon points="92,100 328,100 288,184 132,184" fill="url(#fgAmber)"/>
-                                    <text x="210" y="130" text-anchor="middle" fill="#fef3c7" font-size="12" font-weight="700" letter-spacing="1">APROVAÇÕES</text>
-                                    <text x="210" y="162" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="800" id="funnelAprovacoesQty">0</text>
+                                    <g onclick="openFunnelDetail('aprovacoes')" style="cursor:pointer" class="hover:opacity-90">
+                                        <title>Ver clientes desta etapa</title>
+                                        <polygon points="92,100 328,100 288,184 132,184" fill="url(#fgAmber)"/>
+                                        <text x="210" y="130" text-anchor="middle" fill="#fef3c7" font-size="12" font-weight="700" letter-spacing="1">APROVAÇÕES</text>
+                                        <text x="210" y="162" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="800" id="funnelAprovacoesQty">0</text>
+                                    </g>
                                     <!-- Banda 3: Vendas -->
-                                    <polygon points="132,192 288,192 245,276 175,276" fill="url(#fgGreen)"/>
-                                    <text x="210" y="222" text-anchor="middle" fill="#d1fae5" font-size="11" font-weight="700" letter-spacing="1">VENDAS</text>
-                                    <text x="210" y="250" text-anchor="middle" fill="#ffffff" font-size="22" font-weight="800" id="funnelVendasQty">0</text>
+                                    <g onclick="openFunnelDetail('vendas')" style="cursor:pointer" class="hover:opacity-90">
+                                        <title>Ver clientes desta etapa</title>
+                                        <polygon points="132,192 288,192 245,276 175,276" fill="url(#fgGreen)"/>
+                                        <text x="210" y="222" text-anchor="middle" fill="#d1fae5" font-size="11" font-weight="700" letter-spacing="1">VENDAS</text>
+                                        <text x="210" y="250" text-anchor="middle" fill="#ffffff" font-size="22" font-weight="800" id="funnelVendasQty">0</text>
+                                    </g>
                                     <!-- Badge conversao 1 (Analises -> Aprovacoes) -->
                                     <rect x="332" y="84" width="74" height="22" rx="11" fill="#dc2626"/>
                                     <text x="369" y="99" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAnaliseParaAprovacao">0%</text>
@@ -898,21 +907,31 @@
             <div class="space-y-4">
                 <div class="grid grid-cols-3 gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
                     <div>
-                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Corretor</p>
+                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider" id="detailCorrLabel1">Referência</p>
                         <p class="text-xs font-bold text-slate-200 truncate" id="detailCorrName">-</p>
                     </div>
                     <div>
-                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Data Selecionada</p>
+                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider" id="detailCorrLabel2">Período</p>
                         <p class="text-xs font-bold text-slate-200" id="detailCorrDate">-</p>
                     </div>
                     <div>
-                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Total de Análises</p>
+                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider" id="detailCorrLabel3">Total</p>
                         <p class="text-xs font-bold text-emerald-400" id="detailCorrTotal">0 propostas</p>
                     </div>
                 </div>
 
                 <div>
-                    <p class="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wide">Fichas e Leads do Dia</p>
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide">Clientes deste recorte</p>
+                        <div class="flex items-center gap-2">
+                            <button onclick="exportDetailCSV()" title="Exportar para Excel (.csv)" class="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 border border-emerald-700/50 hover:border-emerald-500/60 bg-emerald-500/10 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-file-excel"></i> Excel
+                            </button>
+                            <button onclick="exportDetailPDF()" title="Exportar para PDF (abre a caixa de impressão — escolha 'Salvar como PDF')" class="text-[10px] font-bold text-rose-400 hover:text-rose-300 border border-rose-700/50 hover:border-rose-500/60 bg-rose-500/10 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-file-pdf"></i> PDF
+                            </button>
+                        </div>
+                    </div>
                     <div class="overflow-y-auto max-h-64 border border-slate-800 rounded-lg">
                         <table class="w-full text-left text-xs border-collapse">
                             <thead>
@@ -3251,6 +3270,30 @@
             document.getElementById('kpiVgvTicket').textContent = `Ticket: ${formatBRL(ticketMedio)}  ·  ${isFinal ? 'VGV geral: ' + formatBRL(vgvGeral) : 'VGV final.: ' + formatBRL(vgvFinal)}`;
         }
 
+        // Abre o detalhamento de clientes de UMA etapa do funil (Análises/Aprovações/Vendas),
+        // usando exatamente o mesmo critério de cada métrica que os cartões de KPI já usam.
+        function openFunnelDetail(metrica) {
+            const refDate = currentRefDate;
+            let rows, label;
+            if (metrica === 'analises') {
+                rows = filteredDataset.filter(row => metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDate));
+                label = 'Análises';
+            } else if (metrica === 'aprovacoes') {
+                rows = filteredDataset.filter(row => isAprovado(row['Situação - Analise']) && metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', refDate));
+                label = 'Aprovações';
+            } else {
+                rows = filteredDataset.filter(row => isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refDate));
+                label = 'Vendas';
+            }
+            showDetailModal({
+                label1: 'Etapa do Funil', label2: 'Mês de Referência',
+                nome: `Funil — ${label}`,
+                dataStr: `${getMesName(refDate.getMonth() + 1)}/${refDate.getFullYear()}`,
+                rows, showCorretor: true,
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
+            });
+        }
+
         function formatCurrencyMillions(val) {
             if (val >= 1000000) {
                 return `R$ ${(val / 1000000).toFixed(2)}M`;
@@ -3647,11 +3690,32 @@
             drawTables();
         }
 
+        // Cache das linhas (clientes) por trás de cada número dos Rankings Comerciais — usado pelo
+        // clique nas colunas Análises/Aprovações/Vendas pra abrir o detalhamento (ver openRankingDetail).
+        let rankingRowsCache = { corretor: {}, equipe: {} };
+
+        function openRankingDetail(tipo, nome, metrica) {
+            const cache = rankingRowsCache[tipo] && rankingRowsCache[tipo][nome];
+            const rows = (cache && cache[metrica]) || [];
+            const metricaLbl = { analises: 'Análises', aprovacoes: 'Aprovações', vendas: 'Vendas' }[metrica] || metrica;
+            showDetailModal({
+                label1: tipo === 'corretor' ? 'Corretor' : 'Equipa',
+                label2: 'Métrica',
+                nome: tipo === 'corretor' ? nome : `Equipa ${nome}`,
+                dataStr: metricaLbl,
+                rows, showCorretor: tipo === 'equipe',
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
+            });
+        }
+
         function drawTables() {
             const searchCorretorTerm = document.getElementById('searchCorretor').value.toLowerCase();
             const searchEquipeTerm = document.getElementById('searchEquipe').value.toLowerCase();
 
             const refDateTables = currentRefDate;
+            rankingRowsCache = { corretor: {}, equipe: {} };
+            const getCorrCache = nome => (rankingRowsCache.corretor[nome] = rankingRowsCache.corretor[nome] || { analises: [], aprovacoes: [], vendas: [] });
+            const getEqCache = nome => (rankingRowsCache.equipe[nome] = rankingRowsCache.equipe[nome] || { analises: [], aprovacoes: [], vendas: [] });
 
             let corretoresMap = {};
             // Pré-cadastra todos os corretores ATIVOS (assim os pré-cadastrados aparecem com 0)
@@ -3667,11 +3731,13 @@
                 if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDateTables)) {
                     if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     corretoresMap[c].analises++;
+                    getCorrCache(c).analises.push(row);
                 }
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
                 if (isAprovado(row['Situação - Analise']) && metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', refDateTables)) {
                     if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     corretoresMap[c].aprovacoes++;
+                    getCorrCache(c).aprovacoes.push(row);
                 }
 
                 // Vendas/VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
@@ -3679,6 +3745,7 @@
                     if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     corretoresMap[c].vendas++;
                     corretoresMap[c].vgv += getVGV(row);
+                    getCorrCache(c).vendas.push(row);
                 }
             });
 
@@ -3688,7 +3755,7 @@
 
             const corrBody = document.getElementById('rankingCorretoresBody');
             corrBody.innerHTML = '';
-            
+
             if (rankingCorretores.length === 0) {
                 corrBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
             } else {
@@ -3698,14 +3765,15 @@
                     if (index === 0) badgeClass = "text-amber-400 font-extrabold";
                     if (index === 1) badgeClass = "text-slate-300 font-extrabold";
                     if (index === 2) badgeClass = "text-amber-600 font-extrabold";
+                    const nomeEsc = c.corretor.replace(/'/g, "\\'");
 
                     const rowHtml = `
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">${c.corretor}</td>
-                            <td class="py-3 text-center text-slate-400">${c.analises}</td>
-                            <td class="py-3 text-center text-amber-500 font-semibold">${c.aprovacoes}</td>
-                            <td class="py-3 text-center text-brand-500 font-bold">${c.vendas}</td>
+                            <td class="py-3 text-center text-slate-400 ${c.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${c.analises > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','analises')"` : ''} title="${c.analises > 0 ? 'Ver clientes' : ''}">${c.analises}</td>
+                            <td class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
+                            <td class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
                             <td class="py-3 text-center font-medium">${conversao}%</td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
                         </tr>
@@ -3723,11 +3791,13 @@
                 if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDateTables)) {
                     if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].analises++;
+                    getEqCache(eq).analises.push(row);
                 }
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
                 if (isAprovado(row['Situação - Analise']) && metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', refDateTables)) {
                     if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].aprovacoes++;
+                    getEqCache(eq).aprovacoes.push(row);
                 }
 
                 // Vendas/VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
@@ -3735,6 +3805,7 @@
                     if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].vendas++;
                     equipesMap[eq].vgv += getVGV(row);
+                    getEqCache(eq).vendas.push(row);
                 }
             });
 
@@ -3753,14 +3824,15 @@
                     let badgeClass = "text-slate-400";
                     if (index === 0) badgeClass = "text-amber-400 font-extrabold";
                     if (index === 1) badgeClass = "text-slate-300 font-extrabold";
+                    const eqEsc = eq.equipe.replace(/'/g, "\\'");
 
                     const rowHtml = `
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">Equipa ${eq.equipe}</td>
-                            <td class="py-3 text-center text-slate-400">${eq.analises}</td>
-                            <td class="py-3 text-center text-amber-500 font-semibold">${eq.aprovacoes}</td>
-                            <td class="py-3 text-center text-brand-500 font-bold">${eq.vendas}</td>
+                            <td class="py-3 text-center text-slate-400 ${eq.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${eq.analises > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','analises')"` : ''} title="${eq.analises > 0 ? 'Ver clientes' : ''}">${eq.analises}</td>
+                            <td class="py-3 text-center text-amber-500 font-semibold ${eq.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${eq.aprovacoes > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','aprovacoes')"` : ''} title="${eq.aprovacoes > 0 ? 'Ver clientes' : ''}">${eq.aprovacoes}</td>
+                            <td class="py-3 text-center text-brand-500 font-bold ${eq.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${eq.vendas > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','vendas')"` : ''} title="${eq.vendas > 0 ? 'Ver clientes' : ''}">${eq.vendas}</td>
                             <td class="py-3 text-center font-medium">${conversao}%</td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(eq.vgv)}</td>
                         </tr>
@@ -4574,19 +4646,28 @@
         }
 
         // Renderiza o modal de detalhes do calendário (genérico)
-        function renderCalendarDetail(nome, dataStr, rows, showCorretor) {
+        // Dados do detalhamento atualmente aberto — usados pelos botões de exportar Excel/PDF.
+        let currentDetailRows = [];
+        let currentDetailTitle = 'detalhamento';
+
+        // Renderizador genérico do modal de detalhamento de clientes — usado pelo calendário,
+        // pelo funil de vendas e pelos rankings comerciais (corretor/equipa).
+        function showDetailModal(opts) {
+            const { label1, label2, nome, dataStr, rows, totalLabel, showCorretor } = opts;
+            document.getElementById('detailCorrLabel1').textContent = label1;
+            document.getElementById('detailCorrLabel2').textContent = label2;
             document.getElementById('detailCorrName').textContent = nome;
             document.getElementById('detailCorrDate').textContent = dataStr;
-            const unidade = calendarMetric === 'aprovados' ? (rows.length === 1 ? 'aprovado' : 'aprovados')
-                          : calendarMetric === 'vendas' ? (rows.length === 1 ? 'venda' : 'vendas')
-                          : (rows.length === 1 ? 'análise' : 'análises');
-            document.getElementById('detailCorrTotal').textContent = `${rows.length} ${unidade}`;
+            document.getElementById('detailCorrTotal').textContent = totalLabel;
+
+            currentDetailRows = rows;
+            currentDetailTitle = `${nome} - ${dataStr}`;
 
             const tableBody = document.getElementById('detailTableBody');
             tableBody.innerHTML = '';
 
             if (rows.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhuma produção registrada neste período.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum cliente neste recorte.</td></tr>`;
             } else {
                 rows.forEach(r => {
                     const idText = r.ID || '-';
@@ -4617,6 +4698,78 @@
             }
 
             document.getElementById('calendarDetailModal').classList.remove('hidden');
+        }
+
+        function renderCalendarDetail(nome, dataStr, rows, showCorretor) {
+            const unidade = calendarMetric === 'aprovados' ? (rows.length === 1 ? 'aprovado' : 'aprovados')
+                          : calendarMetric === 'vendas' ? (rows.length === 1 ? 'venda' : 'vendas')
+                          : (rows.length === 1 ? 'análise' : 'análises');
+            showDetailModal({
+                label1: 'Corretor', label2: 'Data Selecionada',
+                nome, dataStr, rows, showCorretor,
+                totalLabel: `${rows.length} ${unidade}`
+            });
+        }
+
+        // Exporta os clientes do detalhamento aberto para .csv (abre certinho no Excel).
+        function exportDetailCSV() {
+            if (!currentDetailRows.length) { showToast('Nada para exportar.', true); return; }
+            const headers = ['ID', 'Cliente', 'Corretor', 'Construtora', 'Empreendimento', 'Situação', 'VGV'];
+            const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+            const lines = [headers.map(esc).join(';')];
+            currentDetailRows.forEach(r => {
+                lines.push([
+                    r.ID, r.Cliente, r.Corretor, r.Construtora, r.Empreendimento,
+                    r['Situação - Analise'],
+                    formatCurrency(parseFloat(r.VGV) || 0)
+                ].map(esc).join(';'));
+            });
+            const csvContent = '﻿' + lines.join('\r\n'); // BOM: acentos abrem certo no Excel
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentDetailTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.csv`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Excel exportado: ${currentDetailRows.length} cliente(s).`);
+        }
+
+        // Exporta os clientes do detalhamento aberto para PDF (abre a caixa de impressão do navegador
+        // já formatada — o usuário escolhe "Salvar como PDF" no destino).
+        function exportDetailPDF() {
+            if (!currentDetailRows.length) { showToast('Nada para exportar.', true); return; }
+            const win = window.open('', '_blank');
+            if (!win) { showToast('O navegador bloqueou a janela — permita pop-ups para exportar em PDF.', true); return; }
+            const rowsHtml = currentDetailRows.map(r => `
+                <tr>
+                    <td>${r.ID || '-'}</td>
+                    <td>${r.Cliente || '-'}</td>
+                    <td>${r.Corretor || '-'}</td>
+                    <td>${r.Construtora || '-'}</td>
+                    <td>${r.Empreendimento || '-'}</td>
+                    <td>${r['Situação - Analise'] || '-'}</td>
+                    <td style="text-align:right">${formatCurrency(parseFloat(r.VGV) || 0)}</td>
+                </tr>`).join('');
+            win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${currentDetailTitle}</title>
+                <style>
+                    body { font-family: Arial, Helvetica, sans-serif; padding: 24px; color: #111; }
+                    h1 { font-size: 16px; margin: 0 0 4px; }
+                    p { font-size: 11px; color: #555; margin: 0 0 16px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+                    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+                    th { background: #f3f4f6; }
+                </style></head><body>
+                <h1>${currentDetailTitle}</h1>
+                <p>${currentDetailRows.length} registro(s) — gerado em ${new Date().toLocaleString('pt-BR')}</p>
+                <table>
+                    <thead><tr><th>ID</th><th>Cliente</th><th>Corretor</th><th>Construtora</th><th>Empreendimento</th><th>Situação</th><th>VGV</th></tr></thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+                </body></html>`);
+            win.document.close();
+            win.focus();
+            setTimeout(() => win.print(), 300);
         }
 
         // Sufixo do título conforme a métrica ativa do calendário
