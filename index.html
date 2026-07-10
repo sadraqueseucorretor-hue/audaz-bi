@@ -1592,7 +1592,7 @@
                         const faltaC = metaC > 0 ? Math.max(0, metaC - r.count) : null;
                         const pctC = metaC > 0 ? Math.min(100, Math.round((r.count / metaC) * 100)) : null;
                         const pctColor = pctC === null ? 'text-slate-600' : (pctC >= 100 ? 'text-emerald-400' : pctC >= 50 ? 'text-amber-300' : pctC > 0 ? 'text-orange-400' : 'text-rose-400');
-                        const avatarGrad = i === 0 ? 'from-emerald-400 to-teal-500' : i === 1 ? 'from-teal-400 to-cyan-500' : 'from-indigo-500 to-purple-600';
+                        const avatarGrad = 'from-indigo-500 to-brand-500';
                         const progBarMax = card.vgv ? 28 : 70;
                         const progPctCls = card.vgv ? 'text-[10px] w-7' : 'text-[11px] w-8';
                         const progressoCell = pctC === null
@@ -1947,9 +1947,7 @@
                 const avR = 14;
                 const avCx = xName + avR, avCy = yMid;
                 const avGrad = ctx.createLinearGradient(avCx - avR, avCy - avR, avCx + avR, avCy + avR);
-                if (i === 0) { avGrad.addColorStop(0, '#34d399'); avGrad.addColorStop(1, '#14b8a6'); }
-                else if (i === 1) { avGrad.addColorStop(0, '#2dd4bf'); avGrad.addColorStop(1, '#06b6d4'); }
-                else { avGrad.addColorStop(0, '#6366f1'); avGrad.addColorStop(1, '#9333ea'); }
+                avGrad.addColorStop(0, '#6366f1'); avGrad.addColorStop(1, '#10b981');
                 ctx.globalAlpha = zero ? 0.5 : 1;
                 ctx.beginPath(); ctx.arc(avCx, avCy, avR, 0, Math.PI * 2); ctx.fillStyle = avGrad; ctx.fill();
                 ctx.fillStyle = '#ffffff';
