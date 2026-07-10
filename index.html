@@ -1603,7 +1603,12 @@
                             <td class="py-1.5 pl-2 font-extrabold ${pos} text-[11px] align-middle">${i + 1}º</td>
                             <td class="py-1.5 pr-2">
                                 <div class="flex items-center gap-2 min-w-0">
-                                    <div class="h-6 w-6 rounded-full bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-[8px] font-extrabold text-white shrink-0">${initials(r.nome)}</div>
+                                    <div class="relative h-6 w-6 shrink-0" title="${zero ? 'Ainda não enviou documentação neste período' : 'Já enviou documentação neste período'}">
+                                        <div class="h-6 w-6 rounded-full bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-[8px] font-extrabold text-white ${zero ? 'opacity-50' : ''}">${initials(r.nome)}</div>
+                                        ${zero
+                                            ? `<span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-slate-600 border-2 border-slate-900 flex items-center justify-center"><i class="fa-solid fa-minus text-slate-300" style="font-size:5px"></i></span>`
+                                            : `<span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center"><i class="fa-solid fa-check text-white" style="font-size:5px"></i></span>`}
+                                    </div>
                                     <div class="min-w-0 flex items-center gap-1.5">
                                         <span class="text-xs font-semibold ${zero ? 'text-slate-400' : 'text-slate-100'} truncate">${nome}</span>
                                         ${cargo ? `<span class="shrink-0 text-[9px] font-bold text-slate-300 bg-slate-700/60 rounded px-1 py-0.5">${cargo}</span>` : ''}
@@ -1945,11 +1950,30 @@
                 if (i === 0) { avGrad.addColorStop(0, '#34d399'); avGrad.addColorStop(1, '#14b8a6'); }
                 else if (i === 1) { avGrad.addColorStop(0, '#2dd4bf'); avGrad.addColorStop(1, '#06b6d4'); }
                 else { avGrad.addColorStop(0, '#6366f1'); avGrad.addColorStop(1, '#9333ea'); }
+                ctx.globalAlpha = zero ? 0.5 : 1;
                 ctx.beginPath(); ctx.arc(avCx, avCy, avR, 0, Math.PI * 2); ctx.fillStyle = avGrad; ctx.fill();
                 ctx.fillStyle = '#ffffff';
                 ctx.font = `800 10px ${FONT}`;
                 ctx.textAlign = 'center';
                 ctx.fillText(r.iniciais, avCx, avCy + 0.5);
+                ctx.globalAlpha = 1;
+
+                // selo de status: verde com check = enviou documentação; cinza com traço = ainda não
+                const badgeR = 5, badgeCx = avCx + avR - 2, badgeCy = avCy + avR - 2;
+                ctx.beginPath(); ctx.arc(badgeCx, badgeCy, badgeR, 0, Math.PI * 2);
+                ctx.fillStyle = zero ? '#475569' : '#10b981';
+                ctx.fill();
+                ctx.lineWidth = 1.5; ctx.strokeStyle = '#0f172a'; ctx.stroke();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2;
+                if (zero) {
+                    ctx.beginPath(); ctx.moveTo(badgeCx - 2, badgeCy); ctx.lineTo(badgeCx + 2, badgeCy); ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(badgeCx - 2, badgeCy);
+                    ctx.lineTo(badgeCx - 0.5, badgeCy + 1.5);
+                    ctx.lineTo(badgeCx + 2, badgeCy - 1.5);
+                    ctx.stroke();
+                }
 
                 ctx.textAlign = 'left';
                 ctx.fillStyle = zero ? '#94a3b8' : '#e2e8f0';
