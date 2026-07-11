@@ -194,12 +194,20 @@
                     </div>
                 </div>
 
-                <!-- Período de Ativação do Dashboard -->
-                <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
-                    <button onclick="setPeriod('hoje')" id="btn-hoje" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Hoje</button>
-                    <button onclick="setPeriod('semana')" id="btn-semana" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Semana</button>
-                    <button onclick="setPeriod('mes')" id="btn-mes" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Mês</button>
-                    <button onclick="setPeriod('ano')" id="btn-ano" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Ano</button>
+                <div class="flex items-center gap-3">
+                    <!-- Período de Ativação do Dashboard -->
+                    <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                        <button onclick="setPeriod('hoje')" id="btn-hoje" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Hoje</button>
+                        <button onclick="setPeriod('semana')" id="btn-semana" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Semana</button>
+                        <button onclick="setPeriod('mes')" id="btn-mes" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Mês</button>
+                        <button onclick="setPeriod('ano')" id="btn-ano" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Ano</button>
+                    </div>
+
+                    <!-- Acesso Diretor: sempre visível no topo, mesmo com a sidebar oculta -->
+                    <button onclick="toggleAuthModal()" id="headerAuthBtn" title="Entrar como diretor" class="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-900/80 text-slate-300 hover:text-brand-400 hover:border-brand-500/40 transition shrink-0">
+                        <i class="fa-solid fa-user-shield text-xs" id="headerAuthIcon"></i>
+                        <span id="headerAuthLabel" class="hidden sm:inline">Acesso Diretor</span>
+                    </button>
                 </div>
             </header>
 
@@ -2678,6 +2686,23 @@
                 btnEl.title = 'Entrar como diretor';
                 btnEl.innerHTML = '<i class="fa-solid fa-right-to-bracket text-xs"></i>';
                 btnEl.onclick = toggleAuthModal;
+            }
+            // Botão de acesso diretor no topo — sempre visível, mesmo com a sidebar oculta.
+            const headerBtn = document.getElementById('headerAuthBtn');
+            const headerIcon = document.getElementById('headerAuthIcon');
+            const headerLabel = document.getElementById('headerAuthLabel');
+            if (headerBtn && headerIcon && headerLabel) {
+                if (user) {
+                    headerBtn.title = 'Diretor conectado — clique para sair';
+                    headerBtn.classList.add('border-brand-500/40', 'text-brand-400', 'bg-brand-500/10');
+                    headerIcon.className = 'fa-solid fa-user-tie text-xs';
+                    headerLabel.textContent = 'Diretor Conectado';
+                } else {
+                    headerBtn.title = 'Entrar como diretor';
+                    headerBtn.classList.remove('border-brand-500/40', 'text-brand-400', 'bg-brand-500/10');
+                    headerIcon.className = 'fa-solid fa-user-shield text-xs';
+                    headerLabel.textContent = 'Acesso Diretor';
+                }
             }
             document.querySelectorAll('.diretor-only').forEach(function (el) {
                 el.style.display = user ? '' : 'none';
