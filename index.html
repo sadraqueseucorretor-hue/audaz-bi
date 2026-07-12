@@ -249,6 +249,7 @@
                     <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
                             <i class="fa-solid fa-calendar-days text-rose-500"></i> Mês Comercial
+                            <span class="normal-case font-medium text-slate-600">— clique em vários pra comparar</span>
                         </p>
                         <div id="mesComercialPills" class="grid grid-cols-3 gap-1.5"></div>
                     </div>
@@ -262,7 +263,7 @@
                 </div>
 
                 <!-- Selects ocultos: mantêm a lógica de filtros/calendário existente; a UI real são os pills acima -->
-                <select id="filterMes" class="hidden"><option value="">Todos</option></select>
+                <select id="filterMes" multiple class="hidden"><option value="">Todos</option></select>
                 <select id="filterAno" class="hidden"><option value="">Todos</option></select>
                 <select id="filterSemana" class="hidden"><option value="">Todas</option></select>
             </section>
@@ -1231,15 +1232,17 @@
             const grid = document.getElementById('metasGrid');
             if (!grid) return;
 
-            // Período de referência: mês selecionado no filtro, senão o MÊS COMERCIAL CORRENTE (dos dados).
+            // Período de referência: o mês comercial mais recente entre os selecionados nos pills,
+            // senão o MÊS COMERCIAL CORRENTE (dos dados). Se houver mais de um mês selecionado, os
+            // totais dos cards somam todos eles (via metricMatchesRef); só o ritmo/projeção "dia X
+            // de Y" usa o mês mais recente como referência.
             const refDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
-            const selMes = document.getElementById('filterMes') ? document.getElementById('filterMes').value : '';
+            const selMeses = getSelectedMeses();
             let mesNome = getMesName(refDate.getMonth() + 1), ano = refDate.getFullYear(), monthIdx = refDate.getMonth();
-            let mesEhAtual = !selMes;
-            if (selMes) {
-                mesNome = normalizeMes(selMes);
-                ano = getMesAno(selMes) || ano;
-                monthIdx = MESES_IDX[mesNome] !== undefined ? MESES_IDX[mesNome] : monthIdx;
+            let mesEhAtual = selMeses.length === 0;
+            const refMes = getReferenceMesComercial();
+            if (refMes) {
+                mesNome = refMes.nome; ano = refMes.ano; monthIdx = refMes.idx;
                 mesEhAtual = (monthIdx === refDate.getMonth() && ano === refDate.getFullYear());
             } else if (!isMockDataActive) {
                 const lc = getLatestCommercialMonth();
@@ -1258,11 +1261,14 @@
 
             const lblPer = document.getElementById('metasPeriodoLabel');
             if (lblPer) {
+                const rotuloMes = selMeses.length > 1
+                    ? `${selMeses.map(mesLabelAbbrev).join(' + ')} (comparativo — somados)`
+                    : `${mesNome}/${ano}`;
                 lblPer.textContent = !mesEhAtual
-                    ? `${mesNome}/${ano} (mês fechado)`
+                    ? `${rotuloMes} (mês fechado)`
                     : (diaHoje <= diasNoMes
-                        ? `${mesNome}/${ano} — dia ${diaHoje} de ${diasNoMes}`
-                        : `${mesNome}/${ano} — em curso (dia ${diaHoje})`);
+                        ? `${rotuloMes} — dia ${diaHoje} de ${diasNoMes}`
+                        : `${rotuloMes} — em curso (dia ${diaHoje})`);
             }
 
             const modeFin = vendasMode === 'finalizadas';
@@ -2421,11 +2427,20 @@
             return parts.length === 2 ? parseInt(parts[1]) : null;
         }
 
-        // Verifica se um campo 'Mês Xxx' (ex: 'junho/2026') bate com o período atual
-        function checkMesPeriodMatch(mesStr, period, referenceDate) {
+        // Verifica se um campo 'Mês Xxx' (ex: 'junho/2026') bate com o período atual. Se houver mais
+        // de um mês comercial selecionado nos pills (selMeses), a linha entra se bater com QUALQUER
+        // um deles — é assim que o modo comparativo soma vários meses num só recorte.
+        function checkMesPeriodMatch(mesStr, period, referenceDate, selMeses) {
             if (!mesStr) return false;
             const mesNome = normalizeMes(mesStr);
             const mesAno = getMesAno(mesStr);
+            if (selMeses && selMeses.length > 0) {
+                return selMeses.some(m => {
+                    const nome = normalizeMes(m), ano = getMesAno(m);
+                    if (period === 'ano') return ano === null || mesAno === null || mesAno === ano;
+                    return mesNome === nome && (mesAno === null || ano === null || mesAno === ano);
+                });
+            }
             const refMesNome = getMesName(referenceDate.getMonth() + 1);
             const refAno = referenceDate.getFullYear();
             if (period === 'mes') return mesNome === refMesNome && (mesAno === null || mesAno === refAno);
@@ -2453,6 +2468,44 @@
         function commercialRefDate(fallback) {
             const lc = getLatestCommercialMonth();
             return lc ? new Date(lc.ano, lc.idx, 15) : fallback;
+        }
+
+        // Meses comerciais selecionados nos pills (array de strings cruas, ex.: 'junho/2026').
+        // Vazio = "Todos" (nenhum filtro de mês ativo, comportamento de sempre).
+        function getSelectedMeses() {
+            const el = document.getElementById('filterMes');
+            return el ? Array.from(el.selectedOptions).map(o => o.value).filter(Boolean) : [];
+        }
+
+        // Preenche um <select multiple> preservando quais valores continuam selecionados após o
+        // rebuild (chamado a cada auto-atualização — sem isso, a seleção comparativa de meses se
+        // perderia a cada 15s quando os filtros são repopulados).
+        function fillMultiSelect(selectId, items, selectedValues) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Todos</option>';
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.textContent = item;
+                if (selectedValues.includes(item)) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        // Mês comercial de referência para o Hero de Metas e o Calendário (que assumem um único
+        // mês para calcular "dia X de Y"/ritmo): o MAIS RECENTE dos meses selecionados nos pills.
+        // Retorna null se nada estiver selecionado — quem chamar cai de volta no mês comercial
+        // corrente via getLatestCommercialMonth().
+        function getReferenceMesComercial() {
+            let best = null;
+            getSelectedMeses().forEach(m => {
+                const nome = normalizeMes(m);
+                const ano = getMesAno(m);
+                const idx = MESES_IDX[nome];
+                if (idx === undefined || ano === null) return;
+                if (!best || ano > best.ano || (ano === best.ano && idx > best.idx)) best = { ano, idx, nome };
+            });
+            return best;
         }
 
         // Considera venda/ganho quando Ganho = 'Sim' OU Situação-Ganho contém 'Ganho'
@@ -3071,14 +3124,14 @@
             const selEquipe = document.getElementById('filterEquipe').value;
             const selConstrutora = document.getElementById('filterConstrutora').value;
             const selEmpreendimento = document.getElementById('filterEmpreendimento').value;
-            const selMes = document.getElementById('filterMes').value;
+            const selMesesAntes = getSelectedMeses();
             const selAno = document.getElementById('filterAno').value;
 
             fillSelect('filterCorretor', getActiveCorretores(), "Todos", selCorretor);
             fillSelect('filterEquipe', Array.from(equipes).sort(), "Todas", selEquipe);
             fillSelect('filterConstrutora', Array.from(construtoras).sort(), "Todas", selConstrutora);
             fillSelect('filterEmpreendimento', Array.from(empreendimentos).sort(), "Todos", selEmpreendimento);
-            fillSelect('filterMes', Array.from(meses), "Todos", selMes);
+            fillMultiSelect('filterMes', Array.from(meses), selMesesAntes);
             fillSelect('filterAno', Array.from(anos).sort((a,b)=>b-a), "Todos", selAno);
 
             renderMesComercialPills();
@@ -3105,7 +3158,7 @@
             const container = document.getElementById('mesComercialPills');
             if (!container) return;
             const select = document.getElementById('filterMes');
-            const selMes = select.value;
+            const selMeses = getSelectedMeses();
 
             const options = Array.from(select.options)
                 .filter(o => o.value !== '')
@@ -3121,7 +3174,8 @@
             const allBtn = document.createElement('button');
             allBtn.type = 'button';
             allBtn.textContent = 'Todos';
-            allBtn.className = pillClass(selMes === '', 'mes');
+            allBtn.title = 'Limpa a seleção de meses';
+            allBtn.className = pillClass(selMeses.length === 0, 'mes');
             allBtn.onclick = () => selectMesComercial('');
             container.appendChild(allBtn);
 
@@ -3129,19 +3183,29 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = mesLabelAbbrev(opt.value);
-                btn.title = `${normalizeMes(opt.value)}/${getMesAno(opt.value) || ''}`;
-                btn.className = pillClass(selMes === opt.value, 'mes');
+                btn.title = `${normalizeMes(opt.value)}/${getMesAno(opt.value) || ''} — clique em mais de um pra comparar`;
+                btn.className = pillClass(selMeses.includes(opt.value), 'mes');
                 btn.onclick = () => selectMesComercial(opt.value);
                 container.appendChild(btn);
             });
         }
 
+        // Alterna um mês comercial dentro da seleção (multi-select, pra comparação entre meses).
+        // value === '' limpa a seleção inteira (pill "Todos").
         function selectMesComercial(value) {
             const mesSelect = document.getElementById('filterMes');
             const anoSelect = document.getElementById('filterAno');
-            mesSelect.value = value;
-            // O pill de mês comercial já embute o ano; mantém o select de Ano sincronizado (usado no calendário).
-            anoSelect.value = value ? (getMesAno(value) || '') : '';
+            if (value === '') {
+                Array.from(mesSelect.options).forEach(o => { o.selected = false; });
+            } else {
+                Array.from(mesSelect.options).forEach(o => {
+                    if (o.value === value) o.selected = !o.selected;
+                });
+            }
+            // O pill de mês comercial já embute o ano; mantém o select de Ano sincronizado com o
+            // mês mais recente selecionado (usado no calendário).
+            const refMes = getReferenceMesComercial();
+            anoSelect.value = refMes ? refMes.ano : '';
             applyFilters();
             renderMesComercialPills();
             renderSemanaPills();
@@ -3152,12 +3216,12 @@
             if (!container) return;
             const select = document.getElementById('filterSemana');
             const selSemana = select.value;
-            const selMes = document.getElementById('filterMes').value;
+            const selMeses = getSelectedMeses();
 
             // Semana = ceil(dia-do-mês / 7); calcula o máximo real no recorte atual (mínimo 5).
             let maxSemana = 5;
             (Array.isArray(dataset) ? dataset : []).forEach(row => {
-                if (selMes && row['Mês Cadastro'] !== selMes) return;
+                if (selMeses.length > 0 && !selMeses.includes(row['Mês Cadastro'])) return;
                 const d = parseDate(row['Data Cadastro']);
                 if (d) maxSemana = Math.max(maxSemana, Math.ceil(d.getDate() / 7));
             });
@@ -3252,7 +3316,7 @@
             document.getElementById('filterEquipe').value = "";
             document.getElementById('filterConstrutora').value = "";
             document.getElementById('filterEmpreendimento').value = "";
-            document.getElementById('filterMes').value = "";
+            Array.from(document.getElementById('filterMes').options).forEach(o => { o.selected = false; });
             document.getElementById('filterAno').value = "";
             document.getElementById('filterSemana').value = "";
             renderMesComercialPills();
@@ -3266,15 +3330,14 @@
             const selEquipe = document.getElementById('filterEquipe').value;
             const selConstrutora = document.getElementById('filterConstrutora').value;
             const selEmpreendimento = document.getElementById('filterEmpreendimento').value;
-            const selMes = document.getElementById('filterMes').value;
 
-            // Se filtro de mês ativo, usa esse mês como referência para KPIs
+            // Se houver mês(es) comercial(is) selecionado(s), usa o MAIS RECENTE deles como
+            // referência para KPIs de ritmo/projeção (o total em si já soma todos os selecionados,
+            // via metricMatchesRef/checkMesPeriodMatch).
             let referenceDate = isMockDataActive ? new Date(2026, 5, 9) : new Date();
-            if (selMes) {
-                const mesNomeRef = normalizeMes(selMes);
-                const anoRef = getMesAno(selMes) || referenceDate.getFullYear();
-                const monthIdx = MESES_IDX[mesNomeRef];
-                if (monthIdx !== undefined) referenceDate = new Date(anoRef, monthIdx, 15);
+            const refMes = getReferenceMesComercial();
+            if (refMes) {
+                referenceDate = new Date(refMes.ano, refMes.idx, 15);
             } else if (!isMockDataActive && (currentPeriod === 'mes' || currentPeriod === 'ano')) {
                 // Sem filtro: mês de referência = mês comercial corrente (último dos dados), não o calendário.
                 referenceDate = commercialRefDate(referenceDate);
@@ -3351,7 +3414,7 @@
         function metricMatchesRef(row, mesField, dateField, refDate) {
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
             const periodOk = useMesRef
-                ? checkMesPeriodMatch(row[mesField], currentPeriod, refDate)
+                ? checkMesPeriodMatch(row[mesField], currentPeriod, refDate, getSelectedMeses())
                 : checkPeriodMatch(row[dateField], currentPeriod, refDate);
             if (!periodOk) return false;
 
@@ -4455,12 +4518,12 @@
         }
 
         function drawProductionCalendar() {
-            // Calendário agora é inline e sempre renderiza (sem guard de view).
-            const rawMes = document.getElementById('filterMes').value;
-            const rawAno = document.getElementById('filterAno').value;
-            const lcCal = (!rawMes && !isMockDataActive) ? getLatestCommercialMonth() : null;
-            const activeMonth = rawMes ? normalizeMes(rawMes) : (lcCal ? lcCal.nome : getMesName(new Date().getMonth() + 1));
-            const activeYear = rawAno || (rawMes ? (getMesAno(rawMes) || new Date().getFullYear()) : (lcCal ? lcCal.ano : new Date().getFullYear()));
+            // Calendário agora é inline e sempre renderiza (sem guard de view). Com vários meses
+            // comerciais selecionados (comparativo), usa o MAIS RECENTE deles como mês exibido.
+            const refMesCal = getReferenceMesComercial();
+            const lcCal = (!refMesCal && !isMockDataActive) ? getLatestCommercialMonth() : null;
+            const activeMonth = refMesCal ? refMesCal.nome : (lcCal ? lcCal.nome : getMesName(new Date().getMonth() + 1));
+            const activeYear = refMesCal ? refMesCal.ano : (lcCal ? lcCal.ano : new Date().getFullYear());
 
             document.getElementById('calMonthLabel').textContent = `${activeMonth}/${activeYear}`;
 
