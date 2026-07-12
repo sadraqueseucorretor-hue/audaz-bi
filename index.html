@@ -131,31 +131,6 @@
                         </select>
                     </div>
                 </div>
-
-                <!-- Links Rápidos de Navegação -->
-                <nav class="space-y-1">
-                    <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest pl-3 mb-2">Visões Gerais</p>
-                    
-                    <button onclick="switchView('dashboard')" id="linkDashboard" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-100 border border-slate-800 transition">
-                        <i class="fa-solid fa-cube text-brand-500"></i>
-                        Painel Executivo
-                    </button>
-                    
-                    <button onclick="switchView('calendar')" id="linkCalendar" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
-                        <i class="fa-solid fa-calendar-days text-emerald-400"></i>
-                        Calendário de Produção
-                    </button>
-
-                    <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#rankingsSection'; }, 100);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition text-left">
-                        <i class="fa-solid fa-trophy text-amber-500"></i>
-                        Rankings Comerciais
-                    </button>
-                    
-                    <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#intelSection'; }, 100);" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition text-left">
-                        <i class="fa-solid fa-brain text-indigo-400"></i>
-                        Inteligência & Insights
-                    </button>
-                </nav>
             </div>
 
             <!-- Rodapé da Sidebar: status de acesso (visitante = só leitura; diretor = pode editar) -->
@@ -179,18 +154,32 @@
         <main class="flex-1 flex flex-col min-w-0">
             
             <!-- Header Superior -->
-            <header class="h-16 border-b border-slate-800 px-6 lg:px-8 flex items-center justify-between bg-slate-950/40 backdrop-blur-premium z-10 shrink-0">
-                <div class="flex items-center gap-4">
+            <header class="min-h-16 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-3 bg-slate-950/40 backdrop-blur-premium z-10 shrink-0">
+                <div class="flex items-center gap-3 min-w-0">
                     <button onclick="toggleSidebar()" id="btnToggleSidebar" title="Ocultar / mostrar menu" class="h-8 w-8 rounded-lg border border-slate-700 bg-slate-900/80 text-slate-300 hover:text-brand-400 hover:border-brand-500/40 flex items-center justify-center transition shrink-0">
                         <i class="fa-solid fa-bars text-sm"></i>
                     </button>
-                    <span class="text-sm font-semibold text-slate-400 hidden sm:inline">Modo Executivo</span>
-                    <span class="h-4 w-px bg-slate-800 hidden sm:inline"></span>
-                    
+
+                    <!-- Navegação Executiva: fixa no topo, funciona mesmo com a sidebar oculta -->
+                    <nav class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 gap-0.5 shrink-0">
+                        <button onclick="switchView('dashboard')" id="navLinkDashboard" title="Painel Executivo" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-100">
+                            <i class="fa-solid fa-cube text-brand-500"></i><span class="hidden lg:inline">Painel</span>
+                        </button>
+                        <button onclick="switchView('calendar')" id="navLinkCalendar" title="Calendário de Produção" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-calendar-days text-emerald-400"></i><span class="hidden lg:inline">Calendário</span>
+                        </button>
+                        <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#rankingsSection'; }, 100);" title="Rankings Comerciais" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-trophy text-amber-500"></i><span class="hidden lg:inline">Rankings</span>
+                        </button>
+                        <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#intelSection'; }, 100);" title="Inteligência & Insights" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-brain text-indigo-400"></i><span class="hidden lg:inline">Insights</span>
+                        </button>
+                    </nav>
+
                     <!-- Dynamic Live-Sync Indicator -->
-                    <div class="flex items-center gap-2 text-xs" id="syncStatusContainer">
-                        <span class="h-2 w-2 rounded-full bg-amber-500 animate-pulse" id="syncIndicator"></span>
-                        <span class="text-slate-400 font-medium" id="syncStatusText">A carregar BI...</span>
+                    <div class="hidden xl:flex items-center gap-2 text-xs min-w-0" id="syncStatusContainer">
+                        <span class="h-2 w-2 rounded-full bg-amber-500 animate-pulse shrink-0" id="syncIndicator"></span>
+                        <span class="text-slate-400 font-medium truncate" id="syncStatusText">A carregar BI...</span>
                     </div>
                 </div>
 
@@ -2522,14 +2511,14 @@
         }
 
         // Dashboard e Calendário agora ficam na MESMA página (calendário inline).
-        // O link da sidebar apenas rola até a seção e destaca o ativo.
+        // O link no topo apenas rola até a seção e destaca o ativo.
         function switchView(viewName) {
             activeView = viewName;
             drawProductionCalendar();
-            const onCls = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-100 border border-slate-800 transition";
-            const offCls = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition";
-            const linkDashboard = document.getElementById('linkDashboard');
-            const linkCalendar = document.getElementById('linkCalendar');
+            const onCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-100";
+            const offCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200";
+            const linkDashboard = document.getElementById('navLinkDashboard');
+            const linkCalendar = document.getElementById('navLinkCalendar');
             if (linkDashboard) linkDashboard.className = viewName === 'calendar' ? offCls : onCls;
             if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
             const target = document.getElementById(viewName === 'calendar' ? 'calendarView' : 'dashboardView');
