@@ -484,7 +484,7 @@
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução Mensal de Operações</h3>
-                                <p class="text-[10px] text-slate-500">Acompanhamento temporal de Análises, Aprovações e Vendas</p>
+                                <p class="text-[10px] text-slate-500">Histórico mês a mês de Análises, Aprovações e Vendas. Clique num ponto pra ver os clientes.</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-chart-line text-xs"></i>
@@ -3445,6 +3445,30 @@
             });
         }
 
+        // Abre o detalhamento de clientes de um ponto do gráfico "Evolução Mensal de Operações"
+        // (clique em Análises/Aprovações/Vendas de um mês), cada métrica pela sua própria coluna
+        // de mês (Cadastro/Aprovação/Ganho) — igual ao critério usado no resto do painel.
+        function openEvolucaoMesDetail(metrica, mesNome, mesAno) {
+            let rows, label;
+            if (metrica === 'analises') {
+                rows = filteredDataset.filter(row => normalizeMes(row['Mês Cadastro']) === mesNome && (getMesAno(row['Mês Cadastro']) || 0) === mesAno);
+                label = 'Análises';
+            } else if (metrica === 'aprovacoes') {
+                rows = filteredDataset.filter(row => isAprovado(row['Situação - Analise']) && normalizeMes(row['Mês Aprovação']) === mesNome && (getMesAno(row['Mês Aprovação']) || 0) === mesAno);
+                label = 'Aprovações';
+            } else {
+                rows = filteredDataset.filter(row => isGanho(row) && normalizeMes(row['Mês Ganho']) === mesNome && (getMesAno(row['Mês Ganho']) || 0) === mesAno);
+                label = 'Vendas';
+            }
+            showDetailModal({
+                label1: 'Métrica', label2: 'Mês de Referência',
+                nome: `Evolução Mensal — ${label}`,
+                dataStr: mesAno ? `${mesNome}/${mesAno}` : mesNome,
+                rows, showCorretor: true,
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
+            });
+        }
+
         function formatCurrencyMillions(val) {
             if (val >= 1000000) {
                 return `R$ ${(val / 1000000).toFixed(2)}M`;
@@ -3750,26 +3774,64 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: { padding: { top: 24, bottom: 8 } },
+                    onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+                    onClick: (evt, els) => {
+                        if (!els.length) return;
+                        const mes = evolucaoOrdenada[els[0].index];
+                        if (!mes) return;
+                        const metrica = els[0].datasetIndex === 0 ? 'analises' : els[0].datasetIndex === 1 ? 'aprovacoes' : 'vendas';
+                        openEvolucaoMesDetail(metrica, mes.nome, mes.ano);
+                    },
                     plugins: {
-                        legend: { 
-                            labels: { 
-                                color: '#f1f5f9', 
+                        legend: {
+                            labels: {
+                                color: '#f1f5f9',
                                 font: { size: 12, weight: 'bold' },
                                 padding: 15
-                            } 
+                            }
                         }
                     },
                     scales: {
-                        x: { 
-                            grid: { color: 'rgba(255, 255, 255, 0.12)' }, 
-                            ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } } 
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.12)' },
+                            ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } }
                         },
-                        y: { 
-                            grid: { color: 'rgba(255, 255, 255, 0.12)' }, 
-                            ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } } 
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.12)' },
+                            ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } }
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'operacoesValueLabels',
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        ctx.save();
+                        ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.lineWidth = 3;
+                        ctx.strokeStyle = '#0b1220';
+                        // Cada série escreve o número perto do próprio ponto — Análises/Aprovações acima,
+                        // Vendas abaixo, pra não colidir quando as curvas ficam próximas no final do período.
+                        const series = [
+                            { idx: 0, data: dataAnalises, color: '#38bdf8', dy: -16 },
+                            { idx: 1, data: dataAprovacoes, color: '#fb923c', dy: -16 },
+                            { idx: 2, data: dataVendas, color: '#4ade80', dy: 18 }
+                        ];
+                        series.forEach(s => {
+                            const meta = chart.getDatasetMeta(s.idx);
+                            meta.data.forEach((point, i) => {
+                                const text = String(s.data[i]);
+                                const y = point.y + s.dy;
+                                ctx.fillStyle = s.color;
+                                ctx.strokeText(text, point.x, y);
+                                ctx.fillText(text, point.x, y);
+                            });
+                        });
+                        ctx.restore();
+                    }
+                }]
             });
 
             // 2. Gráfico de Evolução de VGV — barras com o valor escrito em cima + bolha com a
