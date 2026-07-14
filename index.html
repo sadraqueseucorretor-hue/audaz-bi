@@ -500,13 +500,13 @@
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução dos Ganhos</h3>
-                                <p class="text-[10px] text-slate-500">VGV (barras) e quantidade de ganhos (linha) por mês</p>
+                                <p class="text-[10px] text-slate-500">Todos os ganhos (finalizados + pendentes) por mês. Clique na barra ou na bolha pra ver os clientes.</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
                                 <i class="fa-solid fa-money-bill-trend-up text-xs"></i>
                             </div>
                         </div>
-                        <div class="h-64 relative">
+                        <div class="h-72 relative">
                             <canvas id="chartEvolucaoVgv"></canvas>
                         </div>
                     </div>
@@ -3427,6 +3427,24 @@
             });
         }
 
+        // Abre o detalhamento de clientes de um mês do gráfico "Evolução dos Ganhos" (clique na
+        // barra ou na bolha). Todos os ganhos do mês — finalizados + pendentes — igual à barra.
+        function openGanhosMesDetail(mesNome, mesAno) {
+            const rows = filteredDataset.filter(row => {
+                if (!isGanho(row)) return false;
+                const nome = normalizeMes(row['Mês Ganho']);
+                const ano = getMesAno(row['Mês Ganho']) || 0;
+                return nome === mesNome && ano === mesAno;
+            });
+            showDetailModal({
+                label1: 'Métrica', label2: 'Mês de Referência',
+                nome: 'Evolução dos Ganhos',
+                dataStr: mesAno ? `${mesNome}/${mesAno}` : mesNome,
+                rows, showCorretor: true,
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
+            });
+        }
+
         function formatCurrencyMillions(val) {
             if (val >= 1000000) {
                 return `R$ ${(val / 1000000).toFixed(2)}M`;
@@ -3652,35 +3670,31 @@
             if (charts.performanceCorretor) charts.performanceCorretor.destroy();
             if (charts.performanceEquipe) charts.performanceEquipe.destroy();
 
-            const mesesOrdem = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-            let evolucaoMes = {};
-            mesesOrdem.forEach(m => {
-                evolucaoMes[m] = { analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
-            });
-
+            // Agrupa por MÊS + ANO (não só o nome do mês) — senão "Junho" de 2025 e de 2026
+            // ficariam somados na mesma barra. A chave junta os dois; a ordenação usa ano+índice
+            // do mês pra sair em ordem cronológica de verdade, não alfabética.
+            let evolucaoMesMap = {};
+            function addEvolucao(mesStr, campo, vgvInc) {
+                const nome = normalizeMes(mesStr);
+                if (!nome || !(nome in MESES_IDX)) return;
+                const ano = getMesAno(mesStr) || 0;
+                const chave = `${nome}/${ano}`;
+                if (!evolucaoMesMap[chave]) evolucaoMesMap[chave] = { nome, ano, idx: MESES_IDX[nome], analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                evolucaoMesMap[chave][campo]++;
+                if (vgvInc) evolucaoMesMap[chave].vgv += vgvInc;
+            }
             filteredDataset.forEach(row => {
-                const mesCad = normalizeMes(row['Mês Cadastro']);
-                const mesAprov = normalizeMes(row['Mês Aprovação']);
-                const mesGanho = normalizeMes(row['Mês Ganho']);
-
-                if (mesCad && evolucaoMes[mesCad]) {
-                    evolucaoMes[mesCad].analises++;
-                }
-                if (isAprovado(row['Situação - Analise']) && mesAprov && evolucaoMes[mesAprov]) {
-                    evolucaoMes[mesAprov].aprovacoes++;
-                }
-                if (isGanho(row) && mesGanho && evolucaoMes[mesGanho]) {
-                    evolucaoMes[mesGanho].vendas++;
-                    evolucaoMes[mesGanho].vgv += getVGV(row);
-                }
+                addEvolucao(row['Mês Cadastro'], 'analises');
+                if (isAprovado(row['Situação - Analise'])) addEvolucao(row['Mês Aprovação'], 'aprovacoes');
+                if (isGanho(row)) addEvolucao(row['Mês Ganho'], 'vendas', getVGV(row));
             });
 
-            let activeLabels = mesesOrdem.filter(m => evolucaoMes[m].analises > 0 || evolucaoMes[m].vendas > 0);
-            
-            let dataAnalises = activeLabels.map(m => evolucaoMes[m].analises);
-            let dataAprovacoes = activeLabels.map(m => evolucaoMes[m].aprovacoes);
-            let dataVendas = activeLabels.map(m => evolucaoMes[m].vendas);
-            let dataVgv = activeLabels.map(m => evolucaoMes[m].vgv);
+            const evolucaoOrdenada = Object.values(evolucaoMesMap).sort((a, b) => (a.ano - b.ano) || (a.idx - b.idx));
+            let activeLabels = evolucaoOrdenada.map(m => m.ano ? `${m.nome.slice(0, 3)}/${String(m.ano).slice(-2)}` : m.nome);
+            let dataAnalises = evolucaoOrdenada.map(m => m.analises);
+            let dataAprovacoes = evolucaoOrdenada.map(m => m.aprovacoes);
+            let dataVendas = evolucaoOrdenada.map(m => m.vendas);
+            let dataVgv = evolucaoOrdenada.map(m => m.vgv);
 
             // 1. Gráfico de Evolução Operacional - Otimização de Contraste e Espessura
             const ctxEvol = document.getElementById('chartEvolucaoMensal').getContext('2d');
@@ -3758,7 +3772,9 @@
                 }
             });
 
-            // 2. Gráfico de Evolução de VGV - Reforço de Cor e Contraste
+            // 2. Gráfico de Evolução de VGV — barras com o valor escrito em cima + bolha com a
+            // quantidade em cada ponto da linha, igual ao formato pedido. Clicar em qualquer um
+            // dos dois (barra ou bolha) abre a lista de clientes daquele mês (ganhos = finalizados + pendentes).
             const ctxVgv = document.getElementById('chartEvolucaoVgv').getContext('2d');
             charts.evolucaoVgv = new Chart(ctxVgv, {
                 type: 'bar',
@@ -3797,6 +3813,13 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: { padding: { top: 22 } },
+                    onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+                    onClick: (evt, els) => {
+                        if (!els.length) return;
+                        const mes = evolucaoOrdenada[els[0].index];
+                        if (mes) openGanhosMesDetail(mes.nome, mes.ano);
+                    },
                     plugins: {
                         legend: { display: true, labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12, usePointStyle: true } }
                     },
@@ -3821,7 +3844,43 @@
                             ticks: { color: '#4ade80', font: { size: 11, weight: '600' }, precision: 0 }
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'vgvValueLabels',
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        const barMeta = chart.getDatasetMeta(0);
+                        const lineMeta = chart.getDatasetMeta(1);
+                        ctx.save();
+                        // Valor de VGV acima de cada barra
+                        ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                        ctx.fillStyle = '#c7d2fe';
+                        ctx.textAlign = 'center';
+                        barMeta.data.forEach((bar, i) => {
+                            const v = dataVgv[i];
+                            if (!v) return;
+                            ctx.fillText(`R$ ${(v / 1000000).toFixed(1)}M`, bar.x, bar.y - 8);
+                        });
+                        // Bolha branca com a quantidade em cada ponto da linha
+                        lineMeta.data.forEach((point, i) => {
+                            const qtd = dataVendas[i];
+                            const y = point.y - 16;
+                            ctx.beginPath();
+                            ctx.arc(point.x, y, 11, 0, Math.PI * 2);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fill();
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = '#4ade80';
+                            ctx.stroke();
+                            ctx.fillStyle = '#0b1220';
+                            ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(String(qtd), point.x, y + 1);
+                        });
+                        ctx.restore();
+                    }
+                }]
             });
 
             let corrData = {};
