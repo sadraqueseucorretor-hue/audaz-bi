@@ -3914,14 +3914,16 @@
                         const barMeta = chart.getDatasetMeta(0);
                         const lineMeta = chart.getDatasetMeta(1);
                         ctx.save();
-                        // Valor de VGV acima de cada barra
+                        // Valor de VGV DENTRO da barra (perto da base) — não acima, pra nunca colidir
+                        // com a bolha da linha (que às vezes fica bem perto do topo da barra).
                         ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-                        ctx.fillStyle = '#c7d2fe';
+                        ctx.fillStyle = '#ffffff';
                         ctx.textAlign = 'center';
                         barMeta.data.forEach((bar, i) => {
                             const v = dataVgv[i];
                             if (!v) return;
-                            ctx.fillText(`R$ ${(v / 1000000).toFixed(1)}M`, bar.x, bar.y - 8);
+                            const y = Math.max(bar.y + 14, bar.base - 12);
+                            ctx.fillText(`R$ ${(v / 1000000).toFixed(1)}M`, bar.x, y);
                         });
                         // Bolha branca com a quantidade em cada ponto da linha
                         lineMeta.data.forEach((point, i) => {
