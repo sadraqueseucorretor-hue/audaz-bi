@@ -1151,7 +1151,10 @@
         let currentPeriod = 'mes'; // hoje, semana, mes, ano
         let vendasMode = 'gerais'; // 'gerais' (todas as ganhas) | 'finalizadas' (toggle de comparação)
         let isMockDataActive = true;
-        let googleSheetsUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRRzuQ7IytW5uFndnCNqaiEyLIzpq3FvjNmim9VeoO3T2j6kSLZXmdnfdc9OjtKOXal2Myx5knCPX4A/pub?gid=0&single=true&output=csv';
+        // Sem valor padrão embutido aqui de propósito: a URL real vem só do Firestore/localStorage,
+        // pra não deixar o link da planilha (com nome de cliente/comissão) visível em texto puro
+        // pra qualquer um que veja o código-fonte da página.
+        let googleSheetsUrl = '';
         let activeView = 'dashboard'; // dashboard, calendar
         let lastAIResponseText = ""; // Cache para funcionalidade TTS
 
@@ -2606,7 +2609,7 @@
             const savedUrl = localStorage.getItem(`${appId}-gsheets-url`) || googleSheetsUrl;
             if (savedUrl) {
                 googleSheetsUrl = savedUrl;
-                document.getElementById('sheetUrlInput').value = savedUrl;
+                renderSheetUrlField();
                 fetchFromGoogleSheets(savedUrl);
             } else {
                 showEmptyState();
@@ -2755,6 +2758,7 @@
                 el.classList.toggle('cursor-not-allowed', !user);
                 if (!user) el.title = 'Entre como diretor pra editar';
             });
+            renderSheetUrlField();
         }
 
         function startCloudSync() {
@@ -2793,9 +2797,25 @@
         function reRenderAfterSettings() {
             try {
                 updateVendasModeUI();
-                const inp = document.getElementById('sheetUrlInput'); if (inp) inp.value = googleSheetsUrl;
+                renderSheetUrlField();
                 if (typeof applyFilters === 'function' && dataset && dataset.length) applyFilters();
             } catch (e) {}
+        }
+
+        // Mostra o link real da planilha só pro diretor logado; pra qualquer outro visitante,
+        // mascara o miolo do link (que identifica a planilha) — assim quem abrir o DevTools e
+        // inspecionar o campo (mesmo com o botão de editar desabilitado) não leva o link pronto.
+        function renderSheetUrlField() {
+            const inp = document.getElementById('sheetUrlInput');
+            if (!inp) return;
+            if (isDiretor) {
+                inp.value = googleSheetsUrl || '';
+            } else if (googleSheetsUrl) {
+                const u = googleSheetsUrl;
+                inp.value = u.length > 40 ? `${u.slice(0, 24)}••••••••••••••••••••${u.slice(-10)}` : '••••••••••••••••••••';
+            } else {
+                inp.value = '';
+            }
         }
 
         // Salva as CONFIGURAÇÕES atuais na nuvem (chamada após qualquer mudança do usuário).
