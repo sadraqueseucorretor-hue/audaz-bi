@@ -466,6 +466,30 @@
                         </div>
                     </div>
 
+                <!-- Resumo de VGV: Ticket Médio, Pendente, Finalizado e Total -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5 text-center">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ticket Médio</p>
+                        <p class="text-xl font-extrabold text-slate-100 mt-1" id="resumoTicketMedio">R$ 0,00</p>
+                        <p class="text-[10px] text-slate-500 mt-1">por venda</p>
+                    </div>
+                    <div class="bg-rose-500/5 rounded-2xl border border-rose-500/20 p-5 text-center">
+                        <p class="text-[10px] font-bold text-rose-400 uppercase tracking-widest">VGV Pendente</p>
+                        <p class="text-xl font-extrabold text-rose-300 mt-1" id="resumoVgvPendente">R$ 0,00</p>
+                        <p class="text-[10px] text-rose-400/70 mt-1" id="resumoVgvPendentePct">0% do total</p>
+                    </div>
+                    <div class="bg-emerald-500/5 rounded-2xl border border-emerald-500/20 p-5 text-center">
+                        <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">VGV Finalizado</p>
+                        <p class="text-xl font-extrabold text-emerald-300 mt-1" id="resumoVgvFinalizado">R$ 0,00</p>
+                        <p class="text-[10px] text-emerald-400/70 mt-1" id="resumoVgvFinalizadoPct">0% do total</p>
+                    </div>
+                    <div class="bg-indigo-500/5 rounded-2xl border border-indigo-500/20 p-5 text-center">
+                        <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">VGV Total</p>
+                        <p class="text-xl font-extrabold text-indigo-300 mt-1" id="resumoVgvTotal">R$ 0,00</p>
+                        <p class="text-[10px] text-slate-500 mt-1">período</p>
+                    </div>
+                </div>
+
                 <!-- 3. SEÇÃO GRÁFICOS PROFISSIONAIS (CHART.JS) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     
@@ -3450,6 +3474,19 @@
             document.getElementById('funnelTicket').textContent = formatBRL(ticket);
             document.getElementById('funnelVgv').textContent = formatBRL(kpiValues.vgv);
             document.getElementById('funnelComissao').textContent = formatBRL(kpiValues.comissaoCorretor || 0);
+
+            // Resumo de VGV: Pendente = Geral menos Finalizado (venda ganha mas ainda não finalizada).
+            const vgvGeralResumo = kpiValues.vgv;
+            const vgvFinalResumo = kpiValues.vgvFinal || 0;
+            const vgvPendenteResumo = Math.max(0, vgvGeralResumo - vgvFinalResumo);
+            const pctPendente = vgvGeralResumo > 0 ? (vgvPendenteResumo / vgvGeralResumo) * 100 : 0;
+            const pctFinalizado = vgvGeralResumo > 0 ? (vgvFinalResumo / vgvGeralResumo) * 100 : 0;
+            document.getElementById('resumoTicketMedio').textContent = formatBRL(ticket);
+            document.getElementById('resumoVgvPendente').textContent = formatBRL(vgvPendenteResumo);
+            document.getElementById('resumoVgvPendentePct').textContent = `${pctPendente.toFixed(1)}% do total`;
+            document.getElementById('resumoVgvFinalizado').textContent = formatBRL(vgvFinalResumo);
+            document.getElementById('resumoVgvFinalizadoPct').textContent = `${pctFinalizado.toFixed(1)}% do total`;
+            document.getElementById('resumoVgvTotal').textContent = formatBRL(vgvGeralResumo);
         }
 
         // Ordenação dos rankings (corretores e equipas)
