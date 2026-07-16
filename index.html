@@ -1390,8 +1390,9 @@
                 return normalizeMes(row['Mês Cadastro']) === mesAtual && (anoC === null || anoC === anoAtual);
             };
             const ehMesAprovacao = (row) => {
-                const anoA = getMesAno(row['Mês Aprovação']);
-                return normalizeMes(row['Mês Aprovação']) === mesAtual && (anoA === null || anoA === anoAtual);
+                const mesRef = mesAprovacaoEfetivo(row);
+                const anoA = getMesAno(mesRef);
+                return normalizeMes(mesRef) === mesAtual && (anoA === null || anoA === anoAtual);
             };
             base.forEach(row => {
                 const c = row.Corretor;
@@ -1399,8 +1400,8 @@
                 if (checkPeriodMatch(row['Data Cadastro'], 'semana', refSM)) addTo(anSem, c, 0);
                 if (ehMesCadastro(row)) addTo(anMes, c, 0);
                 const aprovado = isAprovado(row['Situação - Analise']);
-                if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'hoje', hojeReal)) addTo(apHoje, c, 0);
-                if (aprovado && checkPeriodMatch(row['Data Aprovação'], 'semana', refSM)) addTo(apSem, c, 0);
+                if (aprovado && checkPeriodMatch(dataAprovacaoEfetiva(row), 'hoje', hojeReal)) addTo(apHoje, c, 0);
+                if (aprovado && checkPeriodMatch(dataAprovacaoEfetiva(row), 'semana', refSM)) addTo(apSem, c, 0);
                 if (aprovado && ehMesAprovacao(row)) addTo(apMes, c, 0);
                 if (isVendaModo(row)) {
                     const vgv = getVGV(row);
@@ -2415,6 +2416,24 @@
             return /^\s*aprovado\b/i.test(sit || '');
         }
 
+        // Quando a linha está Aprovada mas a planilha não tem Mês/Data de Aprovação preenchida
+        // (falha de digitação), cai pra Mês/Data de CADASTRO como respaldo — pra não "perder" uma
+        // aprovação real da contagem só porque a coluna de aprovação ficou em branco.
+        function mesAprovacaoEfetivo(row) {
+            return (row['Mês Aprovação'] || row['Data Aprovação']) ? row['Mês Aprovação'] : row['Mês Cadastro'];
+        }
+        function dataAprovacaoEfetiva(row) {
+            return (row['Mês Aprovação'] || row['Data Aprovação']) ? row['Data Aprovação'] : row['Data Cadastro'];
+        }
+        // Aprovado E bate com o período de referência — usando Mês/Data Aprovação quando existir,
+        // senão o respaldo de Cadastro acima.
+        function isAprovadoNoPeriodo(row, refDate) {
+            if (!isAprovado(row['Situação - Analise'])) return false;
+            return (row['Mês Aprovação'] || row['Data Aprovação'])
+                ? metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', refDate)
+                : metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDate);
+        }
+
         // GERAL ("informadas" no sentido amplo) = TODAS as vendas ganhas no mês,
         // menos Cancelado / Em Análise. É a "base completa" (funil/conversões usam esta).
         function isVendaGanhaReal(row) {
@@ -3351,8 +3370,9 @@
             filteredDataset.forEach(row => {
                 // Análises: por safra (Mês Cadastro)
                 if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDate)) analysesCount++;
-                // Aprovações: por DATA DE APROVAÇÃO (quando aprovou), não pela safra
-                if (isAprovado(row['Situação - Analise']) && metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', refDate)) {
+                // Aprovações: por DATA DE APROVAÇÃO (quando aprovou), não pela safra — com respaldo
+                // pra Mês/Data Cadastro se a planilha não tiver a data de aprovação preenchida.
+                if (isAprovadoNoPeriodo(row, refDate)) {
                     approvalsCount++;
                 }
 
@@ -3412,7 +3432,7 @@
                 rows = filteredDataset.filter(row => metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDate));
                 label = 'Análises';
             } else if (metrica === 'aprovacoes') {
-                rows = filteredDataset.filter(row => isAprovado(row['Situação - Analise']) && metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', refDate));
+                rows = filteredDataset.filter(row => isAprovadoNoPeriodo(row, refDate));
                 label = 'Aprovações';
             } else {
                 rows = filteredDataset.filter(row => isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refDate));
@@ -3454,7 +3474,11 @@
                 rows = filteredDataset.filter(row => normalizeMes(row['Mês Cadastro']) === mesNome && (getMesAno(row['Mês Cadastro']) || 0) === mesAno);
                 label = 'Análises';
             } else if (metrica === 'aprovacoes') {
-                rows = filteredDataset.filter(row => isAprovado(row['Situação - Analise']) && normalizeMes(row['Mês Aprovação']) === mesNome && (getMesAno(row['Mês Aprovação']) || 0) === mesAno);
+                rows = filteredDataset.filter(row => {
+                    if (!isAprovado(row['Situação - Analise'])) return false;
+                    const mesRef = mesAprovacaoEfetivo(row);
+                    return normalizeMes(mesRef) === mesNome && (getMesAno(mesRef) || 0) === mesAno;
+                });
                 label = 'Aprovações';
             } else {
                 rows = filteredDataset.filter(row => isGanho(row) && normalizeMes(row['Mês Ganho']) === mesNome && (getMesAno(row['Mês Ganho']) || 0) === mesAno);
@@ -3578,7 +3602,7 @@
                     getCorrCache(c).analises.push(row);
                 }
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
-                if (isAprovado(row['Situação - Analise']) && metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', refDateTables)) {
+                if (isAprovadoNoPeriodo(row, refDateTables)) {
                     if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     corretoresMap[c].aprovacoes++;
                     getCorrCache(c).aprovacoes.push(row);
@@ -3638,7 +3662,7 @@
                     getEqCache(eq).analises.push(row);
                 }
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
-                if (isAprovado(row['Situação - Analise']) && metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', refDateTables)) {
+                if (isAprovadoNoPeriodo(row, refDateTables)) {
                     if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].aprovacoes++;
                     getEqCache(eq).aprovacoes.push(row);
@@ -3709,7 +3733,7 @@
             }
             filteredDataset.forEach(row => {
                 addEvolucao(row['Mês Cadastro'], 'analises');
-                if (isAprovado(row['Situação - Analise'])) addEvolucao(row['Mês Aprovação'], 'aprovacoes');
+                if (isAprovado(row['Situação - Analise'])) addEvolucao(mesAprovacaoEfetivo(row), 'aprovacoes');
                 if (isGanho(row)) addEvolucao(row['Mês Ganho'], 'vendas', getVGV(row));
             });
 
@@ -3952,7 +3976,7 @@
                 const c = row.Corretor;
                 if (!corrData[c]) corrData[c] = { analises: 0, aprovacoes: 0, vendas: 0 };
                 if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', currentRefDate)) corrData[c].analises++;
-                if (isAprovado(row['Situação - Analise']) && metricMatchesRef(row, 'Mês Aprovação', 'Data Aprovação', currentRefDate)) corrData[c].aprovacoes++;
+                if (isAprovadoNoPeriodo(row, currentRefDate)) corrData[c].aprovacoes++;
                 if (isGanho(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', currentRefDate)) corrData[c].vendas++;
             });
 
@@ -4286,7 +4310,7 @@
             filteredDataset.forEach(row => {
                 if (!activeSet.has(row.Corretor)) return;
                 if (noMes(row['Mês Cadastro'])) maxDia = Math.max(maxDia, diaDe(row['Data Cadastro']));
-                if (isAprovado(row['Situação - Analise']) && noMes(row['Mês Aprovação'])) maxDia = Math.max(maxDia, diaDe(row['Data Aprovação']));
+                if (isAprovado(row['Situação - Analise']) && noMes(mesAprovacaoEfetivo(row))) maxDia = Math.max(maxDia, diaDe(dataAprovacaoEfetiva(row)));
                 if (isGanho(row) && noMes(row['Mês Ganho'])) maxDia = Math.max(maxDia, diaDe(row['Data Ganho']));
             });
             maxDia = Math.min(maxDia, daysInMonth + 15); // trava de segurança contra data muito fora
@@ -4332,9 +4356,9 @@
                         calDetail.analises.month.push(row);
                     }
                 }
-                // Aprovado -> Data Aprovação / Mês Aprovação
-                if (isAprovado(row['Situação - Analise']) && noMes(row['Mês Aprovação'])) {
-                    const day = diaDe(row['Data Aprovação']);
+                // Aprovado -> Data Aprovação / Mês Aprovação (respalda em Cadastro se estiver em branco)
+                if (isAprovado(row['Situação - Analise']) && noMes(mesAprovacaoEfetivo(row))) {
+                    const day = diaDe(dataAprovacaoEfetiva(row));
                     const key = `${corr}_${day}`;
                     if (cellMatrix[key]) {
                         cellMatrix[key].ap++;
