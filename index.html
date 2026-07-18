@@ -514,6 +514,7 @@
                                 <button onclick="setRitmoMetric('vendas')" id="ritmoBtn-vendas" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
                             </div>
                         </div>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3" id="ritmoMesStats"></div>
                         <div class="h-56 relative">
                             <canvas id="chartRitmoMes"></canvas>
                         </div>
@@ -4160,6 +4161,36 @@
             renderRitmoMesChart();
         }
 
+        // 4 indicadores resumindo o Ritmo do Mês: quanto eu deveria ter (ritmo ideal até hoje),
+        // quanto eu tenho de verdade, o gap entre os dois, e a projeção de fechamento do mês se
+        // eu continuar no ritmo atual (regra de três simples: real÷diaHoje×diasNoMes).
+        function renderRitmoMesStats(realAcumulado, diaHoje, diasNoMes, meta) {
+            const el = document.getElementById('ritmoMesStats');
+            if (!el) return;
+
+            const realHoje = diaHoje > 0 ? (realAcumulado[diaHoje - 1] || 0) : 0;
+            const idealHoje = diasNoMes > 0 ? (meta * diaHoje) / diasNoMes : 0;
+            const gap = realHoje - idealHoje;
+            const gapPositivo = gap >= 0;
+            const projecao = diaHoje > 0 ? Math.round((realHoje / diaHoje) * diasNoMes) : 0;
+            const pctMeta = meta > 0 ? (projecao / meta) * 100 : 0;
+            const projecaoBate = pctMeta >= 100;
+
+            const cards = [
+                { label: 'Deveria ter (ritmo ideal)', valor: Math.round(idealHoje), cor: 'text-slate-200', icon: 'fa-bullseye' },
+                { label: 'Tenho até hoje', valor: Math.round(realHoje), cor: 'text-brand-400', icon: 'fa-chart-line' },
+                { label: gapPositivo ? 'À frente do ritmo' : 'Atrás do ritmo', valor: `${gapPositivo ? '+' : ''}${Math.round(gap)}`, cor: gapPositivo ? 'text-brand-400' : 'text-rose-400', icon: gapPositivo ? 'fa-arrow-up' : 'fa-arrow-down' },
+                { label: 'Projeção se continuar assim', valor: `${Math.round(projecao)} · ${pctMeta.toFixed(0)}% da meta`, cor: projecaoBate ? 'text-brand-400' : 'text-amber-400', icon: 'fa-flag-checkered' }
+            ];
+
+            el.innerHTML = cards.map(c => `
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-2.5 text-center">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-center gap-1"><i class="fa-solid ${c.icon}"></i> ${c.label}</p>
+                    <p class="text-base font-extrabold ${c.cor} mt-1">${c.valor}</p>
+                </div>
+            `).join('');
+        }
+
         // Constrói a "linha de tendência": quanto eu deveria ter acumulado até cada dia do mês
         // comercial pra bater a meta no ritmo certo (meta × dia ÷ dias do mês), contra o real
         // acumulado até hoje.
@@ -4263,6 +4294,8 @@
                 realAcumulado.push(d <= diaHoje ? acumulado : null);
                 ritmoIdeal.push((meta * d) / diasNoMes);
             }
+
+            renderRitmoMesStats(realAcumulado, diaHoje, diasNoMes, meta);
 
             const ctx = canvas.getContext('2d');
             charts.ritmoMes = new Chart(ctx, {
