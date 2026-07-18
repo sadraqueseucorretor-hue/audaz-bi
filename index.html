@@ -123,6 +123,11 @@
                         Meses Comerciais
                     </button>
 
+                    <button onclick="toggleProspeccaoModal()" id="btnProspeccao" class="diretor-locked w-full mt-2 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150" disabled>
+                        <i class="fa-solid fa-bullhorn text-pink-400"></i>
+                        Prospecção
+                    </button>
+
                     <!-- Seletor de Intervalo de Auto-Atualização -->
                     <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                         <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-brand-500"></i> Atualizar a cada:</span>
@@ -345,8 +350,11 @@
 
                             <div class="flex flex-col lg:flex-row items-center gap-4">
                                 <div class="relative flex-1 min-w-0 w-full">
-                                    <svg viewBox="0 0 420 484" class="w-full" style="max-height:484px">
+                                    <svg viewBox="0 0 420 576" class="w-full" style="max-height:576px">
                                         <defs>
+                                            <linearGradient id="fgPink" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0" stop-color="#be185d"/><stop offset="1" stop-color="#f472b6"/>
+                                            </linearGradient>
                                             <linearGradient id="fgViolet" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="0" stop-color="#6d28d9"/><stop offset="1" stop-color="#8b5cf6"/>
                                             </linearGradient>
@@ -363,60 +371,81 @@
                                                 <stop offset="0" stop-color="#059669"/><stop offset="1" stop-color="#10b981"/>
                                             </linearGradient>
                                         </defs>
-                                        <!-- Banda 1: Agendamentos (Agenda de Visitas) -->
+                                        <!-- Banda 1: Prospecção (Leads) -->
+                                        <g onclick="openFunnelDetail('prospeccao')" style="cursor:pointer" class="hover:opacity-90">
+                                            <title>Ver clientes desta etapa</title>
+                                            <polygon points="20,8 400,8 374,92 46,92" fill="url(#fgPink)"/>
+                                            <foreignObject x="70" y="14" width="30" height="30"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-bullhorn" style="color:#fce7f3;font-size:16px"></i></div></foreignObject>
+                                            <text x="210" y="30" text-anchor="middle" fill="#fce7f3" font-size="12" font-weight="700" letter-spacing="1">PROSPECÇÃO</text>
+                                            <text x="210" y="76" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="800" id="funnelProspeccaoQty">0</text>
+                                        </g>
+                                        <!-- Banda 2: Agendamentos (Agenda de Visitas) -->
                                         <g onclick="openFunnelDetail('agendamentos')" style="cursor:pointer" class="hover:opacity-90">
                                             <title>Ver clientes desta etapa</title>
-                                            <polygon points="20,8 400,8 369,92 51,92" fill="url(#fgViolet)"/>
-                                            <foreignObject x="70" y="14" width="30" height="30"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-calendar-check" style="color:#ede9fe;font-size:16px"></i></div></foreignObject>
-                                            <text x="210" y="30" text-anchor="middle" fill="#ede9fe" font-size="11" font-weight="700" letter-spacing="1">AGENDAMENTOS</text>
-                                            <text x="210" y="74" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="800" id="funnelAgendamentosQty">0</text>
+                                            <polygon points="46,100 374,100 349,184 71,184" fill="url(#fgViolet)"/>
+                                            <foreignObject x="96" y="106" width="28" height="28"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-calendar-check" style="color:#ede9fe;font-size:15px"></i></div></foreignObject>
+                                            <text x="210" y="122" text-anchor="middle" fill="#ede9fe" font-size="11" font-weight="700" letter-spacing="1">AGENDAMENTOS</text>
+                                            <text x="210" y="168" text-anchor="middle" fill="#ffffff" font-size="22" font-weight="800" id="funnelAgendamentosQty">0</text>
                                         </g>
-                                        <!-- Banda 2: Compareceu (Agenda de Visitas) -->
+                                        <!-- Banda 3: Compareceu (Agenda de Visitas) -->
                                         <g onclick="openFunnelDetail('compareceu')" style="cursor:pointer" class="hover:opacity-90">
                                             <title>Ver clientes desta etapa</title>
-                                            <polygon points="51,100 369,100 338,184 82,184" fill="url(#fgCyan)"/>
-                                            <foreignObject x="101" y="106" width="30" height="30"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-door-open" style="color:#cffafe;font-size:16px"></i></div></foreignObject>
-                                            <text x="210" y="122" text-anchor="middle" fill="#cffafe" font-size="11" font-weight="700" letter-spacing="1">COMPARECERAM</text>
-                                            <text x="210" y="162" text-anchor="middle" fill="#ffffff" font-size="22" font-weight="800" id="funnelCompareceuQty">0</text>
+                                            <polygon points="71,192 349,192 323,276 97,276" fill="url(#fgCyan)"/>
+                                            <foreignObject x="121" y="198" width="28" height="28"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-door-open" style="color:#cffafe;font-size:15px"></i></div></foreignObject>
+                                            <text x="210" y="214" text-anchor="middle" fill="#cffafe" font-size="11" font-weight="700" letter-spacing="1">COMPARECERAM</text>
+                                            <text x="210" y="260" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="800" id="funnelCompareceuQty">0</text>
                                         </g>
-                                        <!-- Banda 3: Analises -->
+                                        <!-- Banda 4: Analises -->
                                         <g onclick="openFunnelDetail('analises')" style="cursor:pointer" class="hover:opacity-90">
                                             <title>Ver clientes desta etapa</title>
-                                            <polygon points="82,192 338,192 307,276 113,276" fill="url(#fgBlue)"/>
-                                            <foreignObject x="132" y="198" width="30" height="30"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-people-group" style="color:#dbeafe;font-size:16px"></i></div></foreignObject>
-                                            <text x="210" y="214" text-anchor="middle" fill="#dbeafe" font-size="12" font-weight="700" letter-spacing="1">ANÁLISES</text>
-                                            <text x="210" y="258" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="800" id="funnelAnalisesQty">0</text>
+                                            <polygon points="97,284 323,284 297,368 123,368" fill="url(#fgBlue)"/>
+                                            <foreignObject x="147" y="290" width="26" height="26"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-people-group" style="color:#dbeafe;font-size:14px"></i></div></foreignObject>
+                                            <text x="210" y="306" text-anchor="middle" fill="#dbeafe" font-size="11" font-weight="700" letter-spacing="1">ANÁLISES</text>
+                                            <text x="210" y="352" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="800" id="funnelAnalisesQty">0</text>
                                         </g>
-                                        <!-- Banda 4: Aprovacoes -->
+                                        <!-- Banda 5: Aprovacoes -->
                                         <g onclick="openFunnelDetail('aprovacoes')" style="cursor:pointer" class="hover:opacity-90">
                                             <title>Ver clientes desta etapa</title>
-                                            <polygon points="113,284 307,284 276,368 144,368" fill="url(#fgAmber)"/>
-                                            <foreignObject x="163" y="290" width="28" height="28"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-circle-check" style="color:#fef3c7;font-size:15px"></i></div></foreignObject>
-                                            <text x="210" y="306" text-anchor="middle" fill="#fef3c7" font-size="11" font-weight="700" letter-spacing="1">APROVAÇÕES</text>
-                                            <text x="210" y="348" text-anchor="middle" fill="#ffffff" font-size="18" font-weight="800" id="funnelAprovacoesQty">0</text>
+                                            <polygon points="123,376 297,376 271,460 149,460" fill="url(#fgAmber)"/>
+                                            <foreignObject x="173" y="382" width="24" height="24"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-circle-check" style="color:#fef3c7;font-size:13px"></i></div></foreignObject>
+                                            <text x="210" y="398" text-anchor="middle" fill="#fef3c7" font-size="10" font-weight="700" letter-spacing="1">APROVAÇÕES</text>
+                                            <text x="210" y="444" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="800" id="funnelAprovacoesQty">0</text>
                                         </g>
-                                        <!-- Banda 5: Vendas -->
+                                        <!-- Banda 6: Vendas -->
                                         <g onclick="openFunnelDetail('vendas')" style="cursor:pointer" class="hover:opacity-90">
                                             <title>Ver clientes desta etapa</title>
-                                            <polygon points="144,376 276,376 245,460 175,460" fill="url(#fgGreen)"/>
-                                            <foreignObject x="185" y="382" width="26" height="26"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-house-circle-check" style="color:#d1fae5;font-size:14px"></i></div></foreignObject>
-                                            <text x="210" y="398" text-anchor="middle" fill="#d1fae5" font-size="10" font-weight="700" letter-spacing="1">VENDAS</text>
-                                            <text x="210" y="438" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="800" id="funnelVendasQty">0</text>
+                                            <polygon points="149,468 271,468 245,552 175,552" fill="url(#fgGreen)"/>
+                                            <foreignObject x="199" y="474" width="22" height="22"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-house-circle-check" style="color:#d1fae5;font-size:12px"></i></div></foreignObject>
+                                            <text x="210" y="490" text-anchor="middle" fill="#d1fae5" font-size="9" font-weight="700" letter-spacing="1">VENDAS</text>
+                                            <text x="210" y="536" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="800" id="funnelVendasQty">0</text>
                                         </g>
                                         <!-- Badges de conversão entre etapas (mesma coluna, à direita) -->
                                         <rect x="336" y="84" width="74" height="22" rx="11" fill="#dc2626"/>
-                                        <text x="373" y="99" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAgendamentoParaCompareceu">0%</text>
+                                        <text x="373" y="99" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convProspeccaoParaAgendamento">0%</text>
                                         <rect x="336" y="176" width="74" height="22" rx="11" fill="#dc2626"/>
-                                        <text x="373" y="191" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convCompareceuParaAnalise">0%</text>
+                                        <text x="373" y="191" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAgendamentoParaCompareceu">0%</text>
                                         <rect x="336" y="268" width="74" height="22" rx="11" fill="#dc2626"/>
-                                        <text x="373" y="283" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAnaliseParaAprovacao">0%</text>
+                                        <text x="373" y="283" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convCompareceuParaAnalise">0%</text>
                                         <rect x="336" y="360" width="74" height="22" rx="11" fill="#dc2626"/>
-                                        <text x="373" y="375" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAprovacaoParaGanho">0%</text>
+                                        <text x="373" y="375" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAnaliseParaAprovacao">0%</text>
+                                        <rect x="336" y="452" width="74" height="22" rx="11" fill="#dc2626"/>
+                                        <text x="373" y="467" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800" id="convAprovacaoParaGanho">0%</text>
                                     </svg>
                                 </div>
 
                                 <!-- Meta, % e "ideal hoje" (ritmo, mesma referência da linha de tendência do Ritmo do Mês) por etapa -->
                                 <div class="flex flex-col gap-3 w-full lg:w-56 shrink-0">
+                                    <div class="bg-pink-500/5 border border-pink-500/20 rounded-xl p-3">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <span class="text-[10px] font-bold text-pink-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-bullhorn"></i> Prospecção</span>
+                                            <span class="text-xs font-extrabold text-pink-300" id="funnelPctProspeccao">0%</span>
+                                        </div>
+                                        <p class="text-lg font-extrabold text-slate-100 mb-1.5"><span id="funnelProspeccaoQtyLado">0</span><span class="text-slate-500 text-xs font-semibold"> / </span><span id="funnelMetaProspeccao" class="text-slate-400 text-sm font-semibold">0</span></p>
+                                        <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-pink-500 rounded-full transition-all" id="funnelBarProspeccao" style="width:0%"></div></div>
+                                        <div class="bg-pink-500/15 border border-pink-500/40 rounded-lg px-2 py-1.5 text-center">
+                                            <span class="text-[10px] text-pink-200 font-bold uppercase tracking-wide">Ideal hoje </span><span id="funnelIdealProspeccao" class="text-sm font-extrabold text-white">0</span>
+                                        </div>
+                                    </div>
                                     <div class="bg-violet-500/5 border border-violet-500/20 rounded-xl p-3">
                                         <div class="flex items-center justify-between mb-1.5">
                                             <span class="text-[10px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-calendar-check"></i> Agendamentos</span>
@@ -1205,6 +1234,47 @@
         </div>
     </div>
 
+    <!-- MODAL: PROSPECÇÃO (3ª planilha, upload manual de CSV — sem link ao vivo) -->
+    <div id="prospeccaoModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 relative shadow-2xl">
+            <button onclick="toggleProspeccaoModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="h-10 w-10 bg-pink-500/10 border border-pink-500/20 rounded-xl flex items-center justify-center text-pink-400">
+                    <i class="fa-solid fa-bullhorn text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-slate-200">Prospecção (Leads)</h4>
+                    <p class="text-xs text-slate-500">Sem planilha ao vivo — carregue um CSV manualmente</p>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-400 leading-relaxed mb-4">
+                Alimenta a etapa <strong class="text-pink-300">"Prospecção"</strong> do Funil de Vendas. Exporte a planilha de leads como CSV (Excel: Arquivo → Salvar Como → CSV) e carregue aqui — fica salvo pra quem mais abrir o painel.
+            </p>
+
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1 mb-4">
+                <p class="font-bold text-slate-300">Colunas esperadas:</p>
+                <p class="font-mono text-pink-400">ID | Cliente | Corretor | Equipe | Situação | Cadastro | Mês Comercial</p>
+                <p>Mês Comercial no formato <span class="font-mono text-slate-300">2026/07</span> (ano/mês).</p>
+            </div>
+
+            <p class="text-xs text-slate-300 mb-3" id="prospeccaoStatus">Nenhum arquivo carregado ainda.</p>
+
+            <input type="file" id="prospeccaoFileInput" accept=".csv,text/csv" class="hidden" onchange="handleProspeccaoFileInput(event)">
+            <div class="flex gap-3">
+                <button onclick="clearProspeccaoData()" class="w-1/2 py-2.5 px-4 bg-slate-800 hover:bg-rose-600/20 hover:text-rose-400 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700">
+                    <i class="fa-solid fa-trash"></i> Remover dados
+                </button>
+                <button onclick="document.getElementById('prospeccaoFileInput').click()" class="w-1/2 py-2.5 px-4 bg-pink-600 hover:bg-pink-500 active:bg-pink-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-pink-500/20 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-upload"></i> Carregar CSV
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: METAS POR CORRETOR (dia/semana/mês, por parâmetro dos Rankings Rápidos) -->
     <div id="metasCorretorModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl p-6 relative shadow-2xl">
@@ -1257,6 +1327,13 @@
         let agendaGsheetsUrl = '';
         let agendaDataset = [];
         let filteredAgendaDataset = [];
+        // Terceira planilha (independente das outras duas): Prospecção/Leads — ID/Cliente/
+        // Corretor/Equipe/Situação/Cadastro/Mês Comercial. Sem link ao vivo — o diretor sobe um
+        // CSV manualmente (upload local, sem servidor) e ele fica salvo no Firestore igual as
+        // outras configs. Alimenta a nova 1ª etapa "Prospecção" do Funil.
+        let prospeccaoCsvText = '';
+        let prospeccaoDataset = [];
+        let filteredProspeccaoDataset = [];
         let activeView = 'dashboard'; // dashboard, calendar
 
         // Motores de Sincronização Automática em Tempo Real
@@ -1579,6 +1656,9 @@
         }
 
         const METAS_CORRETOR_CAMPOS = [
+            { key: 'prHoje', label: 'Prosp. Dia' },
+            { key: 'prSem',  label: 'Prosp. Sem' },
+            { key: 'prMes',  label: 'Prosp. Mês' },
             { key: 'agHoje', label: 'Agend. Dia' },
             { key: 'agSem',  label: 'Agend. Sem' },
             { key: 'agMes',  label: 'Agend. Mês' },
@@ -1671,6 +1751,9 @@
             const lcAgenda = (!quickRef && !isMockDataActive) ? getLatestAgendaCommercialMonth() : null;
             const mesAtualAgenda = lcAgenda ? lcAgenda.nome : mesAtual;
             const anoAtualAgenda = lcAgenda ? lcAgenda.ano : anoAtual;
+            const lcProspeccao = (!quickRef && !isMockDataActive) ? getLatestProspeccaoCommercialMonth() : null;
+            const mesAtualProspeccao = lcProspeccao ? lcProspeccao.nome : mesAtual;
+            const anoAtualProspeccao = lcProspeccao ? lcProspeccao.ano : anoAtual;
 
             const selCorr = document.getElementById('filterCorretor').value;
             const selEq = document.getElementById('filterEquipe').value;
@@ -1695,6 +1778,7 @@
             let ativos = getActiveCorretores();
             if (selCorr) ativos = ativos.filter(n => n === selCorr);
             const novoMapa = () => { const m = {}; ativos.forEach(n => { m[n] = { count: 0, vgv: 0 }; }); return m; };
+            const prHoje = novoMapa(), prSem = novoMapa(), prMes = novoMapa();
             const agHoje = novoMapa(), agSem = novoMapa(), agMes = novoMapa(), coHoje = novoMapa(), coSem = novoMapa(), coMes = novoMapa();
             const anHoje = novoMapa(), anSem = novoMapa(), anMes = novoMapa(), apHoje = novoMapa(), apSem = novoMapa(), apMes = novoMapa(), vdSem = novoMapa(), vdMes = novoMapa();
             const ehMesCadastro = (row) => {
@@ -1750,6 +1834,26 @@
                 }
             });
 
+            // Prospecção (3ª planilha) — tem coluna própria de Mês Comercial (texto), então o
+            // "· Mês" compara direto contra ela (mesmo padrão do "Mês Cadastro" da principal),
+            // sem precisar de janela por data como a Agenda precisa.
+            const baseProspeccao = prospeccaoDataset.filter(row => {
+                if (selCorr && row.Corretor !== selCorr) return false;
+                if (selEq && row.Equipe !== selEq) return false;
+                return isCorretorActive(row.Corretor);
+            });
+            const ehMesProspeccao = (row) => {
+                const ms = row['_MesComercialNorm'];
+                const anoP = getMesAno(ms);
+                return normalizeMes(ms) === mesAtualProspeccao && (anoP === null || anoP === anoAtualProspeccao);
+            };
+            baseProspeccao.forEach(row => {
+                const c = row.Corretor;
+                if (checkPeriodMatch(row['Cadastro'], 'hoje', hojeReal)) addTo(prHoje, c, 0);
+                if (checkPeriodMatch(row['Cadastro'], 'semana', refSM)) addTo(prSem, c, 0);
+                if (ehMesProspeccao(row)) addTo(prMes, c, 0);
+            });
+
             // Sincroniza os controles de referência (Semana/Mês) e o texto de contexto.
             const segAtual = new Date(refSM.getFullYear(), refSM.getMonth(), refSM.getDate());
             const dowAtual = (segAtual.getDay() === 0) ? 6 : (segAtual.getDay() - 1);
@@ -1780,11 +1884,14 @@
                 'Semana': `${fmtDDMM(segAtual)} a ${fmtDDMM(domAtual)}`,
                 'Mês':    primeiroDiaMes ? `${fmtDDMM(primeiroDiaMes)} a ${fmtDDMM(ultimoDiaMes)}` : `${mesAtual}/${anoAtual}`
             };
-            const unidadePorCol = { AG: 'agendamentos', CP: 'comparecimentos', AN: 'análises', AP: 'aprovações', VD: 'vendas' };
+            const unidadePorCol = { PR: 'prospecções', AG: 'agendamentos', CP: 'comparecimentos', AN: 'análises', AP: 'aprovações', VD: 'vendas' };
 
             const fmtInt = n => Math.round(n).toLocaleString('pt-BR');
             const initials = nome => nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
             const cards = [
+                { title: 'Prospecção · Hoje',     icon: 'fa-bullhorn',      col: 'PR', map: prHoje, vgv: false, key: 'prHoje', cadence: 'Hoje' },
+                { title: 'Prospecção · Semana',   icon: 'fa-bullhorn',      col: 'PR', map: prSem,  vgv: false, key: 'prSem',  cadence: 'Semana' },
+                { title: 'Prospecção · Mês',      icon: 'fa-bullhorn',      col: 'PR', map: prMes,  vgv: false, key: 'prMes',  cadence: 'Mês' },
                 { title: 'Agendamentos · Hoje',   icon: 'fa-calendar-check', col: 'AG', map: agHoje, vgv: false, key: 'agHoje', cadence: 'Hoje' },
                 { title: 'Agendamentos · Semana', icon: 'fa-calendar-check', col: 'AG', map: agSem,  vgv: false, key: 'agSem',  cadence: 'Semana' },
                 { title: 'Agendamentos · Mês',    icon: 'fa-calendar-check', col: 'AG', map: agMes,  vgv: false, key: 'agMes',  cadence: 'Mês' },
@@ -2450,6 +2557,12 @@
             }
         }
 
+        function toggleProspeccaoModal() {
+            const m = document.getElementById('prospeccaoModal');
+            m.classList.toggle('hidden');
+            if (!m.classList.contains('hidden')) renderProspeccaoStatus();
+        }
+
         // Preenche o formulário já sugerindo o PRÓXIMO mês comercial: o mês seguinte ao último
         // cadastrado, com início no dia seguinte ao encerramento do anterior — "já deixa salvo
         // essas datas pra eu fazer o próximo".
@@ -2870,6 +2983,27 @@
             return lc ? new Date(lc.ano, lc.idx, 15) : fallback;
         }
 
+        // Mesma ideia pra Prospecção (3ª planilha) — usa a coluna '_MesComercialNorm' (já
+        // normalizada de "2026/07" pra "julho/2026" no upload) em vez do "Mês Cadastro" da
+        // planilha principal, pra não ficar preso ao mês de uma planilha desatualizada em relação
+        // à outra.
+        function getLatestProspeccaoCommercialMonth() {
+            let best = null;
+            (Array.isArray(prospeccaoDataset) ? prospeccaoDataset : []).forEach(r => {
+                const ms = r['_MesComercialNorm'];
+                const nome = normalizeMes(ms);
+                const idx = MESES_IDX[nome];
+                const ano = getMesAno(ms);
+                if (idx === undefined || ano === null) return;
+                if (!best || ano > best.ano || (ano === best.ano && idx > best.idx)) best = { ano, idx, nome };
+            });
+            return best;
+        }
+        function commercialRefDateProspeccao(fallback) {
+            const lc = getLatestProspeccaoCommercialMonth();
+            return lc ? new Date(lc.ano, lc.idx, 15) : fallback;
+        }
+
         // Meses comerciais selecionados nos pills (array de strings cruas, ex.: 'junho/2026').
         // Vazio = "Todos" (nenhum filtro de mês ativo, comportamento de sempre).
         function getSelectedMeses() {
@@ -3013,6 +3147,102 @@
             const a = (row['Empreendimento'] || '').trim().toLowerCase();
             const b = (row['empreendimento preferencia'] || '').trim().toLowerCase();
             return a === sel || b === sel;
+        }
+
+        // ===== PROSPECÇÃO / LEADS (3ª planilha, sem link ao vivo — upload manual de CSV) =====
+        // Converte "2026/07" (formato da coluna Mês Comercial dessa planilha) pro padrão
+        // "julho/2026" usado em todo o resto do app (normalizeMes/getMesAno/checkMesPeriodMatch),
+        // pra reaproveitar toda a lógica de mês comercial já existente sem duplicar nada.
+        function normalizeProspeccaoMes(raw) {
+            if (!raw) return null;
+            const m = /^(\d{4})\s*\/\s*(\d{1,2})$/.exec(String(raw).trim());
+            if (!m) return null;
+            const ano = parseInt(m[1]), mesNum = parseInt(m[2]);
+            if (mesNum < 1 || mesNum > 12) return null;
+            return `${getMesName(mesNum)}/${ano}`;
+        }
+
+        // A planilha de Prospecção costuma exportar o corretor em CAIXA ALTA ("EDSON LUIS").
+        // Casa (sem diferenciar maiúsculas) contra o roster já conhecido pra usar a grafia
+        // canônica de lá ("Edson Luis") — sem isso, o mesmo corretor apareceria duplicado (uma
+        // entrada "de verdade" e outra em caixa alta) no roster, fotos e rankings.
+        function normalizeProspeccaoCorretor(nomeRaw) {
+            if (!nomeRaw) return nomeRaw;
+            const trimmed = String(nomeRaw).trim();
+            const known = getAllKnownCorretores();
+            const match = known.find(n => n.toLowerCase() === trimmed.toLowerCase());
+            if (match) return match;
+            return trimmed.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+        }
+
+        // Limite de segurança pra não estourar o teto de 1MB do documento de configurações no
+        // Firestore (compartilhado com metas/corretores/fotos/etc.) — acima disso a sincronização
+        // da Prospecção fica só local (localStorage) neste navegador, sem quebrar o resto.
+        const PROSPECCAO_FIRESTORE_LIMIT = 700 * 1024;
+
+        function applyProspeccaoCsvText(csvText, opts) {
+            const silent = opts && opts.silent;
+            const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+            if (!results.data || results.data.length === 0 || results.data[0].ID === undefined || results.data[0].Corretor === undefined) {
+                if (!silent) showToast("Erro: colunas da Prospecção não batem (esperado ID, Corretor, Mês Comercial...).", true);
+                return false;
+            }
+            const rows = normalizeAgendaRows(results.data); // reaproveita o trim de chaves com espaço sobrando
+            let semMes = 0;
+            rows.forEach(row => {
+                const norm = normalizeProspeccaoMes(row['Mês Comercial'] || row['Mes Comercial'] || row['Mês Com.'] || row['Mês Com']);
+                row['_MesComercialNorm'] = norm;
+                if (!norm) semMes++;
+                // Essa planilha costuma vir com o nome do corretor em CAIXA ALTA ("EDSON LUIS"),
+                // diferente do resto do app ("Edson Luis") — sem isso, cada lead viraria um
+                // corretor "novo" e duplicado nos rankings/roster em vez de somar no mesmo.
+                row.Corretor = normalizeProspeccaoCorretor(row.Corretor);
+            });
+            prospeccaoCsvText = csvText;
+            prospeccaoDataset = rows;
+            localStorage.setItem(`${appId}-prospeccao-csv`, csvText);
+            if (!silent) {
+                const aviso = semMes > 0 ? ` (${semMes} linha(s) sem "Mês Comercial" reconhecível, ficam fora das contagens por mês)` : '';
+                showToast(`Prospecção carregada: ${rows.length} leads${aviso}.`);
+                // Só empurra pra nuvem numa ação real do usuário (upload/limpar) — carregar do
+                // cache local no boot não deve reenviar (evita sobrescrever uma versão mais nova
+                // que outro dispositivo tenha salvo enquanto este estava sem abrir).
+                pushCloudSettings();
+            }
+            renderProspeccaoStatus();
+            applyFilters();
+            return true;
+        }
+
+        function handleProspeccaoFileInput(evt) {
+            const file = evt.target.files && evt.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => applyProspeccaoCsvText(e.target.result);
+            reader.onerror = () => showToast("Não foi possível ler esse arquivo.", true);
+            reader.readAsText(file, 'UTF-8');
+            evt.target.value = '';
+        }
+
+        function clearProspeccaoData() {
+            prospeccaoCsvText = '';
+            prospeccaoDataset = [];
+            localStorage.removeItem(`${appId}-prospeccao-csv`);
+            pushCloudSettings();
+            applyFilters();
+            renderProspeccaoStatus();
+            showToast("Dados de Prospecção removidos.");
+        }
+
+        function renderProspeccaoStatus() {
+            const el = document.getElementById('prospeccaoStatus');
+            if (!el) return;
+            if (!prospeccaoDataset.length) {
+                el.textContent = 'Nenhum arquivo carregado ainda.';
+                return;
+            }
+            const tamanhoKb = Math.round(new Blob([prospeccaoCsvText]).size / 1024);
+            el.textContent = `${prospeccaoDataset.length} leads carregados (~${tamanhoKb}KB).`;
         }
 
         // Quando a linha está Aprovada mas a planilha não tem Mês/Data de Aprovação preenchida
@@ -3178,6 +3408,11 @@
                 renderSheetUrlField();
                 fetchAgendaFromGoogleSheets(savedAgendaUrl);
             }
+            // Prospecção não tem link — só carrega o CSV salvo localmente (o Firestore também
+            // pode trazer um mais novo depois, via applyCloudSettings).
+            const savedProspeccaoCsv = localStorage.getItem(`${appId}-prospeccao-csv`);
+            if (savedProspeccaoCsv) applyProspeccaoCsvText(savedProspeccaoCsv, { silent: true });
+            renderProspeccaoStatus();
         }
 
         // ================= FIREBASE: LOGIN + SINCRONIZAÇÃO DE CONFIGURAÇÕES =================
@@ -3357,6 +3592,7 @@
                 if (typeof data.gsheetsUrl === 'string' && data.gsheetsUrl) { googleSheetsUrl = data.gsheetsUrl; localStorage.setItem(`${appId}-gsheets-url`, googleSheetsUrl); }
                 if (typeof data.agendaGsheetsUrl === 'string' && data.agendaGsheetsUrl) { agendaGsheetsUrl = data.agendaGsheetsUrl; localStorage.setItem(`${appId}-agenda-gsheets-url`, agendaGsheetsUrl); }
                 if (Array.isArray(data.mesesComerciais)) { mesesComerciais = data.mesesComerciais; localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais)); }
+                if (typeof data.prospeccaoCsv === 'string' && data.prospeccaoCsv && data.prospeccaoCsv !== prospeccaoCsvText) { applyProspeccaoCsvText(data.prospeccaoCsv, { silent: true }); }
             } catch (e) { console.warn(e); }
             applyingCloud = false;
         }
@@ -3406,7 +3642,7 @@
             // garante isso de verdade; este check é só pra não tentar (e logar erro) à toa.
             if (!isDiretor) return;
             try {
-                fbDb.collection('config').doc('settings').set({
+                const payload = {
                     corretoresAdded: addedCorretores,
                     corretoresInactive: inactiveCorretores,
                     corretorFotos: corretorFotos,
@@ -3418,7 +3654,16 @@
                     agendaGsheetsUrl: agendaGsheetsUrl,
                     mesesComerciais: mesesComerciais,
                     _updatedAt: Date.now()
-                }, { merge: true }).catch(function (e) { console.warn('Falha ao salvar na nuvem:', e); });
+                };
+                // Prospecção só entra na sincronização se couber com folga no teto de 1MB do
+                // documento — senão fica só salva localmente (localStorage) neste navegador, pra
+                // nunca arriscar quebrar a sincronização de TUDO (metas, corretores, fotos etc.).
+                if (new Blob([prospeccaoCsvText]).size <= PROSPECCAO_FIRESTORE_LIMIT) {
+                    payload.prospeccaoCsv = prospeccaoCsvText;
+                } else if (prospeccaoCsvText) {
+                    showToast("Prospecção grande demais pra sincronizar na nuvem — ficou salva só neste navegador.", true);
+                }
+                fbDb.collection('config').doc('settings').set(payload, { merge: true }).catch(function (e) { console.warn('Falha ao salvar na nuvem:', e); });
             } catch (e) { console.warn(e); }
         }
 
@@ -4065,6 +4310,13 @@
             }
             currentRefDateAgenda = referenceDateAgenda;
 
+            // Mesma ideia pra Prospecção — mês corrente vem dela mesma (getLatestProspeccaoCommercialMonth).
+            let referenceDateProspeccao = referenceDate;
+            if (!refMes && !isMockDataActive && (currentPeriod === 'mes' || currentPeriod === 'ano')) {
+                referenceDateProspeccao = commercialRefDateProspeccao(isMockDataActive ? new Date(2026, 5, 9) : new Date());
+            }
+            currentRefDateProspeccao = referenceDateProspeccao;
+
             // Filtra só pelos campos estruturais (corretor/equipa/construtora/empreendimento). Mês
             // Comercial e Semana NÃO recortam aqui — cada métrica (análises/aprovações/vendas) confere
             // a SUA própria coluna de mês/data via metricMatchesRef(), para "conversar com toda a
@@ -4083,9 +4335,16 @@
                 if (!agendaMatchesEmpreendimento(row, selEmpreendimento)) return false;
                 return true;
             });
+            // Prospecção: só tem Corretor e Equipe em comum com os filtros estruturais.
+            filteredProspeccaoDataset = prospeccaoDataset.filter(row => {
+                if (selCorretor && row.Corretor !== selCorretor) return false;
+                if (selEquipe && row.Equipe !== selEquipe) return false;
+                return true;
+            });
 
             calculateKPIs(referenceDate);
             calculateAgendaKPIs(referenceDateAgenda);
+            calculateProspeccaoKPIs(referenceDateProspeccao);
             drawMetasMensais();
             drawFunnel();
             drawTables();
@@ -4131,9 +4390,10 @@
             return true;
         }
 
-        let kpiValues = { analyses: 0, approvals: 0, sales: 0, vgv: 0, salesGeral: 0, vgvGeral: 0, salesFinal: 0, vgvFinal: 0, salesView: 0, vgvView: 0, agendamentos: 0, compareceu: 0, naoCompareceu: 0 };
+        let kpiValues = { analyses: 0, approvals: 0, sales: 0, vgv: 0, salesGeral: 0, vgvGeral: 0, salesFinal: 0, vgvFinal: 0, salesView: 0, vgvView: 0, agendamentos: 0, compareceu: 0, naoCompareceu: 0, prospeccao: 0 };
         let currentRefDate = new Date(); // referência de período partilhada (definida em applyFilters)
         let currentRefDateAgenda = new Date(); // mesma ideia, só que derivada da Agenda de Visitas
+        let currentRefDateProspeccao = new Date(); // mesma ideia, só que derivada da Prospecção
 
         // Verifica se a coluna de mês/data de UMA métrica específica (ex.: Mês/Data Aprovação, para
         // aprovações; Mês/Data Ganho, para vendas) bate com o período de referência — e, se houver
@@ -4216,13 +4476,27 @@
             kpiValues.naoCompareceu = naoCompareceu;
         }
 
+        // Prospecção (3ª planilha) usa a coluna própria "_MesComercialNorm" (texto, como a
+        // planilha principal) — por isso reaproveita metricMatchesRef() direto, sem precisar da
+        // lógica de janela por data que a Agenda precisa (que não tem coluna de mês em texto).
+        function calculateProspeccaoKPIs(refDate) {
+            let total = 0;
+            filteredProspeccaoDataset.forEach(row => {
+                if (metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', refDate)) total++;
+            });
+            kpiValues.prospeccao = total;
+        }
+
         // Abre o detalhamento de clientes de UMA etapa do funil (Análises/Aprovações/Vendas),
         // usando exatamente o mesmo critério de cada métrica que os cartões de KPI já usam.
         function openFunnelDetail(metrica) {
             const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
-            const refDate = isAgendaMetrica ? currentRefDateAgenda : currentRefDate;
+            const refDate = metrica === 'prospeccao' ? currentRefDateProspeccao : (isAgendaMetrica ? currentRefDateAgenda : currentRefDate);
             let rows, label;
-            if (metrica === 'agendamentos') {
+            if (metrica === 'prospeccao') {
+                rows = filteredProspeccaoDataset.filter(row => metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', refDate));
+                label = 'Prospecção';
+            } else if (metrica === 'agendamentos') {
                 rows = filteredAgendaDataset.filter(row => agendaMatchesRef(row, refDate));
                 label = 'Agendamentos';
             } else if (metrica === 'compareceu') {
@@ -4314,17 +4588,20 @@
         }
 
         function drawFunnel() {
+            const prospeccao = kpiValues.prospeccao;
             const agendamentos = kpiValues.agendamentos;
             const compareceu = kpiValues.compareceu;
             const analyses = kpiValues.analyses;
             const approvals = kpiValues.approvals;
             const sales = kpiValues.sales;
 
+            document.getElementById('funnelProspeccaoQty').textContent = prospeccao;
             document.getElementById('funnelAgendamentosQty').textContent = agendamentos;
             document.getElementById('funnelCompareceuQty').textContent = compareceu;
             document.getElementById('funnelAnalisesQty').textContent = analyses;
             document.getElementById('funnelAprovacoesQty').textContent = approvals;
             document.getElementById('funnelVendasQty').textContent = sales;
+            document.getElementById('funnelProspeccaoQtyLado').textContent = prospeccao;
             document.getElementById('funnelAgendamentosQtyLado').textContent = agendamentos;
             document.getElementById('funnelCompareceuQtyLado').textContent = compareceu;
             document.getElementById('funnelAnalisesQtyLado').textContent = analyses;
@@ -4333,23 +4610,29 @@
 
             // Meta, % da meta e "ideal hoje" ao lado de cada etapa — mesma janela (início/fim/dia
             // de hoje) que desenha a linha de tendência do "Ritmo do Mês", uma por métrica (a
-            // Agenda de Visitas segue a MESMA lógica de janela deslizante/config manual).
+            // Agenda de Visitas e a Prospecção seguem a MESMA lógica de janela deslizante/config
+            // manual, cada uma com seu próprio mês corrente).
+            const metaProspeccao = metasMensais.prospeccao || 0;
             const metaAgendamentos = metasMensais.agendamentos || 0;
             const metaCompareceu = metasMensais.compareceu || 0;
             const metaAnalises = metasMensais.analises || 0;
             const metaAprovacoes = metasMensais.aprovacoes || 0;
             const metaVendas = metasMensais.vendas || 0;
+            const janelaProspeccao = getJanelaMesComercial('prospeccao');
             const janelaAgendamentos = getJanelaMesComercial('agendamentos');
             const janelaCompareceu = getJanelaMesComercial('compareceu');
             const janelaAnalises = getJanelaMesComercial('analises');
             const janelaAprovacoes = getJanelaMesComercial('aprovacoes');
             const janelaVendas = getJanelaMesComercial('vendas');
+            const idealProspeccao = metaProspeccao * janelaProspeccao.diaHoje / janelaProspeccao.diasNoMes;
             const idealAgendamentos = metaAgendamentos * janelaAgendamentos.diaHoje / janelaAgendamentos.diasNoMes;
             const idealCompareceu = metaCompareceu * janelaCompareceu.diaHoje / janelaCompareceu.diasNoMes;
             const idealAnalises = metaAnalises * janelaAnalises.diaHoje / janelaAnalises.diasNoMes;
             const idealAprovacoes = metaAprovacoes * janelaAprovacoes.diaHoje / janelaAprovacoes.diasNoMes;
             const idealVendas = metaVendas * janelaVendas.diaHoje / janelaVendas.diasNoMes;
 
+            document.getElementById('funnelMetaProspeccao').textContent = Math.round(metaProspeccao);
+            document.getElementById('funnelIdealProspeccao').textContent = Math.round(idealProspeccao);
             document.getElementById('funnelMetaAgendamentos').textContent = Math.round(metaAgendamentos);
             document.getElementById('funnelIdealAgendamentos').textContent = Math.round(idealAgendamentos);
             document.getElementById('funnelMetaCompareceu').textContent = Math.round(metaCompareceu);
@@ -4361,11 +4644,14 @@
             document.getElementById('funnelMetaVendas').textContent = Math.round(metaVendas);
             document.getElementById('funnelIdealVendas').textContent = Math.round(idealVendas);
 
+            const pctMetaProspeccao = metaProspeccao > 0 ? Math.min(100, (prospeccao / metaProspeccao) * 100) : 0;
             const pctMetaAgendamentos = metaAgendamentos > 0 ? Math.min(100, (agendamentos / metaAgendamentos) * 100) : 0;
             const pctMetaCompareceu = metaCompareceu > 0 ? Math.min(100, (compareceu / metaCompareceu) * 100) : 0;
             const pctMetaAnalises = metaAnalises > 0 ? Math.min(100, (analyses / metaAnalises) * 100) : 0;
             const pctMetaAprovacoes = metaAprovacoes > 0 ? Math.min(100, (approvals / metaAprovacoes) * 100) : 0;
             const pctMetaVendas = metaVendas > 0 ? Math.min(100, (sales / metaVendas) * 100) : 0;
+            document.getElementById('funnelPctProspeccao').textContent = `${pctMetaProspeccao.toFixed(0)}%`;
+            document.getElementById('funnelBarProspeccao').style.width = `${pctMetaProspeccao}%`;
             document.getElementById('funnelPctAgendamentos').textContent = `${pctMetaAgendamentos.toFixed(0)}%`;
             document.getElementById('funnelBarAgendamentos').style.width = `${pctMetaAgendamentos}%`;
             document.getElementById('funnelPctCompareceu').textContent = `${pctMetaCompareceu.toFixed(0)}%`;
@@ -4378,7 +4664,7 @@
             document.getElementById('funnelBarVendas').style.width = `${pctMetaVendas}%`;
 
             // Progresso do mês comercial (usa a janela de Análises como referência de dias) +
-            // status geral: média de real÷ideal das 5 etapas, "No Ritmo" se >= 100%. Mostra o
+            // status geral: média de real÷ideal das 6 etapas, "No Ritmo" se >= 100%. Mostra o
             // intervalo de datas por extenso (dd/mm a dd/mm) — mesma precisão do "Ritmo do Mês",
             // porque o mês comercial atravessa o fim do mês do calendário (ex.: Julho vai até
             // 07/08) e só o nome do mês sozinho esconde isso.
@@ -4392,12 +4678,14 @@
             // quem conferir "Real ÷ Ideal hoje" na calculadora bater exatamente com o % mostrado.
             // Etapas sem meta configurada (ideal=0) ficam fora da média, pra não puxar "No Ritmo"
             // artificialmente pra baixo enquanto o diretor ainda não cadastrou a meta daquela etapa.
+            const idealProspeccaoArred = Math.round(idealProspeccao);
             const idealAgendamentosArred = Math.round(idealAgendamentos);
             const idealCompareceuArred = Math.round(idealCompareceu);
             const idealAnalisesArred = Math.round(idealAnalises);
             const idealAprovacoesArred = Math.round(idealAprovacoes);
             const idealVendasArred = Math.round(idealVendas);
             const ritmos = [
+                idealProspeccaoArred > 0 ? prospeccao / idealProspeccaoArred : null,
                 idealAgendamentosArred > 0 ? agendamentos / idealAgendamentosArred : null,
                 idealCompareceuArred > 0 ? compareceu / idealCompareceuArred : null,
                 idealAnalisesArred > 0 ? analyses / idealAnalisesArred : null,
@@ -4414,12 +4702,14 @@
                 statusText.textContent = `${noRitmo ? 'No Ritmo' : 'Atrasado'} · ${ritmoMedio.toFixed(0)}% da meta`;
             }
 
+            const convMinus1 = prospeccao > 0 ? ((agendamentos / prospeccao) * 100).toFixed(1) : 0;
             const conv0 = agendamentos > 0 ? ((compareceu / agendamentos) * 100).toFixed(1) : 0;
             const conv1b = compareceu > 0 ? ((analyses / compareceu) * 100).toFixed(1) : 0;
             const conv1 = analyses > 0 ? ((approvals / analyses) * 100).toFixed(1) : 0;
             const conv2 = approvals > 0 ? ((sales / approvals) * 100).toFixed(1) : 0;
             const taxaFinal = analyses > 0 ? ((sales / analyses) * 100).toFixed(1) : 0;
 
+            document.getElementById('convProspeccaoParaAgendamento').textContent = `${convMinus1}%`;
             document.getElementById('convAgendamentoParaCompareceu').textContent = `${conv0}%`;
             document.getElementById('convCompareceuParaAnalise').textContent = `${conv1b}%`;
             document.getElementById('convAnaliseParaAprovacao').textContent = `${conv1}%`;
@@ -4973,12 +5263,15 @@
             // é derivado do último Data da PRÓPRIA Agenda — não do "Mês Cadastro" da outra planilha,
             // que pode estar em um mês diferente.
             const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
-            const sourceDataset = isAgendaMetrica ? filteredAgendaDataset : filteredDataset;
+            const isProspeccaoMetrica = metrica === 'prospeccao';
+            const sourceDataset = isAgendaMetrica ? filteredAgendaDataset : (isProspeccaoMetrica ? filteredProspeccaoDataset : filteredDataset);
             let mesNome, ano, monthIdx;
             if (refMes) {
                 mesNome = refMes.nome; ano = refMes.ano; monthIdx = refMes.idx;
             } else {
-                const lc = !isMockDataActive ? (isAgendaMetrica ? getLatestAgendaCommercialMonth() : getLatestCommercialMonth()) : null;
+                const lc = !isMockDataActive
+                    ? (isAgendaMetrica ? getLatestAgendaCommercialMonth() : (isProspeccaoMetrica ? getLatestProspeccaoCommercialMonth() : getLatestCommercialMonth()))
+                    : null;
                 if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
                 else { mesNome = getMesName(hoje.getMonth() + 1); ano = hoje.getFullYear(); monthIdx = hoje.getMonth(); }
             }
@@ -4987,6 +5280,7 @@
                 if (metrica === 'aprovacoes') return { ok: isAprovado(row['Situação - Analise']), mesRef: mesAprovacaoEfetivo(row), dataRef: dataAprovacaoEfetiva(row) };
                 if (metrica === 'agendamentos') return { ok: true, mesRef: agendaMesStr(row), dataRef: row['Data'] };
                 if (metrica === 'compareceu') return { ok: isCompareceu(row), mesRef: agendaMesStr(row), dataRef: row['Data'] };
+                if (metrica === 'prospeccao') return { ok: true, mesRef: row['_MesComercialNorm'], dataRef: row['Cadastro'] };
                 return { ok: isGanho(row), mesRef: row['Mês Ganho'], dataRef: row['Data Ganho'] };
             }
 
