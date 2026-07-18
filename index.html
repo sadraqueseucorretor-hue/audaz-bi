@@ -2856,9 +2856,10 @@
 
             // "Rankings" é uma tela dedicada e limpa pra apresentação (projetar/print): esconde
             // todo o resto do Painel (Hero, KPIs, Funil, Calendário — que hoje é inline aqui
-            // dentro) e mostra só a seção de Rankings Rápidos, sem os controles de
-            // período/edição — só os cards, prontos. Nas outras views a seção some (só existe
-            // dentro da aba Rankings, evita duplicar conteúdo no Painel normal).
+            // dentro) e mostra só a seção de Rankings Rápidos — cards + a barrinha de
+            // data (Semana/Mês) e os botões de editar metas, que continuam visíveis pra dar
+            // pra ajustar período/metas ali mesmo antes de apresentar. Nas outras views a
+            // seção some (só existe dentro da aba Rankings, evita duplicar no Painel normal).
             const dashboardViewEl = document.getElementById('dashboardView');
             const quickSection = document.getElementById('quickRankingsSection');
             if (dashboardViewEl && quickSection) {
@@ -2866,8 +2867,6 @@
                     child.classList.toggle('hidden', child === quickSection ? viewName !== 'rankings' : viewName === 'rankings');
                 });
             }
-            const quickControls = document.getElementById('quickRankingsControls');
-            if (quickControls) quickControls.classList.toggle('hidden', viewName === 'rankings');
             const filtersBar = document.getElementById('filtersBar');
             if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings');
 
