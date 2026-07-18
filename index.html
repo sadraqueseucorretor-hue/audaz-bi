@@ -476,24 +476,49 @@
                         </div>
                     </div>
 
-                <!-- 3. SEÇÃO GRÁFICOS PROFISSIONAIS (CHART.JS) -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    
-                    <!-- Gráfico 1: Evolução Operacional -->
-                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução Mensal de Operações</h3>
-                                <p class="text-[10px] text-slate-500">Histórico mês a mês de Análises, Aprovações e Vendas. Clique num ponto pra ver os clientes.</p>
-                            </div>
-                            <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
-                                <i class="fa-solid fa-chart-line text-xs"></i>
-                            </div>
+                <!-- Evolução Mensal de Operações — mini-dashboard (cards de tendência + histórico + conversão + insight + atividades) -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução Mensal de Operações</h3>
+                            <p class="text-[10px] text-slate-500">Histórico mês a mês de Análises, Aprovações e Vendas. Clique num ponto do gráfico pra ver os clientes.</p>
                         </div>
-                        <div class="h-64 relative">
-                            <canvas id="chartEvolucaoMensal"></canvas>
+                        <select id="evolucaoJanelaSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
+                            <option value="3">Últimos 3 meses</option>
+                            <option value="6">Últimos 6 meses</option>
+                            <option value="0">Todo o histórico</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="evolucaoTrendCards"></div>
+
+                    <div class="h-64 relative mb-6">
+                        <canvas id="chartEvolucaoMensal"></canvas>
+                    </div>
+
+                    <div class="mb-6">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fa-solid fa-percent text-brand-500"></i> Taxa de Conversão</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs" id="taxaConversaoTable"></table>
                         </div>
                     </div>
+
+                    <div class="bg-slate-950/50 rounded-xl border border-indigo-500/20 p-4 mb-6 flex items-start gap-3">
+                        <i class="fa-solid fa-lightbulb text-amber-400 mt-0.5"></i>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest mb-1">Insight do Mês</p>
+                            <p class="text-xs text-slate-300 leading-relaxed" id="insightMesText">—</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Atividades Recentes</p>
+                        <div id="atividadesRecentesList" class="space-y-1.5"></div>
+                    </div>
+                </div>
+
+                <!-- 3. SEÇÃO GRÁFICOS PROFISSIONAIS (CHART.JS) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     <!-- Gráfico 2: Evolução de VGV -->
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
@@ -528,7 +553,7 @@
                     </div>
 
                     <!-- Gráfico 4: Performance por Equipe -->
-                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                    <div class="lg:col-span-2 bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Desempenho por Equipa</h3>
@@ -3712,6 +3737,207 @@
 
         let charts = {};
 
+        // Mini gráfico de linha (SVG puro, sem Chart.js) usado dentro dos cards de tendência.
+        function renderSparklineSvg(serie, color) {
+            if (!serie || serie.length < 2) return '';
+            const colorHex = { sky: '#38bdf8', amber: '#fbbf24', brand: '#10b981', indigo: '#818cf8' }[color] || '#94a3b8';
+            const w = 64, h = 32, pad = 3;
+            const max = Math.max(...serie, 1);
+            const min = Math.min(...serie, 0);
+            const range = (max - min) || 1;
+            const step = (w - pad * 2) / (serie.length - 1);
+            const pts = serie.map((v, i) => {
+                const x = pad + i * step;
+                const y = h - pad - ((v - min) / range) * (h - pad * 2);
+                return `${x.toFixed(1)},${y.toFixed(1)}`;
+            }).join(' ');
+            return `<svg viewBox="0 0 ${w} ${h}" class="w-full h-full"><polyline points="${pts}" fill="none" stroke="${colorHex}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+        }
+
+        // 4 cards de tendência (Análises/Aprovações/Vendas/Conversão Total): valor do mês mais
+        // recente da janela, variação vs mês anterior, sparkline e barra de progresso da meta.
+        function renderEvolucaoTrendCards(janela) {
+            const container = document.getElementById('evolucaoTrendCards');
+            if (!container) return;
+            if (!janela.length) { container.innerHTML = ''; return; }
+
+            const atual = janela[janela.length - 1];
+            const anterior = janela.length > 1 ? janela[janela.length - 2] : null;
+            const mesAnteriorLabel = anterior ? `${anterior.nome.slice(0, 3)}/${String(anterior.ano).slice(-2)}` : null;
+
+            function trend(valAtual, valAnterior) {
+                if (!anterior) return null;
+                if (valAnterior === 0) return valAtual > 0 ? 100 : 0;
+                return ((valAtual - valAnterior) / valAnterior) * 100;
+            }
+
+            const conversaoAtual = atual.analises > 0 ? (atual.vendas / atual.analises) * 100 : 0;
+            const conversaoAnterior = anterior && anterior.analises > 0 ? (anterior.vendas / anterior.analises) * 100 : 0;
+            const metaConversao = (metasMensais.analises > 0) ? (metasMensais.vendas / metasMensais.analises) * 100 : null;
+
+            const cards = [
+                { label: 'Análises Enviadas', icon: 'fa-file-invoice-dollar', color: 'sky', valor: atual.analises, meta: metasMensais.analises, trendPct: trend(atual.analises, anterior ? anterior.analises : 0), serie: janela.map(m => m.analises) },
+                { label: 'Aprovações', icon: 'fa-circle-check', color: 'amber', valor: atual.aprovacoes, meta: metasMensais.aprovacoes, trendPct: trend(atual.aprovacoes, anterior ? anterior.aprovacoes : 0), serie: janela.map(m => m.aprovacoes) },
+                { label: 'Vendas', icon: 'fa-house-circle-check', color: 'brand', valor: atual.vendas, meta: metasMensais.vendas, trendPct: trend(atual.vendas, anterior ? anterior.vendas : 0), serie: janela.map(m => m.vendas) },
+                { label: 'Conversão Total', icon: 'fa-filter', color: 'indigo', valor: conversaoAtual, meta: metaConversao, trendPct: anterior ? (conversaoAtual - conversaoAnterior) : null, isPct: true, serie: janela.map(m => m.analises > 0 ? (m.vendas / m.analises) * 100 : 0) }
+            ];
+
+            const cor = {
+                sky: { text: 'text-sky-400', border: 'border-sky-500/20', bar: 'bg-sky-500' },
+                amber: { text: 'text-amber-400', border: 'border-amber-500/20', bar: 'bg-amber-500' },
+                brand: { text: 'text-brand-400', border: 'border-brand-500/20', bar: 'bg-brand-500' },
+                indigo: { text: 'text-indigo-400', border: 'border-indigo-500/20', bar: 'bg-indigo-500' }
+            };
+
+            container.innerHTML = cards.map(c => {
+                const cl = cor[c.color];
+                const valorTxt = c.isPct ? `${c.valor.toFixed(1)}%` : Math.round(c.valor);
+                const metaPct = c.meta ? Math.min(100, (c.valor / c.meta) * 100) : null;
+                const metaTxt = c.meta ? (c.isPct ? `Meta: ${c.meta.toFixed(0)}%` : `Meta: ${Math.round(c.meta)}`) : '';
+                const trendHtml = c.trendPct === null
+                    ? `<span class="text-[10px] text-slate-600">sem histórico</span>`
+                    : `<span class="text-[10px] font-bold ${c.trendPct >= 0 ? 'text-brand-400' : 'text-rose-400'} flex items-center gap-1">
+                         <i class="fa-solid fa-arrow-${c.trendPct >= 0 ? 'up' : 'down'} text-[9px]"></i>
+                         ${Math.abs(c.trendPct).toFixed(1)}${c.isPct ? 'pp' : '%'}${mesAnteriorLabel ? ' vs ' + mesAnteriorLabel : ''}
+                       </span>`;
+                return `
+                    <div class="bg-slate-950/50 rounded-xl border ${cl.border} p-3">
+                        <p class="text-[9px] font-bold ${cl.text} uppercase tracking-wider flex items-center gap-1.5 mb-1.5"><i class="fa-solid ${c.icon}"></i> ${c.label}</p>
+                        <div class="flex items-end justify-between gap-2">
+                            <p class="text-xl font-extrabold text-slate-100">${valorTxt}</p>
+                            <div class="w-16 h-8 shrink-0">${renderSparklineSvg(c.serie, c.color)}</div>
+                        </div>
+                        <div class="mt-1">${trendHtml}</div>
+                        ${c.meta ? `
+                        <div class="mt-2">
+                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden"><div class="h-full ${cl.bar} rounded-full" style="width:${metaPct}%"></div></div>
+                            <p class="text-[9px] text-slate-500 mt-1">${metaTxt} · ${metaPct.toFixed(0)}% da meta</p>
+                        </div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Tabela de Taxa de Conversão por mês (Análise→Aprovação, Aprovação→Venda, Análise→Venda),
+        // com o mês mais recente da janela destacado.
+        function renderTaxaConversaoTable(janela) {
+            const el = document.getElementById('taxaConversaoTable');
+            if (!el) return;
+            if (!janela.length) { el.innerHTML = '<tbody><tr><td class="text-slate-500 text-xs py-2">Sem dados suficientes.</td></tr></tbody>'; return; }
+
+            const headerCells = janela.map((m, i) => {
+                const label = m.ano ? `${m.nome.slice(0, 3)}/${String(m.ano).slice(-2)}` : m.nome;
+                const isUltimo = i === janela.length - 1;
+                return `<th class="text-center py-1.5 px-3 font-bold ${isUltimo ? 'text-brand-400 bg-brand-500/5' : 'text-slate-400'}">${label}</th>`;
+            }).join('');
+
+            const linhas = [
+                { label: 'Análise → Aprovação', calc: m => m.analises > 0 ? (m.aprovacoes / m.analises) * 100 : 0 },
+                { label: 'Aprovação → Venda', calc: m => m.aprovacoes > 0 ? (m.vendas / m.aprovacoes) * 100 : 0 },
+                { label: 'Análise → Venda', calc: m => m.analises > 0 ? (m.vendas / m.analises) * 100 : 0 }
+            ];
+            const bodyRows = linhas.map(l => {
+                const cells = janela.map((m, i) => {
+                    const isUltimo = i === janela.length - 1;
+                    return `<td class="text-center py-2 px-3 font-semibold ${isUltimo ? 'text-slate-100 bg-brand-500/5' : 'text-slate-300'}">${l.calc(m).toFixed(1)}%</td>`;
+                }).join('');
+                return `<tr class="border-t border-slate-800/60"><td class="py-2 pr-3 text-slate-400 whitespace-nowrap">${l.label}</td>${cells}</tr>`;
+            }).join('');
+
+            el.innerHTML = `<thead><tr><th class="text-left py-1.5 pr-3"></th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody>`;
+        }
+
+        // Texto automático (sem IA) comparando o mês mais recente da janela com o anterior.
+        function renderInsightMes(janela) {
+            const el = document.getElementById('insightMesText');
+            if (!el) return;
+            if (janela.length < 2) { el.textContent = 'Ainda não há mês anterior suficiente pra comparar.'; return; }
+
+            const atual = janela[janela.length - 1];
+            const anterior = janela[janela.length - 2];
+            const mesAnteriorLabel = anterior.ano ? `${anterior.nome}/${anterior.ano}` : anterior.nome;
+
+            const volumeDelta = anterior.analises > 0
+                ? ((atual.analises - anterior.analises) / anterior.analises) * 100
+                : (atual.analises > 0 ? 100 : 0);
+
+            const convAtual = {
+                'Análise → Aprovação': atual.analises > 0 ? (atual.aprovacoes / atual.analises) * 100 : 0,
+                'Aprovação → Venda': atual.aprovacoes > 0 ? (atual.vendas / atual.aprovacoes) * 100 : 0
+            };
+            const convAnterior = {
+                'Análise → Aprovação': anterior.analises > 0 ? (anterior.aprovacoes / anterior.analises) * 100 : 0,
+                'Aprovação → Venda': anterior.aprovacoes > 0 ? (anterior.vendas / anterior.aprovacoes) * 100 : 0
+            };
+
+            let maiorQuedaEtapa = null, maiorQueda = 0;
+            Object.keys(convAtual).forEach(etapa => {
+                const delta = convAtual[etapa] - convAnterior[etapa];
+                if (delta < maiorQueda) { maiorQueda = delta; maiorQuedaEtapa = etapa; }
+            });
+
+            const direcaoVolume = volumeDelta >= 0 ? 'subiu' : 'caiu';
+            let texto = `O volume de análises ${direcaoVolume} ${Math.abs(volumeDelta).toFixed(1)}% em relação a ${mesAnteriorLabel}.`;
+            texto += maiorQuedaEtapa
+                ? ` A maior queda de conversão foi na etapa ${maiorQuedaEtapa} (${maiorQueda.toFixed(1)} pontos percentuais).`
+                : ` As taxas de conversão se mantiveram estáveis ou melhoraram em relação a ${mesAnteriorLabel}.`;
+            el.textContent = texto;
+        }
+
+        // Feed das atividades mais recentes (análise/aprovação/venda) do recorte atual. A planilha
+        // só tem DATA (sem horário), então mostra "Hoje"/"Ontem"/data — nunca um horário inventado.
+        function renderAtividadesRecentes() {
+            const el = document.getElementById('atividadesRecentesList');
+            if (!el) return;
+
+            const hoje = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            hoje.setHours(0, 0, 0, 0);
+
+            let atividades = [];
+            filteredDataset.forEach(row => {
+                const dCad = parseDate(row['Data Cadastro']);
+                if (dCad) atividades.push({ tipo: 'analise', cliente: row.Cliente, corretor: row.Corretor, data: dCad });
+                if (isAprovado(row['Situação - Analise'])) {
+                    const dAprov = parseDate(dataAprovacaoEfetiva(row));
+                    if (dAprov) atividades.push({ tipo: 'aprovacao', cliente: row.Cliente, corretor: row.Corretor, data: dAprov });
+                }
+                if (isGanho(row)) {
+                    const dGanho = parseDate(row['Data Ganho']);
+                    if (dGanho) atividades.push({ tipo: 'venda', cliente: row.Cliente, corretor: row.Corretor, data: dGanho });
+                }
+            });
+
+            atividades.sort((a, b) => b.data - a.data);
+            atividades = atividades.slice(0, 8);
+
+            if (!atividades.length) {
+                el.innerHTML = '<p class="text-xs text-slate-500">Nenhuma atividade no recorte atual.</p>';
+                return;
+            }
+
+            const iconMap = {
+                analise: { icon: 'fa-file-invoice-dollar', color: 'text-sky-400', bg: 'bg-sky-500/10', label: 'Nova análise enviada' },
+                aprovacao: { icon: 'fa-circle-check', color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Cliente aprovado' },
+                venda: { icon: 'fa-house-circle-check', color: 'text-brand-400', bg: 'bg-brand-500/10', label: 'Venda realizada' }
+            };
+
+            el.innerHTML = atividades.map(a => {
+                const m = iconMap[a.tipo];
+                const diaAtividade = new Date(a.data.getFullYear(), a.data.getMonth(), a.data.getDate());
+                const diffDias = Math.round((hoje - diaAtividade) / 86400000);
+                const quando = diffDias === 0 ? 'Hoje' : diffDias === 1 ? 'Ontem' : formatDate(a.data);
+                return `
+                    <div class="flex items-center gap-3 py-1.5">
+                        <div class="h-7 w-7 shrink-0 rounded-lg ${m.bg} ${m.color} flex items-center justify-center"><i class="fa-solid ${m.icon} text-[10px]"></i></div>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs text-slate-300 truncate"><span class="font-semibold text-slate-200">${m.label}</span> por ${a.corretor || '-'} — ${a.cliente || '-'}</p>
+                        </div>
+                        <span class="text-[10px] text-slate-500 shrink-0">${quando}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function renderCharts() {
             if (charts.evolucaoMensal) charts.evolucaoMensal.destroy();
             if (charts.evolucaoVgv) charts.evolucaoVgv.destroy();
@@ -3744,20 +3970,37 @@
             let dataVendas = evolucaoOrdenada.map(m => m.vendas);
             let dataVgv = evolucaoOrdenada.map(m => m.vgv);
 
+            // Janela do mini-dashboard (Últimos 3/6 meses ou todo o histórico) — só afeta o card
+            // "Evolução Mensal de Operações" (gráfico, cards de tendência e taxa de conversão);
+            // os outros gráficos da página continuam com o histórico completo.
+            const janelaSel = document.getElementById('evolucaoJanelaSelect');
+            const janelaMeses = janelaSel ? parseInt(janelaSel.value) || 0 : 3;
+            const evolucaoJanela = janelaMeses > 0 ? evolucaoOrdenada.slice(-janelaMeses) : evolucaoOrdenada;
+            const labelsJanela = evolucaoJanela.map(m => m.ano ? `${m.nome.slice(0, 3)}/${String(m.ano).slice(-2)}` : m.nome);
+            const anaJanela = evolucaoJanela.map(m => m.analises);
+            const aprovJanela = evolucaoJanela.map(m => m.aprovacoes);
+            const vendJanela = evolucaoJanela.map(m => m.vendas);
+            const metaAnalisesLinha = evolucaoJanela.map(() => metasMensais.analises || 0);
+
+            renderEvolucaoTrendCards(evolucaoJanela);
+            renderTaxaConversaoTable(evolucaoJanela);
+            renderInsightMes(evolucaoJanela);
+            renderAtividadesRecentes();
+
             // 1. Gráfico de Evolução Operacional - Otimização de Contraste e Espessura
             const ctxEvol = document.getElementById('chartEvolucaoMensal').getContext('2d');
             charts.evolucaoMensal = new Chart(ctxEvol, {
                 type: 'line',
                 data: {
-                    labels: activeLabels,
+                    labels: labelsJanela,
                     datasets: [
                         {
                             label: 'Análises Enviadas',
-                            data: dataAnalises,
-                            borderColor: '#38bdf8', 
+                            data: anaJanela,
+                            borderColor: '#38bdf8',
                             backgroundColor: 'rgba(56, 189, 248, 0.08)',
-                            borderWidth: 4, 
-                            pointRadius: 5, 
+                            borderWidth: 4,
+                            pointRadius: 5,
                             pointHoverRadius: 8,
                             pointBackgroundColor: '#38bdf8',
                             pointBorderColor: '#ffffff',
@@ -3767,8 +4010,8 @@
                         },
                         {
                             label: 'Aprovações',
-                            data: dataAprovacoes,
-                            borderColor: '#fb923c', 
+                            data: aprovJanela,
+                            borderColor: '#fb923c',
                             backgroundColor: 'rgba(251, 146, 60, 0.05)',
                             borderWidth: 4,
                             pointRadius: 5,
@@ -3781,17 +4024,28 @@
                         },
                         {
                             label: 'Vendas',
-                            data: dataVendas,
-                            borderColor: '#4ade80', 
+                            data: vendJanela,
+                            borderColor: '#4ade80',
                             backgroundColor: 'rgba(74, 222, 128, 0.08)',
                             borderWidth: 4,
-                            pointRadius: 6, 
+                            pointRadius: 6,
                             pointHoverRadius: 9,
                             pointBackgroundColor: '#4ade80',
                             pointBorderColor: '#ffffff',
                             pointBorderWidth: 2,
                             tension: 0.3,
                             fill: true
+                        },
+                        {
+                            label: `Meta Análises (${metasMensais.analises || 0})`,
+                            data: metaAnalisesLinha,
+                            borderColor: 'rgba(226, 232, 240, 0.45)',
+                            borderWidth: 2,
+                            borderDash: [6, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0,
+                            fill: false
                         }
                     ]
                 },
@@ -3802,7 +4056,8 @@
                     onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
                     onClick: (evt, els) => {
                         if (!els.length) return;
-                        const mes = evolucaoOrdenada[els[0].index];
+                        if (els[0].datasetIndex === 3) return; // linha de meta não abre detalhamento
+                        const mes = evolucaoJanela[els[0].index];
                         if (!mes) return;
                         const metrica = els[0].datasetIndex === 0 ? 'analises' : els[0].datasetIndex === 1 ? 'aprovacoes' : 'vendas';
                         openEvolucaoMesDetail(metrica, mes.nome, mes.ano);
@@ -3839,9 +4094,9 @@
                         // Cada série escreve o número perto do próprio ponto — Análises/Aprovações acima,
                         // Vendas abaixo, pra não colidir quando as curvas ficam próximas no final do período.
                         const series = [
-                            { idx: 0, data: dataAnalises, color: '#38bdf8', dy: -16 },
-                            { idx: 1, data: dataAprovacoes, color: '#fb923c', dy: -16 },
-                            { idx: 2, data: dataVendas, color: '#4ade80', dy: 18 }
+                            { idx: 0, data: anaJanela, color: '#38bdf8', dy: -16 },
+                            { idx: 1, data: aprovJanela, color: '#fb923c', dy: -16 },
+                            { idx: 2, data: vendJanela, color: '#4ade80', dy: 18 }
                         ];
                         series.forEach(s => {
                             const meta = chart.getDatasetMeta(s.idx);
