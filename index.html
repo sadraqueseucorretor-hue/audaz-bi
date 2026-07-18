@@ -2991,6 +2991,14 @@
             if (parts.length === 3) {
                 return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
             }
+            // Formato ISO (ex.: a Agenda de Visitas exporta "2026-06-05", às vezes com hora
+            // junto). Constrói com componentes locais em vez de `new Date("2026-06-05")` puro —
+            // esse construtor trata "yyyy-mm-dd" como UTC meia-noite, o que em fuso negativo
+            // (Brasil) volta um dia quando lido com .getDate()/.getMonth() (getters locais).
+            const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+            if (isoMatch) {
+                return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+            }
             const parsed = new Date(dateStr);
             return isNaN(parsed.getTime()) ? null : parsed;
         }
@@ -3558,8 +3566,18 @@
             fetchAgendaFromGoogleSheets(urlInput);
         }
 
+        // Alguns cabeçalhos da Agenda vêm com espaço sobrando (ex.: "Data " em vez de "Data") —
+        // sem isso, row['Data'] fica undefined e a linha inteira nunca conta em nenhum período.
+        function normalizeAgendaRows(rows) {
+            return rows.map(row => {
+                const clean = {};
+                Object.keys(row).forEach(k => { clean[k.trim()] = row[k]; });
+                return clean;
+            });
+        }
+
         function applyAgendaParsedRows(rows) {
-            agendaDataset = rows;
+            agendaDataset = normalizeAgendaRows(rows);
             showToast("Agenda de Visitas sincronizada com sucesso!");
             applyFilters();
         }
@@ -3613,8 +3631,9 @@
 
         // Aplica um CSV recém-baixado da Agenda (auto-refresh silencioso): só re-renderiza se mudou.
         function applyAgendaRefreshedCSV(rows) {
-            const mudou = JSON.stringify(rows) !== JSON.stringify(agendaDataset);
-            agendaDataset = rows;
+            const normalizado = normalizeAgendaRows(rows);
+            const mudou = JSON.stringify(normalizado) !== JSON.stringify(agendaDataset);
+            agendaDataset = normalizado;
             if (mudou) applyFilters();
         }
 
