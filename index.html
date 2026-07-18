@@ -1053,6 +1053,7 @@
             </div>
 
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Corretores</p>
+            <input type="file" id="corretorFotoInput" accept="image/*" class="hidden" onchange="onCorretorFotoInputChange(event)">
             <div id="corretorRosterList" class="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                 <!-- Preenchido dinamicamente -->
             </div>
@@ -1191,17 +1192,97 @@
         // ====== GESTÃO DE CORRETORES (roster persistido no navegador) ======
         let addedCorretores = [];    // pré-cadastrados (aparecem com 0 produção)
         let inactiveCorretores = []; // ocultos das listas/rankings/filtros individuais
+        let corretorFotos = {};      // nome -> dataURL (JPEG 128x128, já comprimida no upload)
+        let corretorFotoImages = {}; // nome -> HTMLImageElement pré-carregada (pro export em Canvas 2D)
 
         function loadCorretorRoster() {
             try {
                 addedCorretores = JSON.parse(localStorage.getItem(`${appId}-corretores-added`) || '[]');
                 inactiveCorretores = JSON.parse(localStorage.getItem(`${appId}-corretores-inactive`) || '[]');
-            } catch (e) { addedCorretores = []; inactiveCorretores = []; }
+                corretorFotos = JSON.parse(localStorage.getItem(`${appId}-corretor-fotos`) || '{}');
+            } catch (e) { addedCorretores = []; inactiveCorretores = []; corretorFotos = {}; }
+            preloadAllCorretorFotos();
         }
         function saveCorretorRoster() {
             localStorage.setItem(`${appId}-corretores-added`, JSON.stringify(addedCorretores));
             localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores));
             pushCloudSettings();
+        }
+        function saveCorretorFotos() {
+            localStorage.setItem(`${appId}-corretor-fotos`, JSON.stringify(corretorFotos));
+            pushCloudSettings();
+        }
+
+        // Pré-carrega as fotos em objetos Image (fora do DOM) pra estarem prontas (.complete)
+        // na hora de desenhar o Canvas 2D de exportação dos Rankings Rápidos — o export é
+        // síncrono e não dá pra esperar um <img onload> no meio do desenho.
+        function preloadCorretorFoto(nome) {
+            const src = corretorFotos[nome];
+            if (!src) { delete corretorFotoImages[nome]; return; }
+            const img = new Image();
+            img.onload = () => { corretorFotoImages[nome] = img; };
+            img.src = src;
+        }
+        function preloadAllCorretorFotos() {
+            corretorFotoImages = {};
+            Object.keys(corretorFotos).forEach(preloadCorretorFoto);
+        }
+
+        // Avatar de um corretor: foto (se tiver) ou iniciais num círculo gradiente — usado tanto
+        // no modal "Gerir Corretores" quanto nos cards de Rankings Rápidos, pra ficar consistente.
+        function corretorAvatarInner(nome, sizeClasses, textSizeClass, extraClass) {
+            const foto = corretorFotos[nome];
+            if (foto) {
+                return `<img src="${foto}" alt="${nome}" class="${sizeClasses} rounded-full object-cover ${extraClass || ''}">`;
+            }
+            const ini = (nome || '').split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+            return `<div class="${sizeClasses} rounded-full bg-gradient-to-br from-indigo-500 to-brand-500 flex items-center justify-center ${textSizeClass} font-extrabold text-white ${extraClass || ''}">${ini}</div>`;
+        }
+
+        // Lê o arquivo escolhido, recorta em quadrado (crop central) e comprime pra ~128x128 JPEG
+        // antes de guardar — mantém o doc do Firestore pequeno mesmo com vários corretores.
+        function processCorretorFotoFile(nome, file) {
+            if (!file || !file.type || !file.type.startsWith('image/')) { showToast('Selecione um arquivo de imagem.', true); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const SIZE = 128;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = SIZE; canvas.height = SIZE;
+                    const ctx = canvas.getContext('2d');
+                    const side = Math.min(img.width, img.height);
+                    const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+                    ctx.drawImage(img, sx, sy, side, side, 0, 0, SIZE, SIZE);
+                    corretorFotos[nome] = canvas.toDataURL('image/jpeg', 0.72);
+                    saveCorretorFotos();
+                    preloadCorretorFoto(nome);
+                    renderCorretorRoster();
+                    if (typeof drawQuickRankings === 'function') drawQuickRankings();
+                    showToast(`Foto de "${nome}" atualizada.`);
+                };
+                img.onerror = () => showToast('Não foi possível ler essa imagem.', true);
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        let corretorFotoUploadTarget = null;
+        function triggerCorretorFotoUpload(nome) {
+            corretorFotoUploadTarget = nome;
+            const inp = document.getElementById('corretorFotoInput');
+            if (inp) { inp.value = ''; inp.click(); }
+        }
+        function onCorretorFotoInputChange(evt) {
+            const file = evt.target.files && evt.target.files[0];
+            if (file && corretorFotoUploadTarget) processCorretorFotoFile(corretorFotoUploadTarget, file);
+        }
+        function removeCorretorFoto(nome) {
+            delete corretorFotos[nome];
+            delete corretorFotoImages[nome];
+            saveCorretorFotos();
+            renderCorretorRoster();
+            if (typeof drawQuickRankings === 'function') drawQuickRankings();
         }
         // Todos os nomes conhecidos = os da planilha + os pré-cadastrados
         function getAllKnownCorretores() {
@@ -1675,7 +1756,8 @@
                             vgv: r.vgv,
                             faltaC: m > 0 ? Math.max(0, m - r.count) : null,
                             pctC: m > 0 ? Math.min(100, Math.round((r.count / m) * 100)) : null,
-                            iniciais: initials(r.nome)
+                            iniciais: initials(r.nome),
+                            foto: (corretorFotoImages[r.nome] && corretorFotoImages[r.nome].complete) ? corretorFotoImages[r.nome] : null
                         };
                     })
                 };
@@ -1698,7 +1780,6 @@
                         const faltaC = metaC > 0 ? Math.max(0, metaC - r.count) : null;
                         const pctC = metaC > 0 ? Math.min(100, Math.round((r.count / metaC) * 100)) : null;
                         const pctColor = pctC === null ? 'text-slate-600' : (pctC >= 100 ? 'text-emerald-400' : pctC >= 50 ? 'text-amber-300' : pctC > 0 ? 'text-orange-400' : 'text-rose-400');
-                        const avatarGrad = 'from-indigo-500 to-brand-500';
                         const progBarMax = card.vgv ? 28 : 70;
                         const progPctCls = card.vgv ? 'text-[10px] w-7' : 'text-[11px] w-8';
                         const progressoCell = pctC === null
@@ -1710,7 +1791,7 @@
                             <td class="py-1.5 pr-2">
                                 <div class="flex items-center gap-2 min-w-0">
                                     <div class="relative h-6 w-6 shrink-0" title="${zero ? 'Ainda não enviou documentação neste período' : 'Já enviou documentação neste período'}">
-                                        <div class="h-6 w-6 rounded-full bg-gradient-to-br ${avatarGrad} flex items-center justify-center text-[8px] font-extrabold text-white ${zero ? 'opacity-50' : ''}">${initials(r.nome)}</div>
+                                        ${corretorAvatarInner(r.nome, 'h-6 w-6', 'text-[8px]', zero ? 'opacity-50' : '')}
                                         ${zero
                                             ? `<span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-slate-600 border-2 border-slate-900 flex items-center justify-center"><i class="fa-solid fa-minus text-slate-300" style="font-size:5px"></i></span>`
                                             : `<span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center"><i class="fa-solid fa-check text-white" style="font-size:5px"></i></span>`}
@@ -2049,17 +2130,27 @@
                 ctx.font = `800 13px ${FONT}`;
                 ctx.fillText(`${r.pos}º`, xRank, yMid + 1);
 
-                // avatar
+                // avatar — foto real (já pré-carregada em corretorFotoImages) se tiver, senão
+                // iniciais no círculo gradiente, igual ao card na tela.
                 const avR = 14;
                 const avCx = xName + avR, avCy = yMid;
-                const avGrad = ctx.createLinearGradient(avCx - avR, avCy - avR, avCx + avR, avCy + avR);
-                avGrad.addColorStop(0, '#6366f1'); avGrad.addColorStop(1, '#10b981');
                 ctx.globalAlpha = zero ? 0.5 : 1;
-                ctx.beginPath(); ctx.arc(avCx, avCy, avR, 0, Math.PI * 2); ctx.fillStyle = avGrad; ctx.fill();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `800 10px ${FONT}`;
-                ctx.textAlign = 'center';
-                ctx.fillText(r.iniciais, avCx, avCy + 0.5);
+                if (r.foto) {
+                    ctx.save();
+                    ctx.beginPath(); ctx.arc(avCx, avCy, avR, 0, Math.PI * 2); ctx.clip();
+                    const iw = r.foto.naturalWidth || r.foto.width, ih = r.foto.naturalHeight || r.foto.height;
+                    const side = Math.min(iw, ih);
+                    ctx.drawImage(r.foto, (iw - side) / 2, (ih - side) / 2, side, side, avCx - avR, avCy - avR, avR * 2, avR * 2);
+                    ctx.restore();
+                } else {
+                    const avGrad = ctx.createLinearGradient(avCx - avR, avCy - avR, avCx + avR, avCy + avR);
+                    avGrad.addColorStop(0, '#6366f1'); avGrad.addColorStop(1, '#10b981');
+                    ctx.beginPath(); ctx.arc(avCx, avCy, avR, 0, Math.PI * 2); ctx.fillStyle = avGrad; ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `800 10px ${FONT}`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(r.iniciais, avCx, avCy + 0.5);
+                }
                 ctx.globalAlpha = 1;
 
                 // selo de status: verde com check = enviou documentação; cinza com traço = ainda não
@@ -2444,9 +2535,19 @@
                 const removeBtn = ehAdicionado
                     ? `<button onclick="removeAddedCorretor('${nome.replace(/'/g, "\\'")}')" title="Remover" class="px-2 py-1 text-slate-500 hover:text-rose-400 rounded text-[10px] transition"><i class="fa-solid fa-trash"></i></button>`
                     : '';
+                const nomeEsc = nome.replace(/'/g, "\\'");
+                const temFoto = !!corretorFotos[nome];
+                const removeFotoBtn = temFoto
+                    ? `<button onclick="event.stopPropagation(); removeCorretorFoto('${nomeEsc}')" title="Remover foto" class="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-rose-600 hover:bg-rose-500 flex items-center justify-center text-white" style="font-size:7px"><i class="fa-solid fa-xmark"></i></button>`
+                    : '';
                 return `
                     <div class="flex items-center justify-between gap-2 bg-slate-950/40 rounded-lg px-3 py-2 border border-slate-800/60">
                         <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="relative h-8 w-8 shrink-0 group cursor-pointer" onclick="triggerCorretorFotoUpload('${nomeEsc}')" title="Clique para ${temFoto ? 'trocar a' : 'adicionar uma'} foto">
+                                ${corretorAvatarInner(nome, 'h-8 w-8', 'text-[10px]')}
+                                <div class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-camera text-white" style="font-size:9px"></i></div>
+                                ${removeFotoBtn}
+                            </div>
                             <span class="h-2 w-2 rounded-full ${dot} shrink-0"></span>
                             <span class="text-xs font-semibold truncate ${nomeClass}">${nome}</span>
                             ${tag}
@@ -2953,6 +3054,7 @@
             try {
                 if (Array.isArray(data.corretoresAdded)) { addedCorretores = data.corretoresAdded; localStorage.setItem(`${appId}-corretores-added`, JSON.stringify(addedCorretores)); }
                 if (Array.isArray(data.corretoresInactive)) { inactiveCorretores = data.corretoresInactive; localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores)); }
+                if (data.corretorFotos && typeof data.corretorFotos === 'object') { corretorFotos = data.corretorFotos; localStorage.setItem(`${appId}-corretor-fotos`, JSON.stringify(corretorFotos)); preloadAllCorretorFotos(); }
                 if (data.metasMensais && typeof data.metasMensais === 'object') { metasMensais = Object.assign({ vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60 }, data.metasMensais); localStorage.setItem(`${appId}-metas-mensais`, JSON.stringify(metasMensais)); }
                 if (data.rankingsMetas && typeof data.rankingsMetas === 'object') { rankingsMetas = data.rankingsMetas; localStorage.setItem(`${appId}-rankings-metas`, JSON.stringify(rankingsMetas)); }
                 if (data.metasPorCorretor && typeof data.metasPorCorretor === 'object') { metasPorCorretor = data.metasPorCorretor; localStorage.setItem(`${appId}-metas-corretor`, JSON.stringify(metasPorCorretor)); }
@@ -2998,6 +3100,7 @@
                 fbDb.collection('config').doc('settings').set({
                     corretoresAdded: addedCorretores,
                     corretoresInactive: inactiveCorretores,
+                    corretorFotos: corretorFotos,
                     metasMensais: metasMensais,
                     rankingsMetas: rankingsMetas,
                     metasPorCorretor: metasPorCorretor,
