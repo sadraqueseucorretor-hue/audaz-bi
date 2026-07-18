@@ -496,6 +496,24 @@
                         <canvas id="chartEvolucaoMensal"></canvas>
                     </div>
 
+                    <!-- Ritmo do Mês: real acumulado dia a dia vs a linha ideal pra bater a meta -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-gauge-high text-brand-500"></i> Ritmo do Mês — Real vs Meta</p>
+                                <p class="text-[10px] text-slate-500" id="ritmoMesPeriodoLabel">—</p>
+                            </div>
+                            <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                <button onclick="setRitmoMetric('analises')" id="ritmoBtn-analises" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Análises</button>
+                                <button onclick="setRitmoMetric('aprovacoes')" id="ritmoBtn-aprovacoes" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovações</button>
+                                <button onclick="setRitmoMetric('vendas')" id="ritmoBtn-vendas" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
+                            </div>
+                        </div>
+                        <div class="h-56 relative">
+                            <canvas id="chartRitmoMes"></canvas>
+                        </div>
+                    </div>
+
                     <div class="mb-6">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fa-solid fa-percent text-brand-500"></i> Taxa de Conversão</p>
                         <div class="overflow-x-auto">
@@ -3931,6 +3949,132 @@
             }).join('');
         }
 
+        // ===== RITMO DO MÊS: real acumulado dia a dia vs a linha ideal pra bater a meta =====
+        let ritmoMetric = 'analises'; // analises | aprovacoes | vendas
+        function setRitmoMetric(m) {
+            ritmoMetric = m;
+            ['analises', 'aprovacoes', 'vendas'].forEach(k => {
+                const btn = document.getElementById('ritmoBtn-' + k);
+                if (!btn) return;
+                btn.className = 'ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (k === m ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-slate-200');
+            });
+            renderRitmoMesChart();
+        }
+
+        // Constrói a "linha de tendência": quanto eu deveria ter acumulado até cada dia do mês
+        // comercial pra bater a meta no ritmo certo (meta × dia ÷ dias do mês), contra o real
+        // acumulado até hoje.
+        function renderRitmoMesChart() {
+            const canvas = document.getElementById('chartRitmoMes');
+            if (!canvas) return;
+            if (charts.ritmoMes) charts.ritmoMes.destroy();
+
+            const hoje = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            const refMes = getReferenceMesComercial();
+            let mesNome, ano, monthIdx;
+            if (refMes) {
+                mesNome = refMes.nome; ano = refMes.ano; monthIdx = refMes.idx;
+            } else {
+                const lc = !isMockDataActive ? getLatestCommercialMonth() : null;
+                if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
+                else { mesNome = getMesName(hoje.getMonth() + 1); ano = hoje.getFullYear(); monthIdx = hoje.getMonth(); }
+            }
+            const diasNoMes = new Date(ano, monthIdx + 1, 0).getDate();
+            const mesEhAtual = (monthIdx === hoje.getMonth() && ano === hoje.getFullYear());
+            const diaHoje = mesEhAtual ? Math.min(diasNoMes, Math.max(1, hoje.getDate())) : diasNoMes;
+
+            const lbl = document.getElementById('ritmoMesPeriodoLabel');
+            if (lbl) {
+                lbl.textContent = mesEhAtual
+                    ? `${mesNome}/${ano} · mês comercial vai do dia 1 ao dia ${diasNoMes} (hoje: dia ${diaHoje})`
+                    : `${mesNome}/${ano} · mês comercial foi do dia 1 ao dia ${diasNoMes} (fechado)`;
+            }
+
+            const meta = metasMensais[ritmoMetric] || 0;
+
+            const porDia = new Array(diasNoMes + 1).fill(0); // índice 1..diasNoMes
+            filteredDataset.forEach(row => {
+                let ok, mesRef, dataRef;
+                if (ritmoMetric === 'analises') {
+                    ok = true; mesRef = row['Mês Cadastro']; dataRef = row['Data Cadastro'];
+                } else if (ritmoMetric === 'aprovacoes') {
+                    ok = isAprovado(row['Situação - Analise']); mesRef = mesAprovacaoEfetivo(row); dataRef = dataAprovacaoEfetiva(row);
+                } else {
+                    ok = isGanho(row); mesRef = row['Mês Ganho']; dataRef = row['Data Ganho'];
+                }
+                if (!ok) return;
+                if (normalizeMes(mesRef) !== mesNome || (getMesAno(mesRef) || ano) !== ano) return;
+                const d = parseDate(dataRef);
+                if (!d) return;
+                const dia = d.getDate();
+                if (dia >= 1 && dia <= diasNoMes) porDia[dia]++;
+            });
+
+            const labels = [];
+            const realAcumulado = [];
+            const ritmoIdeal = [];
+            let acumulado = 0;
+            for (let d = 1; d <= diasNoMes; d++) {
+                labels.push(String(d));
+                acumulado += porDia[d];
+                realAcumulado.push(d <= diaHoje ? acumulado : null);
+                ritmoIdeal.push((meta * d) / diasNoMes);
+            }
+
+            const ctx = canvas.getContext('2d');
+            charts.ritmoMes = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Real (acumulado)',
+                            data: realAcumulado,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            tension: 0.2,
+                            fill: true,
+                            spanGaps: false
+                        },
+                        {
+                            label: `Ritmo Ideal (meta: ${meta})`,
+                            data: ritmoIdeal,
+                            borderColor: 'rgba(226, 232, 240, 0.55)',
+                            borderWidth: 2,
+                            borderDash: [6, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12 } },
+                        tooltip: { callbacks: { title: (items) => `Dia ${items[0].label}` } }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { size: 9 }, maxTicksLimit: 12 },
+                            title: { display: true, text: 'Dia do mês comercial', color: '#64748b', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                            ticks: { color: '#cbd5e1', font: { size: 11 } },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
         function renderCharts() {
             if (charts.evolucaoMensal) charts.evolucaoMensal.destroy();
             if (charts.evolucaoVgv) charts.evolucaoVgv.destroy();
@@ -3979,6 +4123,7 @@
             renderTaxaConversaoTable(evolucaoJanela);
             renderInsightMes(evolucaoJanela);
             renderAtividadesRecentes();
+            renderRitmoMesChart();
 
             // 1. Gráfico de Evolução Operacional - Otimização de Contraste e Espessura
             const ctxEvol = document.getElementById('chartEvolucaoMensal').getContext('2d');
