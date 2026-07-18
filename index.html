@@ -3979,34 +3979,60 @@
                 if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
                 else { mesNome = getMesName(hoje.getMonth() + 1); ano = hoje.getFullYear(); monthIdx = hoje.getMonth(); }
             }
-            const diasNoMes = new Date(ano, monthIdx + 1, 0).getDate();
+            function linhaDoRow(row) {
+                if (ritmoMetric === 'analises') return { ok: true, mesRef: row['Mês Cadastro'], dataRef: row['Data Cadastro'] };
+                if (ritmoMetric === 'aprovacoes') return { ok: isAprovado(row['Situação - Analise']), mesRef: mesAprovacaoEfetivo(row), dataRef: dataAprovacaoEfetiva(row) };
+                return { ok: isGanho(row), mesRef: row['Mês Ganho'], dataRef: row['Data Ganho'] };
+            }
+            function pertenceAoMes(l) {
+                return l.ok && normalizeMes(l.mesRef) === mesNome && (getMesAno(l.mesRef) || ano) === ano;
+            }
+
+            // O mês comercial não começa no dia 1 nem termina no último dia do calendário — o
+            // início real é a data mais antiga lançada com esse mês (pode ser ainda no mês anterior).
+            // Trava de segurança: no máx. 10 dias antes do dia 1, pra uma data digitada errada não
+            // bagunçar o gráfico inteiro.
+            const diasNoMesCalendario = new Date(ano, monthIdx + 1, 0).getDate();
+            let inicioReal = new Date(ano, monthIdx, 1);
+            filteredDataset.forEach(row => {
+                const l = linhaDoRow(row);
+                if (!pertenceAoMes(l)) return;
+                const d = parseDate(l.dataRef);
+                if (d && d < inicioReal) inicioReal = d;
+            });
+            const inicioMinPermitido = new Date(ano, monthIdx, 1);
+            inicioMinPermitido.setDate(inicioMinPermitido.getDate() - 10);
+            if (inicioReal < inicioMinPermitido) inicioReal = new Date(inicioMinPermitido);
+            inicioReal.setHours(0, 0, 0, 0);
+
+            // Fim estimado: mesma quantidade de dias do mês do calendário, só que contados a
+            // partir do início real (em vez do dia 1 fixo) — assim o "fecha depois" e o "começa
+            // antes" ficam simétricos.
+            const diasNoMes = diasNoMesCalendario;
+            const fimEstimado = new Date(inicioReal);
+            fimEstimado.setDate(fimEstimado.getDate() + diasNoMes - 1);
+
             const mesEhAtual = (monthIdx === hoje.getMonth() && ano === hoje.getFullYear());
-            const diaHoje = mesEhAtual ? Math.min(diasNoMes, Math.max(1, hoje.getDate())) : diasNoMes;
+            const diaHoje = mesEhAtual
+                ? Math.min(diasNoMes, Math.max(1, Math.floor((hoje - inicioReal) / 86400000) + 1))
+                : diasNoMes;
 
             const lbl = document.getElementById('ritmoMesPeriodoLabel');
             if (lbl) {
                 lbl.textContent = mesEhAtual
-                    ? `${mesNome}/${ano} · mês comercial vai do dia 1 ao dia ${diasNoMes} (hoje: dia ${diaHoje})`
-                    : `${mesNome}/${ano} · mês comercial foi do dia 1 ao dia ${diasNoMes} (fechado)`;
+                    ? `${mesNome}/${ano} · mês comercial de ${formatDate(inicioReal)} a ${formatDate(fimEstimado)} (hoje: dia ${diaHoje} de ${diasNoMes})`
+                    : `${mesNome}/${ano} · mês comercial foi de ${formatDate(inicioReal)} a ${formatDate(fimEstimado)} (fechado)`;
             }
 
             const meta = metasMensais[ritmoMetric] || 0;
 
-            const porDia = new Array(diasNoMes + 1).fill(0); // índice 1..diasNoMes
+            const porDia = new Array(diasNoMes + 1).fill(0); // índice 1..diasNoMes, dia 1 = inicioReal
             filteredDataset.forEach(row => {
-                let ok, mesRef, dataRef;
-                if (ritmoMetric === 'analises') {
-                    ok = true; mesRef = row['Mês Cadastro']; dataRef = row['Data Cadastro'];
-                } else if (ritmoMetric === 'aprovacoes') {
-                    ok = isAprovado(row['Situação - Analise']); mesRef = mesAprovacaoEfetivo(row); dataRef = dataAprovacaoEfetiva(row);
-                } else {
-                    ok = isGanho(row); mesRef = row['Mês Ganho']; dataRef = row['Data Ganho'];
-                }
-                if (!ok) return;
-                if (normalizeMes(mesRef) !== mesNome || (getMesAno(mesRef) || ano) !== ano) return;
-                const d = parseDate(dataRef);
+                const l = linhaDoRow(row);
+                if (!pertenceAoMes(l)) return;
+                const d = parseDate(l.dataRef);
                 if (!d) return;
-                const dia = d.getDate();
+                const dia = Math.floor((d - inicioReal) / 86400000) + 1;
                 if (dia >= 1 && dia <= diasNoMes) porDia[dia]++;
             });
 
