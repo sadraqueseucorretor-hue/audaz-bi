@@ -487,10 +487,28 @@
 
                 <!-- Ritmo do Mês: real acumulado dia a dia vs a linha ideal pra bater a meta -->
                 <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
-                    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-                        <div>
-                            <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-gauge-high text-brand-500"></i> Ritmo do Mês — Real vs Meta</h3>
-                            <p class="text-[10px] text-slate-500" id="ritmoMesPeriodoLabel">—</p>
+                    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-11 w-11 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-gauge-high text-brand-500 text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-extrabold tracking-wide text-slate-100 uppercase leading-tight">Ritmo do Mês</h3>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Real vs Meta</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <i class="fa-regular fa-calendar text-brand-500 mt-1"></i>
+                            <div>
+                                <p class="text-sm font-bold text-slate-100" id="ritmoMesTituloMes">—</p>
+                                <p class="text-[10px] text-slate-500" id="ritmoMesPeriodoLabel">—</p>
+                                <p class="text-[10px] text-slate-500" id="ritmoMesHojeLabel">—</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/70 border border-amber-500/30 rounded-xl px-4 py-2 text-center" id="ritmoMesFechamentoBox">
+                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-center gap-1"><i class="fa-regular fa-clock text-amber-400"></i> Faltam para o fechamento</p>
+                            <p class="text-2xl font-extrabold text-amber-400 leading-tight" id="ritmoMesDiasFaltam">—</p>
+                            <p class="text-[10px] text-slate-500" id="ritmoMesEncerramento">—</p>
                         </div>
                         <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
                             <button onclick="setRitmoMetric('analises')" id="ritmoBtn-analises" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Análises</button>
@@ -498,9 +516,17 @@
                             <button onclick="setRitmoMetric('vendas')" id="ritmoBtn-vendas" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3" id="ritmoMesStats"></div>
-                    <div class="h-56 relative">
-                        <canvas id="chartRitmoMes"></canvas>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="ritmoMesStats"></div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                        <div class="lg:col-span-3">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Evolução Diária — Real vs Ritmo Ideal</p>
+                            <div class="h-64 relative">
+                                <canvas id="chartRitmoMes"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-4" id="ritmoMesResumo"></div>
                     </div>
                 </div>
 
@@ -4222,6 +4248,8 @@
             renderRitmoMesChart();
         }
 
+        const RITMO_METRIC_LABELS = { analises: 'análises', aprovacoes: 'aprovações', vendas: 'vendas' };
+
         // 4 indicadores resumindo o Ritmo do Mês: quanto eu deveria ter (ritmo ideal até hoje),
         // quanto eu tenho de verdade, o gap entre os dois, e a projeção de fechamento do mês se
         // eu continuar no ritmo atual (regra de três simples: real÷diaHoje×diasNoMes).
@@ -4229,27 +4257,104 @@
             const el = document.getElementById('ritmoMesStats');
             if (!el) return;
 
+            const metricLabel = RITMO_METRIC_LABELS[ritmoMetric] || 'itens';
             const realHoje = diaHoje > 0 ? (realAcumulado[diaHoje - 1] || 0) : 0;
             const idealHoje = diasNoMes > 0 ? (meta * diaHoje) / diasNoMes : 0;
+            const pctDia = diasNoMes > 0 ? (diaHoje / diasNoMes) * 100 : 0;
             const gap = realHoje - idealHoje;
             const gapPositivo = gap >= 0;
+            const pctRitmo = idealHoje > 0 ? (realHoje / idealHoje) * 100 : (realHoje > 0 ? 100 : 0);
             const projecao = diaHoje > 0 ? Math.round((realHoje / diaHoje) * diasNoMes) : 0;
             const pctMeta = meta > 0 ? (projecao / meta) * 100 : 0;
             const projecaoBate = pctMeta >= 100;
 
-            const cards = [
-                { label: 'Deveria ter (ritmo ideal)', valor: Math.round(idealHoje), cor: 'text-slate-200', icon: 'fa-bullseye' },
-                { label: 'Tenho até hoje', valor: Math.round(realHoje), cor: 'text-brand-400', icon: 'fa-chart-line' },
-                { label: gapPositivo ? 'À frente do ritmo' : 'Atrás do ritmo', valor: `${gapPositivo ? '+' : ''}${Math.round(gap)}`, cor: gapPositivo ? 'text-brand-400' : 'text-rose-400', icon: gapPositivo ? 'fa-arrow-up' : 'fa-arrow-down' },
-                { label: 'Projeção se continuar assim', valor: `${Math.round(projecao)} · ${pctMeta.toFixed(0)}% da meta`, cor: projecaoBate ? 'text-brand-400' : 'text-amber-400', icon: 'fa-flag-checkered' }
-            ];
-
-            el.innerHTML = cards.map(c => `
-                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-2.5 text-center">
-                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-center gap-1"><i class="fa-solid ${c.icon}"></i> ${c.label}</p>
-                    <p class="text-base font-extrabold ${c.cor} mt-1">${c.valor}</p>
+            el.innerHTML = `
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i class="fa-solid fa-bullseye text-slate-500"></i> Ritmo ideal até hoje</p>
+                    <p class="text-2xl font-extrabold text-slate-100 mt-1.5">${Math.round(idealHoje)}</p>
+                    <p class="text-[10px] text-slate-500">acumulado</p>
+                    <p class="text-[10px] text-slate-500 mt-2 pt-2 border-t border-slate-800/70 flex items-center gap-1"><i class="fa-regular fa-circle-question"></i> Meta proporcional (${pctDia.toFixed(0)}%)</p>
                 </div>
-            `).join('');
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i class="fa-solid fa-chart-line text-brand-500"></i> Real acumulado</p>
+                    <p class="text-2xl font-extrabold text-brand-400 mt-1.5">${Math.round(realHoje)}</p>
+                    <p class="text-[10px] text-slate-500">realizado até hoje (${pctDia.toFixed(0)}%)</p>
+                    <p class="text-[10px] text-brand-400 mt-2 pt-2 border-t border-slate-800/70">${pctRitmo.toFixed(0)}% do ritmo ideal</p>
+                </div>
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i class="fa-solid ${gapPositivo ? 'fa-arrow-up' : 'fa-arrow-down'} ${gapPositivo ? 'text-brand-500' : 'text-rose-500'}"></i> ${gapPositivo ? 'Adiantamento' : 'Atraso'} em relação ao ideal</p>
+                    <p class="text-2xl font-extrabold ${gapPositivo ? 'text-brand-400' : 'text-rose-400'} mt-1.5">${gapPositivo ? '+' : ''}${Math.round(gap)}</p>
+                    <p class="text-[10px] text-slate-500">${metricLabel} ${gapPositivo ? 'acima' : 'abaixo'} do ideal</p>
+                    <p class="text-[10px] ${gapPositivo ? 'text-brand-400' : 'text-rose-400'} mt-2 pt-2 border-t border-slate-800/70">${gapPositivo ? 'Você está à frente, mantenha o ritmo!' : `Precisamos de +${Math.round(Math.abs(gap))} até o fim do mês`}</p>
+                </div>
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i class="fa-solid fa-flag-checkered text-sky-500"></i> Projeção até o fim do mês</p>
+                    <p class="text-2xl font-extrabold text-sky-400 mt-1.5">${Math.round(projecao)}</p>
+                    <p class="text-[10px] text-slate-500">projeção de ${metricLabel}</p>
+                    <p class="text-[10px] ${projecaoBate ? 'text-brand-400' : 'text-amber-400'} mt-2 pt-2 border-t border-slate-800/70">${pctMeta.toFixed(0)}% da meta (${meta})</p>
+                </div>
+            `;
+        }
+
+        // Card lateral "Resumo do Mês": progresso de dias, meta total, projeção, ritmo diário
+        // necessário pra fechar a meta (baseado nos dias que ainda restam) e a média diária já
+        // realizada — dá o "quanto preciso fazer por dia daqui pra frente" que os 4 cards de cima
+        // (que olham só o instante de hoje) não respondem sozinhos.
+        function renderRitmoMesResumo(realAcumulado, diaHoje, diasNoMes, meta) {
+            const el = document.getElementById('ritmoMesResumo');
+            if (!el) return;
+
+            const metricLabel = RITMO_METRIC_LABELS[ritmoMetric] || 'itens';
+            const realHoje = diaHoje > 0 ? (realAcumulado[diaHoje - 1] || 0) : 0;
+            const pctDia = diasNoMes > 0 ? (diaHoje / diasNoMes) * 100 : 0;
+            const projecao = diaHoje > 0 ? Math.round((realHoje / diaHoje) * diasNoMes) : 0;
+            const pctMeta = meta > 0 ? (projecao / meta) * 100 : 0;
+            const diasRestantes = Math.max(0, diasNoMes - diaHoje);
+            const necessarioPorDia = diasRestantes > 0 ? Math.max(0, meta - realHoje) / diasRestantes : 0;
+            const mediaPorDia = diaHoje > 0 ? realHoje / diaHoje : 0;
+            const bateMeta = pctMeta >= 100;
+
+            el.innerHTML = `
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Resumo do Mês</p>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-regular fa-calendar text-brand-500"></i> Dias do mês</span>
+                            <span class="font-bold text-slate-200">${diaHoje} de ${diasNoMes}</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                            <div class="h-full bg-brand-500 rounded-full" style="width:${Math.min(100, pctDia).toFixed(0)}%"></div>
+                        </div>
+                        <p class="text-right text-[10px] text-slate-500 mt-0.5">${pctDia.toFixed(0)}%</p>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800/70">
+                        <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-bullseye text-slate-500"></i> Meta total</span>
+                        <span class="font-bold text-slate-200">${meta} <span class="text-slate-500 font-normal">${metricLabel}</span></span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-chart-line text-sky-500"></i> Projeção atual</span>
+                        <span class="text-right">
+                            <span class="font-bold text-sky-400 block">${projecao}</span>
+                            <span class="text-[10px] text-slate-500">${pctMeta.toFixed(0)}% da meta</span>
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800/70">
+                        <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Necessário/dia</span>
+                        <span class="font-bold text-rose-400">${necessarioPorDia.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-chart-simple text-slate-500"></i> Média atual/dia</span>
+                        <span class="text-right">
+                            <span class="font-bold text-slate-200 block">${mediaPorDia.toFixed(2).replace('.', ',')}</span>
+                            <span class="text-[10px] text-slate-500">(${Math.round(realHoje)} em ${diaHoje}d)</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="mt-4 rounded-lg border ${bateMeta ? 'border-brand-500/40 bg-brand-500/10' : 'border-brand-500/30 bg-brand-500/5'} px-3 py-2.5">
+                    <p class="text-xs font-bold text-brand-400 flex items-center gap-1.5"><i class="fa-solid fa-trophy"></i> Meta: ${meta} ${metricLabel}</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">${bateMeta ? 'Ritmo em dia, continue assim!' : 'Vamos acelerar para bater essa meta!'}</p>
+                </div>
+            `;
         }
 
         // Constrói a "linha de tendência": quanto eu deveria ter acumulado até cada dia do mês
@@ -4336,13 +4441,25 @@
 
             const { mesNome, ano, inicioReal, fimEstimado, diasNoMes, diaHoje, mesEhAtual, configMes, pertenceAoMes, linhaDoRow } = getJanelaMesComercial(ritmoMetric);
 
+            const origemTag = configMes ? '' : ' (estimado)';
+            const pctDiaHeader = diasNoMes > 0 ? (diaHoje / diasNoMes) * 100 : 0;
+            const diasRestantes = Math.max(0, diasNoMes - diaHoje);
+
+            const tituloEl = document.getElementById('ritmoMesTituloMes');
+            if (tituloEl) tituloEl.textContent = `${mesNome.charAt(0).toUpperCase()}${mesNome.slice(1)}/${ano}`;
+
             const lbl = document.getElementById('ritmoMesPeriodoLabel');
-            if (lbl) {
-                const origemTag = configMes ? '' : ' (estimado)';
-                lbl.textContent = mesEhAtual
-                    ? `${mesNome}/${ano} · mês comercial de ${formatDate(inicioReal)} a ${formatDate(fimEstimado)}${origemTag} (hoje: dia ${diaHoje} de ${diasNoMes})`
-                    : `${mesNome}/${ano} · mês comercial foi de ${formatDate(inicioReal)} a ${formatDate(fimEstimado)}${origemTag} (fechado)`;
-            }
+            if (lbl) lbl.textContent = `Mês comercial: ${formatDate(inicioReal)} a ${formatDate(fimEstimado)}${origemTag}`;
+
+            const hojeLbl = document.getElementById('ritmoMesHojeLabel');
+            if (hojeLbl) hojeLbl.textContent = mesEhAtual ? `Hoje: ${diaHoje} de ${diasNoMes} dias (${pctDiaHeader.toFixed(0)}%)` : 'Mês comercial fechado';
+
+            const fechamentoBox = document.getElementById('ritmoMesFechamentoBox');
+            if (fechamentoBox) fechamentoBox.style.display = mesEhAtual ? '' : 'none';
+            const diasFaltamEl = document.getElementById('ritmoMesDiasFaltam');
+            if (diasFaltamEl) diasFaltamEl.textContent = `${diasRestantes} dias`;
+            const encerramentoEl = document.getElementById('ritmoMesEncerramento');
+            if (encerramentoEl) encerramentoEl.textContent = `Encerramento: ${formatDate(fimEstimado)}`;
 
             const meta = metasMensais[ritmoMetric] || 0;
 
@@ -4368,6 +4485,9 @@
             }
 
             renderRitmoMesStats(realAcumulado, diaHoje, diasNoMes, meta);
+            renderRitmoMesResumo(realAcumulado, diaHoje, diasNoMes, meta);
+
+            const metricLabel = RITMO_METRIC_LABELS[ritmoMetric] || 'itens';
 
             const ctx = canvas.getContext('2d');
             charts.ritmoMes = new Chart(ctx, {
@@ -4403,6 +4523,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: { padding: { top: 46, right: 70 } },
                     plugins: {
                         legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12 } },
                         tooltip: { callbacks: { title: (items) => `Dia ${items[0].label}` } }
@@ -4419,7 +4540,101 @@
                             beginAtZero: true
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'ritmoCallouts',
+                    // Marca visualmente o ponto de "hoje" (valor real acumulado) e o ponto final da
+                    // linha ideal (a meta), igual ao mockup — Chart.js não tem isso nativo, então
+                    // desenha à mão no afterDatasetsDraw (mesmo padrão já usado nos outros gráficos
+                    // de "Evolução Mensal", em vez de trazer uma lib de annotation só pra isso).
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        const realMeta = chart.getDatasetMeta(0);
+                        const idealMeta = chart.getDatasetMeta(1);
+                        ctx.save();
+                        ctx.textBaseline = 'alphabetic';
+
+                        if (diaHoje >= 1 && diaHoje <= diasNoMes) {
+                            const point = realMeta.data[diaHoje - 1];
+                            if (point) {
+                                const valorHoje = Math.round(realAcumulado[diaHoje - 1] || 0);
+                                ctx.fillStyle = '#10b981';
+                                ctx.beginPath();
+                                ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.strokeStyle = '#0b1220';
+                                ctx.lineWidth = 2;
+                                ctx.stroke();
+
+                                const linha1 = String(valorHoje);
+                                const linha2 = `${metricLabel} (hoje)`;
+                                ctx.font = 'bold 13px "Plus Jakarta Sans", sans-serif';
+                                const w1 = ctx.measureText(linha1).width;
+                                ctx.font = '600 9px "Plus Jakarta Sans", sans-serif';
+                                const w2 = ctx.measureText(linha2).width;
+                                const boxW = Math.max(w1, w2) + 20;
+                                const boxH = 38;
+                                let boxX = point.x - boxW / 2;
+                                boxX = Math.max(2, Math.min(boxX, chart.width - boxW - 2));
+                                let boxY = point.y - boxH - 16;
+                                if (boxY < 2) boxY = point.y + 14;
+
+                                ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+                                ctx.strokeStyle = '#10b981';
+                                ctx.lineWidth = 1.5;
+                                ctx.beginPath();
+                                ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+                                ctx.fill();
+                                ctx.stroke();
+
+                                ctx.textAlign = 'center';
+                                ctx.fillStyle = '#6ee7b7';
+                                ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+                                ctx.fillText(linha1, boxX + boxW / 2, boxY + 17);
+                                ctx.fillStyle = '#a7f3d0';
+                                ctx.font = '600 9px "Plus Jakarta Sans", sans-serif';
+                                ctx.fillText(linha2, boxX + boxW / 2, boxY + 30);
+                            }
+                        }
+
+                        const pontoFinal = idealMeta.data[idealMeta.data.length - 1];
+                        if (pontoFinal) {
+                            ctx.fillStyle = '#0b1220';
+                            ctx.beginPath();
+                            ctx.arc(pontoFinal.x, pontoFinal.y, 4, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.strokeStyle = 'rgba(226, 232, 240, 0.7)';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+
+                            const rotulo = String(meta);
+                            ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
+                            const boxW = Math.max(ctx.measureText(rotulo).width, 55) + 16;
+                            const boxH = 32;
+                            let boxX = pontoFinal.x - boxW - 8;
+                            if (boxX < 2) boxX = pontoFinal.x + 8;
+                            let boxY = Math.max(2, Math.min(pontoFinal.y - boxH / 2, chart.height - boxH - 2));
+
+                            ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+                            ctx.strokeStyle = 'rgba(226, 232, 240, 0.4)';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+                            ctx.fill();
+                            ctx.stroke();
+
+                            ctx.textAlign = 'center';
+                            ctx.fillStyle = '#f1f5f9';
+                            ctx.font = 'bold 13px "Plus Jakarta Sans", sans-serif';
+                            ctx.fillText(rotulo, boxX + boxW / 2, boxY + 14);
+                            ctx.fillStyle = '#94a3b8';
+                            ctx.font = '600 8px "Plus Jakarta Sans", sans-serif';
+                            ctx.fillText('meta final', boxX + boxW / 2, boxY + 26);
+                        }
+
+                        ctx.restore();
+                    }
+                }]
             });
         }
 
