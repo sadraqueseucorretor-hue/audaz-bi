@@ -118,6 +118,11 @@
                         Gerir Corretores
                     </button>
 
+                    <button onclick="toggleMesesComerciaisModal()" id="btnMesesComerciais" class="diretor-locked w-full mt-2 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150" disabled>
+                        <i class="fa-solid fa-calendar-days text-sky-400"></i>
+                        Meses Comerciais
+                    </button>
+
                     <!-- Seletor de Intervalo de Auto-Atualização -->
                     <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                         <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-brand-500"></i> Atualizar a cada:</span>
@@ -1050,6 +1055,67 @@
         </div>
     </div>
 
+    <!-- MODAL: MESES COMERCIAIS (períodos manuais — hoje usados só no gráfico Ritmo do Mês) -->
+    <div id="mesesComerciaisModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+            <button onclick="toggleMesesComerciaisModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="h-10 w-10 bg-sky-500/10 border border-sky-500/20 rounded-xl flex items-center justify-center text-sky-400">
+                    <i class="fa-solid fa-calendar-days text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-slate-200">Mês Comercial</h4>
+                    <p class="text-xs text-slate-500">Defina o período de cada mês comercial</p>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-400 leading-relaxed mb-5">
+                Defina o período de cada mês comercial. Hoje isso é usado no gráfico <strong class="text-slate-300">"Ritmo do Mês"</strong>, no lugar da tentativa automática de adivinhar pelos lançamentos. Ex.: <span class="text-amber-400">Junho/2026 de 08/06 a 03/07</span>.
+            </p>
+
+            <input type="hidden" id="mesComercialEditIdx" value="">
+            <div class="bg-slate-950/50 rounded-xl border border-slate-800 p-4 mb-5">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Mês de Referência</label>
+                        <select id="mesComercialMesInput" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-2 text-slate-300 outline-none focus:border-sky-500 transition">
+                            <option>Janeiro</option><option>Fevereiro</option><option>Março</option><option>Abril</option>
+                            <option>Maio</option><option>Junho</option><option>Julho</option><option>Agosto</option>
+                            <option>Setembro</option><option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Ano</label>
+                        <input type="number" id="mesComercialAnoInput" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-2 text-slate-300 outline-none focus:border-sky-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Início</label>
+                        <input type="date" id="mesComercialInicioInput" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-2 text-slate-300 outline-none focus:border-sky-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Encerramento</label>
+                        <input type="date" id="mesComercialFimInput" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-2 text-slate-300 outline-none focus:border-sky-500 transition">
+                    </div>
+                </div>
+                <button onclick="salvarMesComercial()" id="mesComercialSalvarBtn" class="w-full mt-3 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-xs font-bold rounded-lg transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Novo Mês Comercial
+                </button>
+            </div>
+
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Períodos configurados</p>
+            <div id="mesesComerciaisList" class="space-y-2">
+                <!-- Preenchido dinamicamente -->
+            </div>
+
+            <button onclick="toggleMesesComerciaisModal()" class="w-full mt-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700">
+                Concluir
+            </button>
+        </div>
+    </div>
+
     <!-- MODAL: METAS POR CORRETOR (dia/semana/mês, por parâmetro dos Rankings Rápidos) -->
     <div id="metasCorretorModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl p-6 relative shadow-2xl">
@@ -1146,6 +1212,21 @@
                 const saved = JSON.parse(localStorage.getItem(`${appId}-metas-mensais`) || 'null');
                 if (saved) metasMensais = Object.assign(metasMensais, saved);
             } catch (e) {}
+        }
+
+        // ====== MESES COMERCIAIS (períodos configurados manualmente pelo diretor) ======
+        // Cada item: { nome: 'Junho', ano: 2026, inicio: 'AAAA-MM-DD', fim: 'AAAA-MM-DD' }.
+        // Quando existe config pro mês em exibição, a DATA manda (ignora o texto "Mês Cadastro"
+        // da planilha) — usado hoje só no gráfico "Ritmo do Mês".
+        let mesesComerciais = [];
+        function loadMesesComerciais() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`${appId}-meses-comerciais`) || 'null');
+                if (Array.isArray(saved)) mesesComerciais = saved;
+            } catch (e) {}
+        }
+        function getMesComercialConfig(nome, ano) {
+            return mesesComerciais.find(m => m.nome === nome && m.ano === ano) || null;
         }
         function setMetaMensal(campo, val) {
             const n = parseFloat(String(val).replace(/\./g, '').replace(',', '.')) || 0;
@@ -2129,6 +2210,121 @@
             if (!m.classList.contains('hidden')) renderCorretorRoster();
         }
 
+        function toggleMesesComerciaisModal() {
+            const m = document.getElementById('mesesComerciaisModal');
+            m.classList.toggle('hidden');
+            if (!m.classList.contains('hidden')) {
+                resetMesComercialForm();
+                renderMesesComerciaisList();
+            }
+        }
+
+        // Preenche o formulário já sugerindo o PRÓXIMO mês comercial: o mês seguinte ao último
+        // cadastrado, com início no dia seguinte ao encerramento do anterior — "já deixa salvo
+        // essas datas pra eu fazer o próximo".
+        function resetMesComercialForm() {
+            document.getElementById('mesComercialEditIdx').value = '';
+            document.getElementById('mesComercialSalvarBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Novo Mês Comercial';
+
+            const mesSelect = document.getElementById('mesComercialMesInput');
+            const anoInput = document.getElementById('mesComercialAnoInput');
+            const inicioInput = document.getElementById('mesComercialInicioInput');
+            const fimInput = document.getElementById('mesComercialFimInput');
+
+            const ultimo = mesesComerciais.length ? mesesComerciais[mesesComerciais.length - 1] : null;
+            if (ultimo && ultimo.fim) {
+                const proxIdx = (MESES_IDX[ultimo.nome] + 1) % 12;
+                const proxAno = MESES_IDX[ultimo.nome] === 11 ? ultimo.ano + 1 : ultimo.ano;
+                mesSelect.value = getMesName(proxIdx + 1);
+                anoInput.value = proxAno;
+                const proximoInicio = new Date(ultimo.fim + 'T00:00:00');
+                proximoInicio.setDate(proximoInicio.getDate() + 1);
+                inicioInput.value = proximoInicio.toISOString().slice(0, 10);
+                fimInput.value = '';
+            } else {
+                const hoje = new Date();
+                mesSelect.value = getMesName(hoje.getMonth() + 1);
+                anoInput.value = hoje.getFullYear();
+                inicioInput.value = '';
+                fimInput.value = '';
+            }
+        }
+
+        function salvarMesComercial() {
+            const idxStr = document.getElementById('mesComercialEditIdx').value;
+            const nome = document.getElementById('mesComercialMesInput').value;
+            const ano = parseInt(document.getElementById('mesComercialAnoInput').value) || new Date().getFullYear();
+            const inicio = document.getElementById('mesComercialInicioInput').value;
+            const fim = document.getElementById('mesComercialFimInput').value;
+
+            if (!inicio || !fim) { showToast('Preencha início e encerramento.', true); return; }
+            if (inicio > fim) { showToast('O início precisa ser antes do encerramento.', true); return; }
+
+            const item = { nome, ano, inicio, fim };
+            if (idxStr !== '') {
+                mesesComerciais[parseInt(idxStr)] = item;
+            } else {
+                const existenteIdx = mesesComerciais.findIndex(m => m.nome === nome && m.ano === ano);
+                if (existenteIdx >= 0) mesesComerciais[existenteIdx] = item;
+                else mesesComerciais.push(item);
+            }
+            mesesComerciais.sort((a, b) => (a.ano - b.ano) || (MESES_IDX[a.nome] - MESES_IDX[b.nome]));
+
+            localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais));
+            pushCloudSettings();
+            resetMesComercialForm();
+            renderMesesComerciaisList();
+            if (typeof renderRitmoMesChart === 'function') renderRitmoMesChart();
+            showToast(`Mês comercial ${nome}/${ano} salvo.`);
+        }
+
+        function editarMesComercial(idx) {
+            const item = mesesComerciais[idx];
+            if (!item) return;
+            document.getElementById('mesComercialEditIdx').value = String(idx);
+            document.getElementById('mesComercialMesInput').value = item.nome;
+            document.getElementById('mesComercialAnoInput').value = item.ano;
+            document.getElementById('mesComercialInicioInput').value = item.inicio;
+            document.getElementById('mesComercialFimInput').value = item.fim;
+            document.getElementById('mesComercialSalvarBtn').innerHTML = '<i class="fa-solid fa-check"></i> Salvar Alteração';
+        }
+
+        function excluirMesComercial(idx) {
+            const item = mesesComerciais[idx];
+            if (!item) return;
+            mesesComerciais.splice(idx, 1);
+            localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais));
+            pushCloudSettings();
+            renderMesesComerciaisList();
+            if (typeof renderRitmoMesChart === 'function') renderRitmoMesChart();
+            showToast(`Mês comercial ${item.nome}/${item.ano} removido.`);
+        }
+
+        function formatDateISO(iso) {
+            if (!iso) return '-';
+            return formatDate(new Date(iso + 'T00:00:00'));
+        }
+
+        function renderMesesComerciaisList() {
+            const el = document.getElementById('mesesComerciaisList');
+            if (!el) return;
+            if (!mesesComerciais.length) {
+                el.innerHTML = '<p class="text-xs text-slate-500">Nenhum mês comercial configurado ainda.</p>';
+                return;
+            }
+            el.innerHTML = mesesComerciais.map((m, idx) => `
+                <div class="flex items-center gap-3 bg-slate-950/50 rounded-xl border border-slate-800 p-3">
+                    <div class="h-9 w-9 shrink-0 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center"><i class="fa-solid fa-calendar-days text-xs"></i></div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-bold text-slate-200">${m.nome}/${m.ano}</p>
+                        <p class="text-[11px] text-slate-500">${formatDateISO(m.inicio)} → ${formatDateISO(m.fim)}</p>
+                    </div>
+                    <button onclick="editarMesComercial(${idx})" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-400 hover:text-brand-400 hover:border-brand-500/40 flex items-center justify-center transition" title="Editar"><i class="fa-solid fa-pen text-xs"></i></button>
+                    <button onclick="excluirMesComercial(${idx})" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 flex items-center justify-center transition" title="Excluir"><i class="fa-solid fa-trash text-xs"></i></button>
+                </div>
+            `).join('');
+        }
+
         function addCorretor() {
             const input = document.getElementById('newCorretorInput');
             const nome = (input.value || '').trim();
@@ -2555,6 +2751,7 @@
             loadMetasMensais();
             loadRankingsMetas();
             loadMetasPorCorretor();
+            loadMesesComerciais();
             if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
                 const sb = document.getElementById('sidebar');
                 if (sb) sb.style.display = 'none';
@@ -2746,6 +2943,7 @@
                 if (data.metasPorCorretor && typeof data.metasPorCorretor === 'object') { metasPorCorretor = data.metasPorCorretor; localStorage.setItem(`${appId}-metas-corretor`, JSON.stringify(metasPorCorretor)); }
                 if (data.vendasMode === 'gerais' || data.vendasMode === 'finalizadas') { vendasMode = data.vendasMode; localStorage.setItem(`${appId}-vendas-mode`, vendasMode); }
                 if (typeof data.gsheetsUrl === 'string' && data.gsheetsUrl) { googleSheetsUrl = data.gsheetsUrl; localStorage.setItem(`${appId}-gsheets-url`, googleSheetsUrl); }
+                if (Array.isArray(data.mesesComerciais)) { mesesComerciais = data.mesesComerciais; localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais)); }
             } catch (e) { console.warn(e); }
             applyingCloud = false;
         }
@@ -2790,6 +2988,7 @@
                     metasPorCorretor: metasPorCorretor,
                     vendasMode: vendasMode,
                     gsheetsUrl: googleSheetsUrl,
+                    mesesComerciais: mesesComerciais,
                     _updatedAt: Date.now()
                 }, { merge: true }).catch(function (e) { console.warn('Falha ao salvar na nuvem:', e); });
             } catch (e) { console.warn(e); }
@@ -3984,33 +4183,50 @@
                 if (ritmoMetric === 'aprovacoes') return { ok: isAprovado(row['Situação - Analise']), mesRef: mesAprovacaoEfetivo(row), dataRef: dataAprovacaoEfetiva(row) };
                 return { ok: isGanho(row), mesRef: row['Mês Ganho'], dataRef: row['Data Ganho'] };
             }
-            function pertenceAoMes(l) {
-                return l.ok && normalizeMes(l.mesRef) === mesNome && (getMesAno(l.mesRef) || ano) === ano;
+
+            // Se o diretor configurou manualmente o período desse mês (painel "Meses Comerciais"),
+            // A DATA MANDA: uma linha pertence ao mês se sua data cair dentro do período — mesmo
+            // que o texto "Mês Cadastro"/"Mês Aprovação"/"Mês Ganho" da planilha diga outra coisa.
+            // Sem config, cai no comportamento antigo (compara pelo texto do mês).
+            const configMes = getMesComercialConfig(mesNome, ano);
+            let inicioReal, fimEstimado, diasNoMes, pertenceAoMes;
+
+            if (configMes) {
+                inicioReal = new Date(configMes.inicio + 'T00:00:00');
+                fimEstimado = new Date(configMes.fim + 'T00:00:00');
+                diasNoMes = Math.max(1, Math.round((fimEstimado - inicioReal) / 86400000) + 1);
+                pertenceAoMes = (l) => {
+                    if (!l.ok) return false;
+                    const d = parseDate(l.dataRef);
+                    return d && d >= inicioReal && d <= fimEstimado;
+                };
+            } else {
+                pertenceAoMes = (l) => l.ok && normalizeMes(l.mesRef) === mesNome && (getMesAno(l.mesRef) || ano) === ano;
+
+                // O mês comercial não começa no dia 1 nem termina no último dia do calendário — o
+                // início real é a data mais antiga lançada com esse mês (pode ser ainda no mês
+                // anterior). Trava de segurança: no máx. 10 dias antes do dia 1, pra uma data
+                // digitada errada não bagunçar o gráfico inteiro.
+                const diasNoMesCalendario = new Date(ano, monthIdx + 1, 0).getDate();
+                inicioReal = new Date(ano, monthIdx, 1);
+                filteredDataset.forEach(row => {
+                    const l = linhaDoRow(row);
+                    if (!pertenceAoMes(l)) return;
+                    const d = parseDate(l.dataRef);
+                    if (d && d < inicioReal) inicioReal = d;
+                });
+                const inicioMinPermitido = new Date(ano, monthIdx, 1);
+                inicioMinPermitido.setDate(inicioMinPermitido.getDate() - 10);
+                if (inicioReal < inicioMinPermitido) inicioReal = new Date(inicioMinPermitido);
+                inicioReal.setHours(0, 0, 0, 0);
+
+                // Fim estimado: mesma quantidade de dias do mês do calendário, só que contados a
+                // partir do início real (em vez do dia 1 fixo) — assim o "fecha depois" e o
+                // "começa antes" ficam simétricos.
+                diasNoMes = diasNoMesCalendario;
+                fimEstimado = new Date(inicioReal);
+                fimEstimado.setDate(fimEstimado.getDate() + diasNoMes - 1);
             }
-
-            // O mês comercial não começa no dia 1 nem termina no último dia do calendário — o
-            // início real é a data mais antiga lançada com esse mês (pode ser ainda no mês anterior).
-            // Trava de segurança: no máx. 10 dias antes do dia 1, pra uma data digitada errada não
-            // bagunçar o gráfico inteiro.
-            const diasNoMesCalendario = new Date(ano, monthIdx + 1, 0).getDate();
-            let inicioReal = new Date(ano, monthIdx, 1);
-            filteredDataset.forEach(row => {
-                const l = linhaDoRow(row);
-                if (!pertenceAoMes(l)) return;
-                const d = parseDate(l.dataRef);
-                if (d && d < inicioReal) inicioReal = d;
-            });
-            const inicioMinPermitido = new Date(ano, monthIdx, 1);
-            inicioMinPermitido.setDate(inicioMinPermitido.getDate() - 10);
-            if (inicioReal < inicioMinPermitido) inicioReal = new Date(inicioMinPermitido);
-            inicioReal.setHours(0, 0, 0, 0);
-
-            // Fim estimado: mesma quantidade de dias do mês do calendário, só que contados a
-            // partir do início real (em vez do dia 1 fixo) — assim o "fecha depois" e o "começa
-            // antes" ficam simétricos.
-            const diasNoMes = diasNoMesCalendario;
-            const fimEstimado = new Date(inicioReal);
-            fimEstimado.setDate(fimEstimado.getDate() + diasNoMes - 1);
 
             const mesEhAtual = (monthIdx === hoje.getMonth() && ano === hoje.getFullYear());
             const diaHoje = mesEhAtual
@@ -4019,9 +4235,10 @@
 
             const lbl = document.getElementById('ritmoMesPeriodoLabel');
             if (lbl) {
+                const origemTag = configMes ? '' : ' (estimado)';
                 lbl.textContent = mesEhAtual
-                    ? `${mesNome}/${ano} · mês comercial de ${formatDate(inicioReal)} a ${formatDate(fimEstimado)} (hoje: dia ${diaHoje} de ${diasNoMes})`
-                    : `${mesNome}/${ano} · mês comercial foi de ${formatDate(inicioReal)} a ${formatDate(fimEstimado)} (fechado)`;
+                    ? `${mesNome}/${ano} · mês comercial de ${formatDate(inicioReal)} a ${formatDate(fimEstimado)}${origemTag} (hoje: dia ${diaHoje} de ${diasNoMes})`
+                    : `${mesNome}/${ano} · mês comercial foi de ${formatDate(inicioReal)} a ${formatDate(fimEstimado)}${origemTag} (fechado)`;
             }
 
             const meta = metasMensais[ritmoMetric] || 0;
