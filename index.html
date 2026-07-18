@@ -1717,10 +1717,11 @@
                 }
             });
 
-            // Agenda de Visitas (2ª planilha) — só tem coluna Corretor em comum com os filtros
-            // estruturais daqui em cima; Equipe/Construtora/Empreendimento não se aplicam a ela.
+            // Agenda de Visitas (2ª planilha) — só tem Corretor e Empreendimento em comum com os
+            // filtros estruturais daqui em cima; Equipe/Construtora não se aplicam a ela.
             const baseAgenda = agendaDataset.filter(row => {
                 if (selCorr && row.Corretor !== selCorr) return false;
+                if (!agendaMatchesEmpreendimento(row, selEmp)) return false;
                 return isCorretorActive(row.Corretor);
             });
             const ehMesAgenda = (row) => {
@@ -2917,6 +2918,19 @@
             }
             return true;
         }
+        // Filtro de Empreendimento na Agenda: a planilha tem DUAS colunas candidatas
+        // ("Empreendimento" e "empreendimento preferencia", quase sempre com uma delas em
+        // branco) e a digitação é livre (não é um dropdown controlado como na planilha
+        // principal) — por isso compara sem diferenciar maiúsculas/espaços, contra as duas
+        // colunas, em vez de igualdade exata (que perderia quase todo mundo por causa da
+        // caixa/coluna diferente).
+        function agendaMatchesEmpreendimento(row, selEmpreendimento) {
+            if (!selEmpreendimento) return true;
+            const sel = selEmpreendimento.trim().toLowerCase();
+            const a = (row['Empreendimento'] || '').trim().toLowerCase();
+            const b = (row['empreendimento preferencia'] || '').trim().toLowerCase();
+            return a === sel || b === sel;
+        }
 
         // Quando a linha está Aprovada mas a planilha não tem Mês/Data de Aprovação preenchida
         // (falha de digitação), cai pra Mês/Data de CADASTRO como respaldo — pra não "perder" uma
@@ -3951,10 +3965,11 @@
                 if (selEmpreendimento && row.Empreendimento !== selEmpreendimento) return false;
                 return true;
             });
-            // Agenda de Visitas: só tem coluna Corretor em comum com os filtros estruturais
-            // (não tem Equipe/Construtora) — filtra só por isso, pra não descartar linhas à toa.
+            // Agenda de Visitas: só tem Corretor e Empreendimento em comum com os filtros
+            // estruturais (não tem Equipe/Construtora) — filtra só por esses dois.
             filteredAgendaDataset = agendaDataset.filter(row => {
                 if (selCorretor && row.Corretor !== selCorretor) return false;
+                if (!agendaMatchesEmpreendimento(row, selEmpreendimento)) return false;
                 return true;
             });
 
