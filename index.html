@@ -173,7 +173,7 @@
                         <button onclick="switchView('calendar')" id="navLinkCalendar" title="Calendário de Produção" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-calendar-days text-emerald-400"></i><span class="hidden lg:inline">Calendário</span>
                         </button>
-                        <button onclick="switchView('dashboard'); setTimeout(() => { window.location.hash = '#rankingsSection'; }, 100);" title="Rankings Comerciais" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                        <button onclick="switchView('rankings')" id="navLinkRankings" title="Rankings para Apresentação" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-trophy text-amber-500"></i><span class="hidden lg:inline">Rankings</span>
                         </button>
                     </nav>
@@ -203,7 +203,7 @@
             </header>
 
             <!-- Filtros Dinâmicos Fixos/Topo -->
-            <section class="bg-slate-950/20 border-b border-slate-800 px-6 lg:px-8 py-4">
+            <section class="bg-slate-950/20 border-b border-slate-800 px-6 lg:px-8 py-4" id="filtersBar">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
                     <h2 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                         <i class="fa-solid fa-filter text-brand-500"></i> Filtros de Inteligência Avançada
@@ -608,14 +608,15 @@
 
                 </div>
 
-                <!-- 3.6 RANKINGS RÁPIDOS (estilo Habitnet): Análises/Aprovações Hoje+Semana+Mês, Vendas Semana+Mês -->
-                <section class="space-y-3">
+                <!-- 3.6 RANKINGS RÁPIDOS (estilo Habitnet): Análises/Aprovações Hoje+Semana+Mês, Vendas Semana+Mês.
+                     Vive só na aba "Rankings" (tela dedicada pra apresentação) — some do Painel/Calendário. -->
+                <section class="hidden space-y-3" id="quickRankingsSection">
                     <div class="flex flex-col gap-1.5 px-1">
                         <div class="flex items-center justify-between gap-3 flex-wrap">
                             <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                 <i class="fa-solid fa-ranking-star text-amber-500"></i> Rankings Rápidos — Hoje · Semana · Mês
                             </h3>
-                            <div class="flex items-center gap-1.5 flex-wrap">
+                            <div class="flex items-center gap-1.5 flex-wrap" id="quickRankingsControls">
                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Semana/Mês:</span>
                                 <button onclick="shiftQuickRef(-7)" title="Semana anterior" class="h-7 w-7 rounded-lg border border-slate-700 text-slate-300 hover:text-brand-400 hover:border-brand-500/40 flex items-center justify-center transition"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
                                 <input type="date" id="quickRefDate" onchange="setQuickRef(this.value)" class="bg-slate-950 border border-slate-800 text-[11px] rounded-lg px-2 py-1 text-slate-300 outline-none focus:border-brand-500 transition">
@@ -2836,6 +2837,11 @@
 
         // Dashboard e Calendário agora ficam na MESMA página (calendário inline).
         // O link no topo apenas rola até a seção e destaca o ativo.
+        // Enquanto a view "rankings" estiver ativa, guarda se a sidebar estava visível antes
+        // (pra devolver o estado exatamente como o usuário deixou ao sair, e não forçar ela a
+        // aparecer se ele já tinha escondido manualmente).
+        let rankingsViewSidebarWasVisible = null;
+
         function switchView(viewName) {
             activeView = viewName;
             drawProductionCalendar();
@@ -2843,9 +2849,41 @@
             const offCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200";
             const linkDashboard = document.getElementById('navLinkDashboard');
             const linkCalendar = document.getElementById('navLinkCalendar');
-            if (linkDashboard) linkDashboard.className = viewName === 'calendar' ? offCls : onCls;
+            const linkRankings = document.getElementById('navLinkRankings');
+            if (linkDashboard) linkDashboard.className = viewName === 'dashboard' ? onCls : offCls;
             if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
-            const target = document.getElementById(viewName === 'calendar' ? 'calendarView' : 'dashboardView');
+            if (linkRankings) linkRankings.className = viewName === 'rankings' ? onCls : offCls;
+
+            // "Rankings" é uma tela dedicada e limpa pra apresentação (projetar/print): esconde
+            // todo o resto do Painel (Hero, KPIs, Funil, Calendário — que hoje é inline aqui
+            // dentro) e mostra só a seção de Rankings Rápidos, sem os controles de
+            // período/edição — só os cards, prontos. Nas outras views a seção some (só existe
+            // dentro da aba Rankings, evita duplicar conteúdo no Painel normal).
+            const dashboardViewEl = document.getElementById('dashboardView');
+            const quickSection = document.getElementById('quickRankingsSection');
+            if (dashboardViewEl && quickSection) {
+                Array.from(dashboardViewEl.children).forEach(child => {
+                    child.classList.toggle('hidden', child === quickSection ? viewName !== 'rankings' : viewName === 'rankings');
+                });
+            }
+            const quickControls = document.getElementById('quickRankingsControls');
+            if (quickControls) quickControls.classList.toggle('hidden', viewName === 'rankings');
+            const filtersBar = document.getElementById('filtersBar');
+            if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings');
+
+            const sb = document.getElementById('sidebar');
+            if (sb) {
+                if (viewName === 'rankings') {
+                    if (rankingsViewSidebarWasVisible === null) rankingsViewSidebarWasVisible = sb.style.display !== 'none';
+                    sb.style.display = 'none';
+                } else if (rankingsViewSidebarWasVisible !== null) {
+                    if (rankingsViewSidebarWasVisible) sb.style.display = '';
+                    rankingsViewSidebarWasVisible = null;
+                }
+            }
+
+            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : 'dashboardView');
+            const target = document.getElementById(targetId);
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
