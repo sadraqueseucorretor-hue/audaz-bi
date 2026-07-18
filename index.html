@@ -318,83 +318,6 @@
                     </div>
                 </div>
 
-                <!-- 1. GRID DE CARDS EXECUTIVOS (INDICADORES PRINCIPAIS) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="dashboardSection">
-                    
-                    <!-- Card Análises -->
-                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex items-start justify-between relative overflow-hidden transition-all hover:scale-[1.01] hover:border-slate-700">
-                        <div class="space-y-2">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                Análises Enviadas
-                            </span>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl font-extrabold" id="kpiAnalises">0</span>
-                                <span class="text-[10px] font-bold text-slate-500" id="kpiAnalisesLabel">este período</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400" id="kpiAnalisesMeta">Propostas em curso</p>
-                        </div>
-                        <div class="h-12 w-12 bg-blue-500/10 rounded-xl border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-sm">
-                            <i class="fa-solid fa-file-invoice-dollar text-xl"></i>
-                        </div>
-                        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-blue-500/5 rounded-full blur-xl"></div>
-                    </div>
-
-                    <!-- Card Aprovações -->
-                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex items-start justify-between relative overflow-hidden transition-all hover:scale-[1.01] hover:border-slate-700">
-                        <div class="space-y-2">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                Aprovações
-                            </span>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl font-extrabold text-amber-500" id="kpiAprovacoes">0</span>
-                                <span class="text-[10px] font-bold text-amber-500" id="kpiAprovacoesLabel">este período</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400" id="kpiAprovacoesTaxa">Conversão envio → aprovação: 0%</p>
-                        </div>
-                        <div class="h-12 w-12 bg-amber-500/10 rounded-xl border border-amber-500/20 flex items-center justify-center text-amber-500 shadow-sm">
-                            <i class="fa-solid fa-circle-check text-xl"></i>
-                        </div>
-                        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/5 rounded-full blur-xl"></div>
-                    </div>
-
-                    <!-- Card Vendas -->
-                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex items-start justify-between relative overflow-hidden transition-all hover:scale-[1.01] hover:border-slate-700">
-                        <div class="space-y-2">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                Vendas Realizadas
-                            </span>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-3xl font-extrabold text-brand-500" id="kpiVendas">0</span>
-                                <span class="text-[10px] font-bold text-brand-500" id="kpiVendasLabel">este período</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400" id="kpiVendasTaxa">Taxa de fecho final: 0%</p>
-                        </div>
-                        <div class="h-12 w-12 bg-brand-500/10 rounded-xl border border-brand-500/20 flex items-center justify-center text-brand-500 shadow-sm">
-                            <i class="fa-solid fa-house-circle-check text-xl"></i>
-                        </div>
-                        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-brand-500/5 rounded-full blur-xl"></div>
-                    </div>
-
-                    <!-- Card VGV -->
-                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex items-start justify-between relative overflow-hidden transition-all hover:scale-[1.01] hover:border-slate-700">
-                        <div class="space-y-2">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                VGV Acumulado
-                            </span>
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-2xl font-extrabold text-indigo-400" id="kpiVgv">R$ 0M</span>
-                                <span class="text-[10px] font-bold text-indigo-500" id="kpiVgvLabel">este período</span>
-                            </div>
-                            <p class="text-[11px] text-slate-400" id="kpiVgvTicket">Ticket Médio: R$ 0k</p>
-                        </div>
-                        <div class="h-12 w-12 bg-indigo-500/10 rounded-xl border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-sm">
-                            <i class="fa-solid fa-coins text-xl"></i>
-                        </div>
-                        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/5 rounded-full blur-xl"></div>
-                    </div>
-
-                </div>
-
                 <!-- 2. FUNIL DE CONVERSÃO -->
                 <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col">
                         <div>
@@ -481,7 +404,7 @@
                         </div>
                     </div>
 
-                <!-- Evolução Mensal de Operações — mini-dashboard (cards de tendência + histórico + conversão + insight + atividades) -->
+                <!-- Evolução Mensal de Operações: cards de tendência + histórico -->
                 <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
                         <div>
@@ -497,28 +420,33 @@
 
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="evolucaoTrendCards"></div>
 
-                    <div class="h-64 relative mb-6">
+                    <div class="h-64 relative">
                         <canvas id="chartEvolucaoMensal"></canvas>
                     </div>
+                </div>
 
-                    <!-- Ritmo do Mês: real acumulado dia a dia vs a linha ideal pra bater a meta -->
-                    <div class="mb-6">
-                        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
-                            <div>
-                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-gauge-high text-brand-500"></i> Ritmo do Mês — Real vs Meta</p>
-                                <p class="text-[10px] text-slate-500" id="ritmoMesPeriodoLabel">—</p>
-                            </div>
-                            <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
-                                <button onclick="setRitmoMetric('analises')" id="ritmoBtn-analises" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Análises</button>
-                                <button onclick="setRitmoMetric('aprovacoes')" id="ritmoBtn-aprovacoes" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovações</button>
-                                <button onclick="setRitmoMetric('vendas')" id="ritmoBtn-vendas" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
-                            </div>
+                <!-- Ritmo do Mês: real acumulado dia a dia vs a linha ideal pra bater a meta -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                        <div>
+                            <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-gauge-high text-brand-500"></i> Ritmo do Mês — Real vs Meta</h3>
+                            <p class="text-[10px] text-slate-500" id="ritmoMesPeriodoLabel">—</p>
                         </div>
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3" id="ritmoMesStats"></div>
-                        <div class="h-56 relative">
-                            <canvas id="chartRitmoMes"></canvas>
+                        <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
+                            <button onclick="setRitmoMetric('analises')" id="ritmoBtn-analises" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Análises</button>
+                            <button onclick="setRitmoMetric('aprovacoes')" id="ritmoBtn-aprovacoes" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovações</button>
+                            <button onclick="setRitmoMetric('vendas')" id="ritmoBtn-vendas" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
                         </div>
                     </div>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3" id="ritmoMesStats"></div>
+                    <div class="h-56 relative">
+                        <canvas id="chartRitmoMes"></canvas>
+                    </div>
+                </div>
+
+                <!-- Conversão, Insight & Atividades -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                    <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase mb-4">Conversão, Insight & Atividades</h3>
 
                     <div class="mb-6">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fa-solid fa-percent text-brand-500"></i> Taxa de Conversão</p>
@@ -3646,24 +3574,6 @@
             kpiValues.salesView = salesView;
             kpiValues.vgvView = vgvView;
 
-            document.getElementById('kpiAnalises').textContent = analysesCount;
-            document.getElementById('kpiAprovacoes').textContent = approvalsCount;
-            document.getElementById('kpiVendas').textContent = salesView;
-            document.getElementById('kpiVgv').textContent = formatBRL(vgvView);
-
-            const periodLabel = `este ${currentPeriod === 'mes' ? 'mês' : currentPeriod === 'ano' ? 'ano' : currentPeriod}`;
-            const modeTag = isFinal ? 'FINALIZADAS' : 'GERAIS';
-            document.getElementById('kpiAnalisesLabel').textContent = periodLabel;
-            document.getElementById('kpiAprovacoesLabel').textContent = periodLabel;
-            document.getElementById('kpiVendasLabel').textContent = `${periodLabel} · ${modeTag}`;
-            document.getElementById('kpiVgvLabel').textContent = `${periodLabel} · ${modeTag}`;
-
-            const taxaAprov = analysesCount > 0 ? ((approvalsCount / analysesCount) * 100).toFixed(1) : '0';
-            const ticketMedio = salesView > 0 ? (vgvView / salesView) : 0;
-
-            document.getElementById('kpiAprovacoesTaxa').textContent = `Conversão envio → aprovação: ${taxaAprov}%`;
-            document.getElementById('kpiVendasTaxa').textContent = `Gerais: ${salesGeral}  ·  Finalizadas: ${salesFinal}`;
-            document.getElementById('kpiVgvTicket').textContent = `Ticket: ${formatBRL(ticketMedio)}  ·  ${isFinal ? 'VGV geral: ' + formatBRL(vgvGeral) : 'VGV final.: ' + formatBRL(vgvFinal)}`;
         }
 
         // Abre o detalhamento de clientes de UMA etapa do funil (Análises/Aprovações/Vendas),
