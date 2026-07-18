@@ -321,11 +321,26 @@
                 <!-- 2. FUNIL DE CONVERSÃO -->
                 <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col">
                         <div>
-                            <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                     <i class="fa-solid fa-filter text-brand-500"></i> Funil de Vendas
                                 </h3>
-                                <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">Conversão etapa a etapa</span>
+                                <div class="flex items-center gap-4 flex-wrap">
+                                    <!-- Progresso do mês comercial (dia atual ÷ dias do mês) -->
+                                    <div class="flex items-center gap-2 text-[11px] text-slate-400">
+                                        <i class="fa-solid fa-calendar-days text-slate-500"></i>
+                                        <span id="funnelMesLabel">Mês Comercial</span>
+                                        <div class="w-20 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                            <div class="h-full bg-brand-500 rounded-full transition-all" id="funnelMesBar" style="width:0%"></div>
+                                        </div>
+                                        <span id="funnelMesPct" class="font-bold text-slate-300 w-9 text-right">0%</span>
+                                    </div>
+                                    <!-- Status: no ritmo (média das 3 etapas) x meta -->
+                                    <span id="funnelStatusBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 bg-slate-800 text-slate-400">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-slate-500"></span>
+                                        <span id="funnelStatusText">—</span>
+                                    </span>
+                                </div>
                             </div>
 
                             <div class="flex flex-col lg:flex-row items-center gap-4">
@@ -346,21 +361,24 @@
                                         <g onclick="openFunnelDetail('analises')" style="cursor:pointer" class="hover:opacity-90">
                                             <title>Ver clientes desta etapa</title>
                                             <polygon points="20,8 400,8 328,92 92,92" fill="url(#fgBlue)"/>
-                                            <text x="210" y="40" text-anchor="middle" fill="#dbeafe" font-size="12" font-weight="700" letter-spacing="1">ANÁLISES</text>
+                                            <foreignObject x="70" y="14" width="30" height="30"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-people-group" style="color:#dbeafe;font-size:16px"></i></div></foreignObject>
+                                            <text x="220" y="30" text-anchor="middle" fill="#dbeafe" font-size="12" font-weight="700" letter-spacing="1">ANÁLISES</text>
                                             <text x="210" y="74" text-anchor="middle" fill="#ffffff" font-size="26" font-weight="800" id="funnelAnalisesQty">0</text>
                                         </g>
                                         <!-- Banda 2: Aprovacoes -->
                                         <g onclick="openFunnelDetail('aprovacoes')" style="cursor:pointer" class="hover:opacity-90">
                                             <title>Ver clientes desta etapa</title>
                                             <polygon points="92,100 328,100 288,184 132,184" fill="url(#fgAmber)"/>
-                                            <text x="210" y="130" text-anchor="middle" fill="#fef3c7" font-size="12" font-weight="700" letter-spacing="1">APROVAÇÕES</text>
+                                            <foreignObject x="112" y="106" width="30" height="30"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-circle-check" style="color:#fef3c7;font-size:16px"></i></div></foreignObject>
+                                            <text x="225" y="122" text-anchor="middle" fill="#fef3c7" font-size="12" font-weight="700" letter-spacing="1">APROVAÇÕES</text>
                                             <text x="210" y="162" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="800" id="funnelAprovacoesQty">0</text>
                                         </g>
                                         <!-- Banda 3: Vendas -->
                                         <g onclick="openFunnelDetail('vendas')" style="cursor:pointer" class="hover:opacity-90">
                                             <title>Ver clientes desta etapa</title>
                                             <polygon points="132,192 288,192 245,276 175,276" fill="url(#fgGreen)"/>
-                                            <text x="210" y="222" text-anchor="middle" fill="#d1fae5" font-size="11" font-weight="700" letter-spacing="1">VENDAS</text>
+                                            <foreignObject x="163" y="198" width="30" height="30"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-house-circle-check" style="color:#d1fae5;font-size:15px"></i></div></foreignObject>
+                                            <text x="222" y="214" text-anchor="middle" fill="#d1fae5" font-size="11" font-weight="700" letter-spacing="1">VENDAS</text>
                                             <text x="210" y="250" text-anchor="middle" fill="#ffffff" font-size="22" font-weight="800" id="funnelVendasQty">0</text>
                                         </g>
                                         <!-- Badge conversao 1 (Analises -> Aprovacoes) -->
@@ -372,52 +390,73 @@
                                     </svg>
                                 </div>
 
-                                <!-- Meta e "ideal hoje" (ritmo, mesma referência do Hero de Metas) por etapa -->
-                                <div class="flex flex-row lg:flex-col justify-between gap-3 w-full lg:w-44 shrink-0">
-                                    <div class="flex-1 bg-blue-500/5 border border-blue-500/20 rounded-xl p-2.5 text-center">
-                                        <p class="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Análises</p>
-                                        <p class="text-[11px] text-slate-400 mt-1">Meta <span id="funnelMetaAnalises" class="font-bold text-slate-100">0</span></p>
-                                        <p class="text-[11px] text-blue-300">Ideal hoje <span id="funnelIdealAnalises" class="font-bold">0</span></p>
+                                <!-- Meta, % e "ideal hoje" (ritmo, mesma referência da linha de tendência do Ritmo do Mês) por etapa -->
+                                <div class="flex flex-col gap-3 w-full lg:w-56 shrink-0">
+                                    <div class="bg-blue-500/5 border border-blue-500/20 rounded-xl p-3">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-people-group"></i> Análises</span>
+                                            <span class="text-xs font-extrabold text-blue-300" id="funnelPctAnalises">0%</span>
+                                        </div>
+                                        <p class="text-lg font-extrabold text-slate-100 mb-1.5"><span id="funnelAnalisesQtyLado">0</span><span class="text-slate-500 text-xs font-semibold"> / </span><span id="funnelMetaAnalises" class="text-slate-400 text-sm font-semibold">0</span></p>
+                                        <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-blue-500 rounded-full transition-all" id="funnelBarAnalises" style="width:0%"></div></div>
+                                        <div class="bg-blue-500/15 border border-blue-500/40 rounded-lg px-2 py-1.5 text-center">
+                                            <span class="text-[10px] text-blue-200 font-bold uppercase tracking-wide">Ideal hoje </span><span id="funnelIdealAnalises" class="text-sm font-extrabold text-white">0</span>
+                                        </div>
                                     </div>
-                                    <div class="flex-1 bg-amber-500/5 border border-amber-500/20 rounded-xl p-2.5 text-center">
-                                        <p class="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Aprovações</p>
-                                        <p class="text-[11px] text-slate-400 mt-1">Meta <span id="funnelMetaAprovacoes" class="font-bold text-slate-100">0</span></p>
-                                        <p class="text-[11px] text-amber-300">Ideal hoje <span id="funnelIdealAprovacoes" class="font-bold">0</span></p>
+                                    <div class="bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Aprovações</span>
+                                            <span class="text-xs font-extrabold text-amber-300" id="funnelPctAprovacoes">0%</span>
+                                        </div>
+                                        <p class="text-lg font-extrabold text-slate-100 mb-1.5"><span id="funnelAprovacoesQtyLado">0</span><span class="text-slate-500 text-xs font-semibold"> / </span><span id="funnelMetaAprovacoes" class="text-slate-400 text-sm font-semibold">0</span></p>
+                                        <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-amber-500 rounded-full transition-all" id="funnelBarAprovacoes" style="width:0%"></div></div>
+                                        <div class="bg-amber-500/15 border border-amber-500/40 rounded-lg px-2 py-1.5 text-center">
+                                            <span class="text-[10px] text-amber-200 font-bold uppercase tracking-wide">Ideal hoje </span><span id="funnelIdealAprovacoes" class="text-sm font-extrabold text-white">0</span>
+                                        </div>
                                     </div>
-                                    <div class="flex-1 bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-2.5 text-center">
-                                        <p class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Vendas</p>
-                                        <p class="text-[11px] text-slate-400 mt-1">Meta <span id="funnelMetaVendas" class="font-bold text-slate-100">0</span></p>
-                                        <p class="text-[11px] text-emerald-300">Ideal hoje <span id="funnelIdealVendas" class="font-bold">0</span></p>
+                                    <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-house-circle-check"></i> Vendas</span>
+                                            <span class="text-xs font-extrabold text-emerald-300" id="funnelPctVendas">0%</span>
+                                        </div>
+                                        <p class="text-lg font-extrabold text-slate-100 mb-1.5"><span id="funnelVendasQtyLado">0</span><span class="text-slate-500 text-xs font-semibold"> / </span><span id="funnelMetaVendas" class="text-slate-400 text-sm font-semibold">0</span></p>
+                                        <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-emerald-500 rounded-full transition-all" id="funnelBarVendas" style="width:0%"></div></div>
+                                        <div class="bg-emerald-500/15 border border-emerald-500/40 rounded-lg px-2 py-1.5 text-center">
+                                            <span class="text-[10px] text-emerald-200 font-bold uppercase tracking-wide">Ideal hoje </span><span id="funnelIdealVendas" class="text-sm font-extrabold text-white">0</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-5">
                             <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3 text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Ticket Médio</p>
                                 <p class="text-base font-extrabold text-slate-100" id="funnelTicket">R$ 0,00</p>
-                                <p class="text-[9px] text-slate-500">por venda</p>
+                                <p class="text-[9px]" id="funnelTicketTrend">vs mês anterior</p>
                             </div>
                             <div class="bg-rose-500/5 rounded-xl border border-rose-500/20 p-3 text-center">
                                 <p class="text-[10px] text-rose-400 uppercase font-bold tracking-wider">VGV Pendente</p>
                                 <p class="text-base font-extrabold text-rose-300" id="funnelVgvPendente">R$ 0,00</p>
                                 <p class="text-[9px] text-rose-400/70" id="funnelVgvPendentePct">0% do total</p>
+                                <p class="text-[9px]" id="funnelVgvPendenteTrend">vs mês anterior</p>
                             </div>
                             <div class="bg-emerald-500/5 rounded-xl border border-emerald-500/20 p-3 text-center">
                                 <p class="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">VGV Finalizado</p>
                                 <p class="text-base font-extrabold text-emerald-300" id="funnelVgvFinalizado">R$ 0,00</p>
                                 <p class="text-[9px] text-emerald-400/70" id="funnelVgvFinalizadoPct">0% do total</p>
+                                <p class="text-[9px]" id="funnelVgvFinalizadoTrend">vs mês anterior</p>
                             </div>
                             <div class="bg-indigo-500/5 rounded-xl border border-indigo-500/20 p-3 text-center">
                                 <p class="text-[10px] text-indigo-300/70 uppercase font-bold tracking-wider">VGV Total</p>
                                 <p class="text-base font-extrabold text-indigo-300" id="funnelVgv">R$ 0,00</p>
-                                <p class="text-[9px] text-slate-500">no período</p>
+                                <p class="text-[9px]" id="funnelVgvTrend">vs mês anterior</p>
                             </div>
-                        </div>
-                        <div class="mt-3 flex items-center justify-between bg-rose-500/5 border border-rose-500/20 rounded-xl px-4 py-2.5">
-                            <span class="text-[11px] font-bold text-rose-300 uppercase tracking-wide flex items-center gap-1.5"><i class="fa-solid fa-hand-holding-dollar"></i> Comissões estimadas (corretor)</span>
-                            <span class="text-sm font-extrabold text-rose-200" id="funnelComissao">R$ 0,00</span>
+                            <div class="bg-rose-500/5 rounded-xl border border-rose-500/20 p-3 text-center">
+                                <p class="text-[10px] text-rose-300 uppercase font-bold tracking-wider">Comissões (corretor)</p>
+                                <p class="text-base font-extrabold text-rose-200" id="funnelComissao">R$ 0,00</p>
+                                <p class="text-[9px]" id="funnelComissaoTrend">vs mês anterior</p>
+                            </div>
                         </div>
                         <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                             <span>Taxa de fecho total (Análises → Vendas):</span>
@@ -3678,6 +3717,15 @@
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
         }
 
+        // Seta + % colorida comparando um valor atual com o do mês anterior (usado nos 5 cards
+        // financeiros do rodapé do Funil).
+        function trendHtml(atual, anterior) {
+            if (!anterior) return '<span class="text-slate-600">sem mês anterior</span>';
+            const delta = ((atual - anterior) / anterior) * 100;
+            const up = delta >= 0;
+            return `<span class="${up ? 'text-brand-400' : 'text-rose-400'} font-bold"><i class="fa-solid fa-arrow-${up ? 'up' : 'down'} text-[8px]"></i> ${Math.abs(delta).toFixed(0)}%</span> <span class="text-slate-500">vs mês anterior</span>`;
+        }
+
         function drawFunnel() {
             const analyses = kpiValues.analyses;
             const approvals = kpiValues.approvals;
@@ -3686,21 +3734,65 @@
             document.getElementById('funnelAnalisesQty').textContent = analyses;
             document.getElementById('funnelAprovacoesQty').textContent = approvals;
             document.getElementById('funnelVendasQty').textContent = sales;
+            document.getElementById('funnelAnalisesQtyLado').textContent = analyses;
+            document.getElementById('funnelAprovacoesQtyLado').textContent = approvals;
+            document.getElementById('funnelVendasQtyLado').textContent = sales;
 
-            // Meta e "ideal hoje" ao lado de cada etapa — mesma janela (início/fim/dia de hoje)
-            // que desenha a linha de tendência do "Ritmo do Mês", uma por métrica.
+            // Meta, % da meta e "ideal hoje" ao lado de cada etapa — mesma janela (início/fim/dia
+            // de hoje) que desenha a linha de tendência do "Ritmo do Mês", uma por métrica.
             const metaAnalises = metasMensais.analises || 0;
             const metaAprovacoes = metasMensais.aprovacoes || 0;
             const metaVendas = metasMensais.vendas || 0;
             const janelaAnalises = getJanelaMesComercial('analises');
             const janelaAprovacoes = getJanelaMesComercial('aprovacoes');
             const janelaVendas = getJanelaMesComercial('vendas');
+            const idealAnalises = metaAnalises * janelaAnalises.diaHoje / janelaAnalises.diasNoMes;
+            const idealAprovacoes = metaAprovacoes * janelaAprovacoes.diaHoje / janelaAprovacoes.diasNoMes;
+            const idealVendas = metaVendas * janelaVendas.diaHoje / janelaVendas.diasNoMes;
+
             document.getElementById('funnelMetaAnalises').textContent = Math.round(metaAnalises);
-            document.getElementById('funnelIdealAnalises').textContent = Math.round(metaAnalises * janelaAnalises.diaHoje / janelaAnalises.diasNoMes);
+            document.getElementById('funnelIdealAnalises').textContent = Math.round(idealAnalises);
             document.getElementById('funnelMetaAprovacoes').textContent = Math.round(metaAprovacoes);
-            document.getElementById('funnelIdealAprovacoes').textContent = Math.round(metaAprovacoes * janelaAprovacoes.diaHoje / janelaAprovacoes.diasNoMes);
+            document.getElementById('funnelIdealAprovacoes').textContent = Math.round(idealAprovacoes);
             document.getElementById('funnelMetaVendas').textContent = Math.round(metaVendas);
-            document.getElementById('funnelIdealVendas').textContent = Math.round(metaVendas * janelaVendas.diaHoje / janelaVendas.diasNoMes);
+            document.getElementById('funnelIdealVendas').textContent = Math.round(idealVendas);
+
+            const pctMetaAnalises = metaAnalises > 0 ? Math.min(100, (analyses / metaAnalises) * 100) : 0;
+            const pctMetaAprovacoes = metaAprovacoes > 0 ? Math.min(100, (approvals / metaAprovacoes) * 100) : 0;
+            const pctMetaVendas = metaVendas > 0 ? Math.min(100, (sales / metaVendas) * 100) : 0;
+            document.getElementById('funnelPctAnalises').textContent = `${pctMetaAnalises.toFixed(0)}%`;
+            document.getElementById('funnelBarAnalises').style.width = `${pctMetaAnalises}%`;
+            document.getElementById('funnelPctAprovacoes').textContent = `${pctMetaAprovacoes.toFixed(0)}%`;
+            document.getElementById('funnelBarAprovacoes').style.width = `${pctMetaAprovacoes}%`;
+            document.getElementById('funnelPctVendas').textContent = `${pctMetaVendas.toFixed(0)}%`;
+            document.getElementById('funnelBarVendas').style.width = `${pctMetaVendas}%`;
+
+            // Progresso do mês comercial (usa a janela de Análises como referência de dias) +
+            // status geral: média de real÷ideal das 3 etapas, "No Ritmo" se >= 100%.
+            const mesLbl = document.getElementById('funnelMesLabel');
+            if (mesLbl) mesLbl.textContent = `${janelaAnalises.mesNome}/${janelaAnalises.ano} · ${janelaAnalises.diaHoje}/${janelaAnalises.diasNoMes}d`;
+            const pctMes = Math.round((janelaAnalises.diaHoje / janelaAnalises.diasNoMes) * 100);
+            const mesBar = document.getElementById('funnelMesBar'); if (mesBar) mesBar.style.width = `${pctMes}%`;
+            const mesPct = document.getElementById('funnelMesPct'); if (mesPct) mesPct.textContent = `${pctMes}%`;
+
+            // Usa os MESMOS valores arredondados que aparecem nos cards (não a fração bruta) — pra
+            // quem conferir "Real ÷ Ideal hoje" na calculadora bater exatamente com o % mostrado.
+            const idealAnalisesArred = Math.round(idealAnalises);
+            const idealAprovacoesArred = Math.round(idealAprovacoes);
+            const idealVendasArred = Math.round(idealVendas);
+            const ritmoMedio = [
+                idealAnalisesArred > 0 ? analyses / idealAnalisesArred : 1,
+                idealAprovacoesArred > 0 ? approvals / idealAprovacoesArred : 1,
+                idealVendasArred > 0 ? sales / idealVendasArred : 1
+            ].reduce((a, b) => a + b, 0) / 3 * 100;
+            const statusBadge = document.getElementById('funnelStatusBadge');
+            const statusText = document.getElementById('funnelStatusText');
+            if (statusBadge && statusText) {
+                const noRitmo = ritmoMedio >= 100;
+                statusBadge.className = `text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${noRitmo ? 'bg-brand-500/15 text-brand-400' : 'bg-rose-500/15 text-rose-400'}`;
+                statusBadge.querySelector('span').className = `h-1.5 w-1.5 rounded-full ${noRitmo ? 'bg-brand-500' : 'bg-rose-500'}`;
+                statusText.textContent = `${noRitmo ? 'No Ritmo' : 'Atrasado'} · ${ritmoMedio.toFixed(0)}% da meta`;
+            }
 
             const conv1 = analyses > 0 ? ((approvals / analyses) * 100).toFixed(1) : 0;
             const conv2 = approvals > 0 ? ((sales / approvals) * 100).toFixed(1) : 0;
@@ -3725,6 +3817,29 @@
             document.getElementById('funnelVgvPendentePct').textContent = `${pctPendente.toFixed(1)}% do total`;
             document.getElementById('funnelVgvFinalizado').textContent = formatBRL(vgvFinalResumo);
             document.getElementById('funnelVgvFinalizadoPct').textContent = `${pctFinalizado.toFixed(1)}% do total`;
+
+            // Totais do MÊS ANTERIOR (mesmo critério de vendas ganhas/finalizadas), só pra comparar
+            // os 5 cards financeiros — não afeta nenhum outro número do painel.
+            let mesAnteriorIdx = janelaVendas.monthIdx - 1, anoAnterior = janelaVendas.ano;
+            if (mesAnteriorIdx < 0) { mesAnteriorIdx = 11; anoAnterior -= 1; }
+            const refDateAnterior = new Date(anoAnterior, mesAnteriorIdx, 15);
+            let vgvGeralAnterior = 0, vgvFinalAnterior = 0, comissaoAnterior = 0, vendasAnterior = 0;
+            filteredDataset.forEach(row => {
+                if (isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refDateAnterior)) {
+                    const v = getVGV(row);
+                    vgvGeralAnterior += v; vendasAnterior++;
+                    comissaoAnterior += getMoneyField(row, 'Comissão Corretor');
+                    if (isVendaFinalizada(row)) vgvFinalAnterior += v;
+                }
+            });
+            const vgvPendenteAnterior = Math.max(0, vgvGeralAnterior - vgvFinalAnterior);
+            const ticketAnterior = vendasAnterior > 0 ? vgvGeralAnterior / vendasAnterior : 0;
+
+            document.getElementById('funnelTicketTrend').innerHTML = trendHtml(ticket, ticketAnterior);
+            document.getElementById('funnelVgvPendenteTrend').innerHTML = trendHtml(vgvPendenteResumo, vgvPendenteAnterior);
+            document.getElementById('funnelVgvFinalizadoTrend').innerHTML = trendHtml(vgvFinalResumo, vgvFinalAnterior);
+            document.getElementById('funnelVgvTrend').innerHTML = trendHtml(kpiValues.vgv, vgvGeralAnterior);
+            document.getElementById('funnelComissaoTrend').innerHTML = trendHtml(kpiValues.comissaoCorretor || 0, comissaoAnterior);
         }
 
         // Ordenação dos rankings (corretores e equipas)
