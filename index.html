@@ -4317,9 +4317,12 @@
             document.getElementById('funnelBarVendas').style.width = `${pctMetaVendas}%`;
 
             // Progresso do mês comercial (usa a janela de Análises como referência de dias) +
-            // status geral: média de real÷ideal das 5 etapas, "No Ritmo" se >= 100%.
+            // status geral: média de real÷ideal das 5 etapas, "No Ritmo" se >= 100%. Mostra o
+            // intervalo de datas por extenso (dd/mm a dd/mm) — mesma precisão do "Ritmo do Mês",
+            // porque o mês comercial atravessa o fim do mês do calendário (ex.: Julho vai até
+            // 07/08) e só o nome do mês sozinho esconde isso.
             const mesLbl = document.getElementById('funnelMesLabel');
-            if (mesLbl) mesLbl.textContent = `${janelaAnalises.mesNome}/${janelaAnalises.ano} · ${janelaAnalises.diaHoje}/${janelaAnalises.diasNoMes}d`;
+            if (mesLbl) mesLbl.textContent = `${janelaAnalises.mesNome}/${janelaAnalises.ano} · ${formatDate(janelaAnalises.inicioReal)} a ${formatDate(janelaAnalises.fimEstimado)} · dia ${janelaAnalises.diaHoje}/${janelaAnalises.diasNoMes}`;
             const pctMes = Math.round((janelaAnalises.diaHoje / janelaAnalises.diasNoMes) * 100);
             const mesBar = document.getElementById('funnelMesBar'); if (mesBar) mesBar.style.width = `${pctMes}%`;
             const mesPct = document.getElementById('funnelMesPct'); if (mesPct) mesPct.textContent = `${pctMes}%`;
