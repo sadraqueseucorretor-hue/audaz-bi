@@ -1665,6 +1665,12 @@
             const lc = (!quickRef && !isMockDataActive) ? getLatestCommercialMonth() : null;
             const mesAtual = lc ? lc.nome : getMesName(refSM.getMonth() + 1);
             const anoAtual = lc ? lc.ano : refSM.getFullYear();
+            // Mesma ideia, só que o "mês corrente" da Agenda vem dela mesma (não do Mês Cadastro
+            // da outra planilha) — evita o card "Agendamentos/Compareceu · Mês" ficar num mês
+            // diferente do que o Funil mostra quando as duas planilhas estão dessincronizadas.
+            const lcAgenda = (!quickRef && !isMockDataActive) ? getLatestAgendaCommercialMonth() : null;
+            const mesAtualAgenda = lcAgenda ? lcAgenda.nome : mesAtual;
+            const anoAtualAgenda = lcAgenda ? lcAgenda.ano : anoAtual;
 
             const selCorr = document.getElementById('filterCorretor').value;
             const selEq = document.getElementById('filterEquipe').value;
@@ -1724,10 +1730,13 @@
                 if (!agendaMatchesEmpreendimento(row, selEmp)) return false;
                 return isCorretorActive(row.Corretor);
             });
+            // Usa a JANELA REAL do mês comercial (mesma resolução do Funil/Ritmo do Mês), não o
+            // mês do calendário inteiro — senão o card "· Mês" contaria linhas fora do período
+            // configurado em "Meses Comerciais".
+            const janelaAgendaMes = resolveJanelaAgendaMes(mesAtualAgenda, anoAtualAgenda);
             const ehMesAgenda = (row) => {
-                const ms = agendaMesStr(row);
-                const anoA = getMesAno(ms);
-                return normalizeMes(ms) === mesAtual && (anoA === null || anoA === anoAtual);
+                const d = parseDate(row['Data']);
+                return d && d >= janelaAgendaMes.inicioReal && d <= janelaAgendaMes.fimEstimado;
             };
             baseAgenda.forEach(row => {
                 const c = row.Corretor;
@@ -2925,18 +2934,70 @@
             if (!d) return null;
             return `${getMesName(d.getMonth() + 1)}/${d.getFullYear()}`;
         }
+        // Resolve a janela REAL (início/fim) de um mês comercial X/ano pra Agenda de Visitas —
+        // config manual do painel "Meses Comerciais" quando existir, senão a mesma inferência por
+        // sliding-window (data mais antiga lançada com esse mês, trava de 10 dias) usada em toda
+        // parte. Reaproveitada tanto por getJanelaMesComercial() (Funil/Ritmo do Mês) quanto por
+        // agendaMatchesRef() — pra a CONTAGEM nunca discordar do INTERVALO mostrado na tela (antes,
+        // a contagem usava o mês do calendário inteiro enquanto a tela já mostrava a janela real).
+        function resolveJanelaAgendaMes(mesNome, ano) {
+            const monthIdx = MESES_IDX[mesNome];
+            const configMes = getMesComercialConfig(mesNome, ano);
+            if (configMes) {
+                const inicioReal = new Date(configMes.inicio + 'T00:00:00');
+                const fimEstimado = new Date(configMes.fim + 'T00:00:00');
+                return { inicioReal, fimEstimado, diasNoMes: Math.max(1, Math.round((fimEstimado - inicioReal) / 86400000) + 1) };
+            }
+            const diasNoMesCalendario = new Date(ano, monthIdx + 1, 0).getDate();
+            let inicioReal = new Date(ano, monthIdx, 1);
+            filteredAgendaDataset.forEach(row => {
+                const ms = agendaMesStr(row);
+                if (normalizeMes(ms) !== mesNome || (getMesAno(ms) || ano) !== ano) return;
+                const d = parseDate(row['Data']);
+                if (d && d < inicioReal) inicioReal = d;
+            });
+            const inicioMinPermitido = new Date(ano, monthIdx, 1);
+            inicioMinPermitido.setDate(inicioMinPermitido.getDate() - 10);
+            if (inicioReal < inicioMinPermitido) inicioReal = new Date(inicioMinPermitido);
+            inicioReal.setHours(0, 0, 0, 0);
+            const fimEstimado = new Date(inicioReal);
+            fimEstimado.setDate(fimEstimado.getDate() + diasNoMesCalendario - 1);
+            return { inicioReal, fimEstimado, diasNoMes: diasNoMesCalendario };
+        }
+
         // Confere Hoje/Semana/Mês/Ano (+ multi-seleção de Mês Comercial e pills de Semana) pela
-        // Data da visita — mesmo critério usado pelas outras métricas via metricMatchesRef().
+        // Data da visita. Pra Mês/Ano usa a JANELA REAL (resolveJanelaAgendaMes), não o mês do
+        // calendário — senão contaria linhas fora do período que a tela mostra.
         function agendaMatchesRef(row, refDate) {
+            const d = parseDate(row['Data']);
+            if (!d) return false;
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
             if (useMesRef) {
-                return checkMesPeriodMatch(agendaMesStr(row), currentPeriod, refDate, getSelectedMeses());
+                if (currentPeriod === 'ano') {
+                    const selMeses = getSelectedMeses();
+                    if (selMeses.length > 0) return selMeses.some(m => (getMesAno(m) || refDate.getFullYear()) === d.getFullYear());
+                    return d.getFullYear() === refDate.getFullYear();
+                }
+                const selMeses = getSelectedMeses();
+                if (selMeses.length > 0) {
+                    return selMeses.some(m => {
+                        const nome = normalizeMes(m), ano = getMesAno(m);
+                        if (!nome || ano === null) return false;
+                        const { inicioReal, fimEstimado } = resolveJanelaAgendaMes(nome, ano);
+                        return d >= inicioReal && d <= fimEstimado;
+                    });
+                }
+                // Sem mês selecionado: mês comercial corrente é o mesmo resolvido em applyFilters()
+                // pra referenceDateAgenda — dia 15 do mês mais recente presente na própria Agenda.
+                const nome = getMesName(refDate.getMonth() + 1);
+                const ano = refDate.getFullYear();
+                const { inicioReal, fimEstimado } = resolveJanelaAgendaMes(nome, ano);
+                return d >= inicioReal && d <= fimEstimado;
             }
             if (!checkPeriodMatch(row['Data'], currentPeriod, refDate)) return false;
             const selSemana = document.getElementById('filterSemana').value;
             if (selSemana) {
-                const d = parseDate(row['Data']);
-                if (!d || Math.ceil(d.getDate() / 7).toString() !== selSemana.toString()) return false;
+                if (Math.ceil(d.getDate() / 7).toString() !== selSemana.toString()) return false;
             }
             return true;
         }
@@ -4936,7 +4997,17 @@
             const configMes = getMesComercialConfig(mesNome, ano);
             let inicioReal, fimEstimado, diasNoMes, pertenceAoMes;
 
-            if (configMes) {
+            if (isAgendaMetrica) {
+                // Mesma resolução de janela usada por agendaMatchesRef() — garante que a CONTAGEM
+                // (kpiValues.agendamentos/compareceu) nunca discorde do INTERVALO mostrado na tela.
+                const janelaAgenda = resolveJanelaAgendaMes(mesNome, ano);
+                inicioReal = janelaAgenda.inicioReal; fimEstimado = janelaAgenda.fimEstimado; diasNoMes = janelaAgenda.diasNoMes;
+                pertenceAoMes = (l) => {
+                    if (!l.ok) return false;
+                    const d = parseDate(l.dataRef);
+                    return d && d >= inicioReal && d <= fimEstimado;
+                };
+            } else if (configMes) {
                 inicioReal = new Date(configMes.inicio + 'T00:00:00');
                 fimEstimado = new Date(configMes.fim + 'T00:00:00');
                 diasNoMes = Math.max(1, Math.round((fimEstimado - inicioReal) / 86400000) + 1);
