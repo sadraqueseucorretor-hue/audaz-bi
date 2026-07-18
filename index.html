@@ -2839,6 +2839,28 @@
             return lc ? new Date(lc.ano, lc.idx, 15) : fallback;
         }
 
+        // Mesmo raciocínio de "mês corrente = último mês presente nos dados", só que pela Agenda
+        // de Visitas (coluna Data, via agendaMesStr) — a Agenda não tem uma coluna de texto "Mês
+        // X" como a planilha principal, então sem isso o mês de referência dos Agendamentos/
+        // Compareceu ficaria preso ao último "Mês Cadastro" da OUTRA planilha, que pode estar
+        // dessincronizada da Agenda (uma planilha pode ter avançado de mês e a outra não ainda).
+        function getLatestAgendaCommercialMonth() {
+            let best = null;
+            (Array.isArray(agendaDataset) ? agendaDataset : []).forEach(r => {
+                const ms = agendaMesStr(r);
+                const nome = normalizeMes(ms);
+                const idx = MESES_IDX[nome];
+                const ano = getMesAno(ms);
+                if (idx === undefined || ano === null) return;
+                if (!best || ano > best.ano || (ano === best.ano && idx > best.idx)) best = { ano, idx, nome };
+            });
+            return best;
+        }
+        function commercialRefDateAgenda(fallback) {
+            const lc = getLatestAgendaCommercialMonth();
+            return lc ? new Date(lc.ano, lc.idx, 15) : fallback;
+        }
+
         // Meses comerciais selecionados nos pills (array de strings cruas, ex.: 'junho/2026').
         // Vazio = "Todos" (nenhum filtro de mês ativo, comportamento de sempre).
         function getSelectedMeses() {
@@ -3973,6 +3995,15 @@
             // Guarda globalmente para drawTables() (chamado também pela busca) usar a mesma referência
             currentRefDate = referenceDate;
 
+            // A Agenda de Visitas não tem coluna de texto "Mês X" — sem mês manual selecionado nos
+            // pills, o mês corrente dela vem do último Data da PRÓPRIA agenda (getLatestAgendaCommercialMonth),
+            // não do "Mês Cadastro" da planilha principal (que pode estar em outro mês).
+            let referenceDateAgenda = referenceDate;
+            if (!refMes && !isMockDataActive && (currentPeriod === 'mes' || currentPeriod === 'ano')) {
+                referenceDateAgenda = commercialRefDateAgenda(isMockDataActive ? new Date(2026, 5, 9) : new Date());
+            }
+            currentRefDateAgenda = referenceDateAgenda;
+
             // Filtra só pelos campos estruturais (corretor/equipa/construtora/empreendimento). Mês
             // Comercial e Semana NÃO recortam aqui — cada métrica (análises/aprovações/vendas) confere
             // a SUA própria coluna de mês/data via metricMatchesRef(), para "conversar com toda a
@@ -3993,7 +4024,7 @@
             });
 
             calculateKPIs(referenceDate);
-            calculateAgendaKPIs(referenceDate);
+            calculateAgendaKPIs(referenceDateAgenda);
             drawMetasMensais();
             drawFunnel();
             drawTables();
@@ -4041,6 +4072,7 @@
 
         let kpiValues = { analyses: 0, approvals: 0, sales: 0, vgv: 0, salesGeral: 0, vgvGeral: 0, salesFinal: 0, vgvFinal: 0, salesView: 0, vgvView: 0, agendamentos: 0, compareceu: 0, naoCompareceu: 0 };
         let currentRefDate = new Date(); // referência de período partilhada (definida em applyFilters)
+        let currentRefDateAgenda = new Date(); // mesma ideia, só que derivada da Agenda de Visitas
 
         // Verifica se a coluna de mês/data de UMA métrica específica (ex.: Mês/Data Aprovação, para
         // aprovações; Mês/Data Ganho, para vendas) bate com o período de referência — e, se houver
@@ -4126,7 +4158,8 @@
         // Abre o detalhamento de clientes de UMA etapa do funil (Análises/Aprovações/Vendas),
         // usando exatamente o mesmo critério de cada métrica que os cartões de KPI já usam.
         function openFunnelDetail(metrica) {
-            const refDate = currentRefDate;
+            const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
+            const refDate = isAgendaMetrica ? currentRefDateAgenda : currentRefDate;
             let rows, label;
             if (metrica === 'agendamentos') {
                 rows = filteredAgendaDataset.filter(row => agendaMatchesRef(row, refDate));
@@ -4869,19 +4902,22 @@
         function getJanelaMesComercial(metrica) {
             const hoje = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             const refMes = getReferenceMesComercial();
+            // Agendamentos/Compareceu vêm da Agenda de Visitas (2ª planilha, filteredAgendaDataset)
+            // em vez de filteredDataset — mesma "janela deslizante" (início real/config manual de
+            // Meses Comerciais), só que sobre a coluna Data da agenda. Como a Agenda não tem coluna
+            // de texto "Mês X", o "mês corrente" (quando não há mês manual selecionado nos pills)
+            // é derivado do último Data da PRÓPRIA Agenda — não do "Mês Cadastro" da outra planilha,
+            // que pode estar em um mês diferente.
+            const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
+            const sourceDataset = isAgendaMetrica ? filteredAgendaDataset : filteredDataset;
             let mesNome, ano, monthIdx;
             if (refMes) {
                 mesNome = refMes.nome; ano = refMes.ano; monthIdx = refMes.idx;
             } else {
-                const lc = !isMockDataActive ? getLatestCommercialMonth() : null;
+                const lc = !isMockDataActive ? (isAgendaMetrica ? getLatestAgendaCommercialMonth() : getLatestCommercialMonth()) : null;
                 if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
                 else { mesNome = getMesName(hoje.getMonth() + 1); ano = hoje.getFullYear(); monthIdx = hoje.getMonth(); }
             }
-            // Agendamentos/Compareceu vêm da Agenda de Visitas (2ª planilha, filteredAgendaDataset)
-            // em vez de filteredDataset — mesma "janela deslizante" (início real/config manual de
-            // Meses Comerciais), só que sobre a coluna Data da agenda.
-            const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
-            const sourceDataset = isAgendaMetrica ? filteredAgendaDataset : filteredDataset;
             function linhaDoRow(row) {
                 if (metrica === 'analises') return { ok: true, mesRef: row['Mês Cadastro'], dataRef: row['Data Cadastro'] };
                 if (metrica === 'aprovacoes') return { ok: isAprovado(row['Situação - Analise']), mesRef: mesAprovacaoEfetivo(row), dataRef: dataAprovacaoEfetiva(row) };
