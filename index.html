@@ -1868,7 +1868,11 @@
             };
             baseAgenda.forEach(row => {
                 const c = row.Corretor;
-                if (checkPeriodMatch(row['Data'], 'hoje', hojeReal)) addTo(agHoje, c, 0);
+                // "Agendamentos · Hoje" usa a DATA DE CADASTRO (quando o corretor cadastrou o
+                // agendamento), não a Data da visita — é uma métrica de produtividade do dia
+                // (quantos agendamentos ele criou hoje), diferente de Semana/Mês (que continuam
+                // pela Data da visita, igual ao resto do app).
+                if (checkPeriodMatch(row['Data de Cadastro'], 'hoje', hojeReal)) addTo(agHoje, c, 0);
                 if (checkPeriodMatch(row['Data'], 'semana', refSM)) addTo(agSem, c, 0);
                 if (ehMesAgenda(row)) addTo(agMes, c, 0);
                 if (isCompareceu(row)) {
@@ -4741,10 +4745,11 @@
                 if (isVendaGanhaReal(row) && checkPeriodMatch(row['Data Ganho'], 'hoje', hojeReal)) vdHoje++;
             });
             filteredAgendaDataset.forEach(row => {
-                if (checkPeriodMatch(row['Data'], 'hoje', hojeReal)) {
-                    agHoje++;
-                    if (isCompareceu(row)) coHoje++;
-                }
+                // Agendamentos hoje = quando o corretor CADASTROU o agendamento (Data de Cadastro),
+                // não a data da visita — é produtividade do dia. Compareceu hoje continua pela Data
+                // da visita (é o dia em que o cliente efetivamente apareceu).
+                if (checkPeriodMatch(row['Data de Cadastro'], 'hoje', hojeReal)) agHoje++;
+                if (isCompareceu(row) && checkPeriodMatch(row['Data'], 'hoje', hojeReal)) coHoje++;
             });
             filteredProspeccaoDataset.forEach(row => {
                 if (checkPeriodMatch(row['Cadastro'], 'hoje', hojeReal)) prHoje++;
