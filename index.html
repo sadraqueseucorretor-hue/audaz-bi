@@ -1252,7 +1252,7 @@
             </div>
 
             <p class="text-[11px] text-slate-400 leading-relaxed mb-4">
-                Alimenta a etapa <strong class="text-pink-300">"Prospecção"</strong> do Funil de Vendas. Exporte a planilha de leads como CSV (Excel: Arquivo → Salvar Como → CSV) e carregue aqui — fica salvo pra quem mais abrir o painel.
+                Alimenta a etapa <strong class="text-pink-300">"Prospecção"</strong> do Funil de Vendas. Exporte a planilha de leads como CSV (Excel: Arquivo → Salvar Como → CSV) e carregue aqui. Cada upload é organizado <strong class="text-slate-300">pelo próprio "Mês Comercial"</strong> de cada linha — carregar um mês novo não apaga os outros já anexados, e cada mês pode ser removido individualmente abaixo.
             </p>
 
             <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1 mb-4">
@@ -1261,16 +1261,14 @@
                 <p>Mês Comercial no formato <span class="font-mono text-slate-300">2026/07</span> (ano/mês).</p>
             </div>
 
-            <p class="text-xs text-slate-300 mb-3" id="prospeccaoStatus">Nenhum arquivo carregado ainda.</p>
-
             <input type="file" id="prospeccaoFileInput" accept=".csv,text/csv" class="hidden" onchange="handleProspeccaoFileInput(event)">
-            <div class="flex gap-3">
-                <button onclick="clearProspeccaoData()" class="w-1/2 py-2.5 px-4 bg-slate-800 hover:bg-rose-600/20 hover:text-rose-400 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700">
-                    <i class="fa-solid fa-trash"></i> Remover dados
-                </button>
-                <button onclick="document.getElementById('prospeccaoFileInput').click()" class="w-1/2 py-2.5 px-4 bg-pink-600 hover:bg-pink-500 active:bg-pink-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-pink-500/20 transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-upload"></i> Carregar CSV
-                </button>
+            <button onclick="document.getElementById('prospeccaoFileInput').click()" class="w-full mb-4 py-2.5 px-4 bg-pink-600 hover:bg-pink-500 active:bg-pink-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-pink-500/20 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-upload"></i> Anexar CSV
+            </button>
+
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Meses carregados</p>
+            <div id="prospeccaoMesesList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <p class="text-xs text-slate-500 text-center py-3">Nenhum mês carregado ainda.</p>
             </div>
         </div>
     </div>
@@ -1331,8 +1329,13 @@
         // Corretor/Equipe/Situação/Cadastro/Mês Comercial. Sem link ao vivo — o diretor sobe um
         // CSV manualmente (upload local, sem servidor) e ele fica salvo no Firestore igual as
         // outras configs. Alimenta a nova 1ª etapa "Prospecção" do Funil.
-        let prospeccaoCsvText = '';
-        let prospeccaoDataset = [];
+        // Guardado POR MÊS COMERCIAL (não um blob único): { 'Julho/2026': { csvText, rows,
+        // uploadedAt } }. Cada upload agrupa as linhas pelo próprio "Mês Comercial" da planilha e
+        // substitui só o(s) mês(es) presente(s) nesse arquivo — os outros meses já carregados
+        // continuam intactos. Permite anexar mês a mês e remover um mês específico sem apagar os
+        // demais.
+        let prospeccaoPorMes = {};
+        let prospeccaoDataset = []; // derivado: todas as linhas de todos os meses juntas
         let filteredProspeccaoDataset = [];
         let activeView = 'dashboard'; // dashboard, calendar
 
@@ -2560,7 +2563,7 @@
         function toggleProspeccaoModal() {
             const m = document.getElementById('prospeccaoModal');
             m.classList.toggle('hidden');
-            if (!m.classList.contains('hidden')) renderProspeccaoStatus();
+            if (!m.classList.contains('hidden')) renderProspeccaoMesesList();
         }
 
         // Preenche o formulário já sugerindo o PRÓXIMO mês comercial: o mês seguinte ao último
@@ -3180,6 +3183,22 @@
         // da Prospecção fica só local (localStorage) neste navegador, sem quebrar o resto.
         const PROSPECCAO_FIRESTORE_LIMIT = 700 * 1024;
 
+        // Reconstrói prospeccaoDataset (usado pelo resto do app) juntando as linhas de TODOS os
+        // meses carregados em prospeccaoPorMes.
+        function rebuildProspeccaoDataset() {
+            prospeccaoDataset = Object.values(prospeccaoPorMes).flatMap(m => m.rows);
+        }
+
+        function saveProspeccaoLocal() {
+            const porMesCsv = {};
+            Object.keys(prospeccaoPorMes).forEach(mes => { porMesCsv[mes] = prospeccaoPorMes[mes].csvText; });
+            localStorage.setItem(`${appId}-prospeccao-por-mes`, JSON.stringify(porMesCsv));
+        }
+
+        // Recebe um CSV (de um upload OU vindo do Firestore/localStorage) e agrupa as linhas pelo
+        // PRÓPRIO "Mês Comercial" de cada uma — cada mês encontrado substitui só aquele slot em
+        // prospeccaoPorMes (um upload novo de "Julho" atualiza só Julho, sem apagar Agosto já
+        // carregado antes). Linhas sem mês reconhecível são descartadas (não têm onde entrar).
         function applyProspeccaoCsvText(csvText, opts) {
             const silent = opts && opts.silent;
             const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
@@ -3188,28 +3207,43 @@
                 return false;
             }
             const rows = normalizeAgendaRows(results.data); // reaproveita o trim de chaves com espaço sobrando
+            const porMes = {};
             let semMes = 0;
             rows.forEach(row => {
                 const norm = normalizeProspeccaoMes(row['Mês Comercial'] || row['Mes Comercial'] || row['Mês Com.'] || row['Mês Com']);
                 row['_MesComercialNorm'] = norm;
-                if (!norm) semMes++;
                 // Essa planilha costuma vir com o nome do corretor em CAIXA ALTA ("EDSON LUIS"),
                 // diferente do resto do app ("Edson Luis") — sem isso, cada lead viraria um
                 // corretor "novo" e duplicado nos rankings/roster em vez de somar no mesmo.
                 row.Corretor = normalizeProspeccaoCorretor(row.Corretor);
+                if (!norm) { semMes++; return; }
+                if (!porMes[norm]) porMes[norm] = [];
+                porMes[norm].push(row);
             });
-            prospeccaoCsvText = csvText;
-            prospeccaoDataset = rows;
-            localStorage.setItem(`${appId}-prospeccao-csv`, csvText);
+            const mesesEncontrados = Object.keys(porMes);
+            if (mesesEncontrados.length === 0) {
+                if (!silent) showToast('Nenhuma linha com "Mês Comercial" reconhecível (formato esperado: 2026/07).', true);
+                return false;
+            }
+            mesesEncontrados.forEach(mes => {
+                const rowsDoMes = porMes[mes];
+                prospeccaoPorMes[mes] = {
+                    csvText: Papa.unparse(rowsDoMes.map(r => { const c = Object.assign({}, r); delete c._MesComercialNorm; return c; })),
+                    rows: rowsDoMes,
+                    uploadedAt: Date.now()
+                };
+            });
+            rebuildProspeccaoDataset();
+            saveProspeccaoLocal();
             if (!silent) {
-                const aviso = semMes > 0 ? ` (${semMes} linha(s) sem "Mês Comercial" reconhecível, ficam fora das contagens por mês)` : '';
-                showToast(`Prospecção carregada: ${rows.length} leads${aviso}.`);
-                // Só empurra pra nuvem numa ação real do usuário (upload/limpar) — carregar do
+                const aviso = semMes > 0 ? ` (${semMes} linha(s) sem "Mês Comercial" reconhecível, ignoradas)` : '';
+                showToast(`Prospecção: ${mesesEncontrados.join(', ')} atualizado(s) — ${rows.length - semMes} leads${aviso}.`);
+                // Só empurra pra nuvem numa ação real do usuário (upload/remover) — carregar do
                 // cache local no boot não deve reenviar (evita sobrescrever uma versão mais nova
                 // que outro dispositivo tenha salvo enquanto este estava sem abrir).
                 pushCloudSettings();
             }
-            renderProspeccaoStatus();
+            renderProspeccaoMesesList();
             applyFilters();
             return true;
         }
@@ -3224,25 +3258,45 @@
             evt.target.value = '';
         }
 
-        function clearProspeccaoData() {
-            prospeccaoCsvText = '';
-            prospeccaoDataset = [];
-            localStorage.removeItem(`${appId}-prospeccao-csv`);
+        // Remove só o mês clicado — os outros meses carregados continuam intactos.
+        function removeProspeccaoMes(mes) {
+            delete prospeccaoPorMes[mes];
+            rebuildProspeccaoDataset();
+            saveProspeccaoLocal();
             pushCloudSettings();
             applyFilters();
-            renderProspeccaoStatus();
-            showToast("Dados de Prospecção removidos.");
+            renderProspeccaoMesesList();
+            showToast(`Prospecção de ${mes} removida.`);
         }
 
-        function renderProspeccaoStatus() {
-            const el = document.getElementById('prospeccaoStatus');
+        function renderProspeccaoMesesList() {
+            const el = document.getElementById('prospeccaoMesesList');
             if (!el) return;
-            if (!prospeccaoDataset.length) {
-                el.textContent = 'Nenhum arquivo carregado ainda.';
+            const meses = Object.keys(prospeccaoPorMes).sort((a, b) => {
+                const anoA = getMesAno(a) || 0, anoB = getMesAno(b) || 0;
+                if (anoA !== anoB) return anoB - anoA;
+                return (MESES_IDX[normalizeMes(b)] || 0) - (MESES_IDX[normalizeMes(a)] || 0);
+            });
+            if (meses.length === 0) {
+                el.innerHTML = `<p class="text-xs text-slate-500 text-center py-3">Nenhum mês carregado ainda.</p>`;
                 return;
             }
-            const tamanhoKb = Math.round(new Blob([prospeccaoCsvText]).size / 1024);
-            el.textContent = `${prospeccaoDataset.length} leads carregados (~${tamanhoKb}KB).`;
+            el.innerHTML = meses.map(mes => {
+                const m = prospeccaoPorMes[mes];
+                const dataUpload = new Date(m.uploadedAt);
+                const dataStr = `${String(dataUpload.getDate()).padStart(2, '0')}/${String(dataUpload.getMonth() + 1).padStart(2, '0')} às ${String(dataUpload.getHours()).padStart(2, '0')}:${String(dataUpload.getMinutes()).padStart(2, '0')}`;
+                const mesEsc = mes.replace(/'/g, "\\'");
+                return `
+                    <div class="flex items-center justify-between gap-2 bg-slate-950/40 rounded-lg px-3 py-2 border border-slate-800/60">
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold text-slate-200">${mes}</p>
+                            <p class="text-[10px] text-slate-500">${m.rows.length} leads · carregado em ${dataStr}</p>
+                        </div>
+                        <button onclick="removeProspeccaoMes('${mesEsc}')" title="Remover ${mes}" class="shrink-0 px-2.5 py-1.5 bg-slate-800 hover:bg-rose-600/20 hover:text-rose-400 text-slate-300 rounded-lg text-[10px] font-bold border border-slate-700 transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>`;
+            }).join('');
         }
 
         // Quando a linha está Aprovada mas a planilha não tem Mês/Data de Aprovação preenchida
@@ -3408,11 +3462,13 @@
                 renderSheetUrlField();
                 fetchAgendaFromGoogleSheets(savedAgendaUrl);
             }
-            // Prospecção não tem link — só carrega o CSV salvo localmente (o Firestore também
-            // pode trazer um mais novo depois, via applyCloudSettings).
-            const savedProspeccaoCsv = localStorage.getItem(`${appId}-prospeccao-csv`);
-            if (savedProspeccaoCsv) applyProspeccaoCsvText(savedProspeccaoCsv, { silent: true });
-            renderProspeccaoStatus();
+            // Prospecção não tem link — só carrega os CSVs (um por mês comercial) salvos
+            // localmente (o Firestore também pode trazer meses mais novos depois, via applyCloudSettings).
+            try {
+                const savedProspeccaoPorMes = JSON.parse(localStorage.getItem(`${appId}-prospeccao-por-mes`) || '{}');
+                Object.values(savedProspeccaoPorMes).forEach(csvText => applyProspeccaoCsvText(csvText, { silent: true }));
+            } catch (e) { console.warn(e); }
+            renderProspeccaoMesesList();
         }
 
         // ================= FIREBASE: LOGIN + SINCRONIZAÇÃO DE CONFIGURAÇÕES =================
@@ -3592,7 +3648,18 @@
                 if (typeof data.gsheetsUrl === 'string' && data.gsheetsUrl) { googleSheetsUrl = data.gsheetsUrl; localStorage.setItem(`${appId}-gsheets-url`, googleSheetsUrl); }
                 if (typeof data.agendaGsheetsUrl === 'string' && data.agendaGsheetsUrl) { agendaGsheetsUrl = data.agendaGsheetsUrl; localStorage.setItem(`${appId}-agenda-gsheets-url`, agendaGsheetsUrl); }
                 if (Array.isArray(data.mesesComerciais)) { mesesComerciais = data.mesesComerciais; localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais)); }
-                if (typeof data.prospeccaoCsv === 'string' && data.prospeccaoCsv && data.prospeccaoCsv !== prospeccaoCsvText) { applyProspeccaoCsvText(data.prospeccaoCsv, { silent: true }); }
+                if (data.prospeccaoPorMes && typeof data.prospeccaoPorMes === 'object') {
+                    const cloudMeses = data.prospeccaoPorMes;
+                    // Remove localmente os meses que não existem mais na nuvem (outro dispositivo
+                    // removeu enquanto este estava fechado).
+                    Object.keys(prospeccaoPorMes).forEach(mes => { if (!(mes in cloudMeses)) delete prospeccaoPorMes[mes]; });
+                    Object.keys(cloudMeses).forEach(mes => {
+                        const csvText = cloudMeses[mes];
+                        if (typeof csvText === 'string' && csvText) applyProspeccaoCsvText(csvText, { silent: true });
+                    });
+                    rebuildProspeccaoDataset();
+                    saveProspeccaoLocal();
+                }
             } catch (e) { console.warn(e); }
             applyingCloud = false;
         }
@@ -3655,12 +3722,17 @@
                     mesesComerciais: mesesComerciais,
                     _updatedAt: Date.now()
                 };
-                // Prospecção só entra na sincronização se couber com folga no teto de 1MB do
-                // documento — senão fica só salva localmente (localStorage) neste navegador, pra
-                // nunca arriscar quebrar a sincronização de TUDO (metas, corretores, fotos etc.).
-                if (new Blob([prospeccaoCsvText]).size <= PROSPECCAO_FIRESTORE_LIMIT) {
-                    payload.prospeccaoCsv = prospeccaoCsvText;
-                } else if (prospeccaoCsvText) {
+                // Prospecção (todos os meses juntos) só entra na sincronização se couber com
+                // folga no teto de 1MB do documento — senão fica só salva localmente
+                // (localStorage) neste navegador, pra nunca arriscar quebrar a sincronização de
+                // TUDO (metas, corretores, fotos etc.). Os meses continuam funcionando neste
+                // navegador mesmo sem sincronizar.
+                const porMesCsv = {};
+                Object.keys(prospeccaoPorMes).forEach(mes => { porMesCsv[mes] = prospeccaoPorMes[mes].csvText; });
+                const tamanhoTotal = Object.values(porMesCsv).reduce((s, t) => s + new Blob([t]).size, 0);
+                if (tamanhoTotal <= PROSPECCAO_FIRESTORE_LIMIT) {
+                    payload.prospeccaoPorMes = porMesCsv;
+                } else if (tamanhoTotal > 0) {
                     showToast("Prospecção grande demais pra sincronizar na nuvem — ficou salva só neste navegador.", true);
                 }
                 fbDb.collection('config').doc('settings').set(payload, { merge: true }).catch(function (e) { console.warn('Falha ao salvar na nuvem:', e); });
