@@ -502,6 +502,13 @@
                                             <span class="text-[10px] text-emerald-200 font-bold uppercase tracking-wide">Ideal hoje </span><span id="funnelIdealVendas" class="text-sm font-extrabold text-white">0</span>
                                         </div>
                                     </div>
+
+                                    <!-- Conversões acumuladas (pula etapas, ex.: Prospecção direto pra Venda) — as
+                                         adjacentes já aparecem nos badges vermelhos do funil; aqui ficam as demais. -->
+                                    <div class="col-span-2 bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2.5 flex items-center gap-1.5"><i class="fa-solid fa-diagram-project text-slate-400"></i> Conversões do Funil</p>
+                                        <div class="divide-y divide-slate-800/60" id="funnelConversoesList"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -4798,6 +4805,36 @@
             document.getElementById('convAnaliseParaAprovacao').textContent = `${conv1}%`;
             document.getElementById('convAprovacaoParaGanho').textContent = `${conv2}%`;
             document.getElementById('funnelTaxaFinal').textContent = `${taxaFinal}%`;
+
+            // Conversões que PULAM etapas (ex.: Prospecção direto pra Venda) — as adjacentes
+            // (uma etapa pra a próxima) já aparecem nos badges vermelhos do funil; aqui é o
+            // "de onde saiu até onde chegou" fim a fim, pra achar o gargalo real.
+            const convList = document.getElementById('funnelConversoesList');
+            if (convList) {
+                const prospToCompareceu = prospeccao > 0 ? ((compareceu / prospeccao) * 100).toFixed(1) : '0.0';
+                const prospToAnalise = prospeccao > 0 ? ((analyses / prospeccao) * 100).toFixed(1) : '0.0';
+                const prospToAprovado = prospeccao > 0 ? ((approvals / prospeccao) * 100).toFixed(1) : '0.0';
+                const prospToVenda = prospeccao > 0 ? ((sales / prospeccao) * 100).toFixed(1) : '0.0';
+                const compareceuToVenda = compareceu > 0 ? ((sales / compareceu) * 100).toFixed(1) : '0.0';
+                const convRow = (deLabel, deCor, paraLabel, paraCor, pct, destaque) => `
+                    <div class="flex items-center justify-between py-1.5 gap-2">
+                        <span class="text-[11px] text-slate-500 flex items-center gap-1 min-w-0">
+                            <span class="font-bold text-${deCor}-400">${deLabel}</span>
+                            <i class="fa-solid fa-arrow-right text-slate-600" style="font-size:8px"></i>
+                            <span class="font-bold text-${paraCor}-400">${paraLabel}</span>
+                        </span>
+                        <span class="font-extrabold shrink-0 ${destaque ? 'text-brand-400 text-sm' : 'text-slate-200 text-xs'}">${pct}%</span>
+                    </div>`;
+                convList.innerHTML = [
+                    convRow('Prospecção', 'pink', 'Agendamento', 'violet', convMinus1),
+                    convRow('Prospecção', 'pink', 'Compareceu', 'cyan', prospToCompareceu),
+                    convRow('Prospecção', 'pink', 'Análise', 'blue', prospToAnalise),
+                    convRow('Prospecção', 'pink', 'Aprovado', 'amber', prospToAprovado),
+                    convRow('Prospecção', 'pink', 'Venda', 'emerald', prospToVenda, true),
+                    convRow('Compareceu', 'cyan', 'Venda', 'emerald', compareceuToVenda, true),
+                    convRow('Análise', 'blue', 'Venda', 'emerald', taxaFinal, true)
+                ].join('');
+            }
 
             // Ticket / VGV / Comissão estimada (base geral, igual aos KPIs e ao funil)
             const ticket = sales > 0 ? (kpiValues.vgv / sales) : 0;
