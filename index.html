@@ -348,6 +348,10 @@
                                 </div>
                             </div>
 
+                            <!-- Produtividade de Hoje: contagem do dia atual em cada etapa (diferente
+                                 do resto do funil, que é sempre acumulado do mês comercial) -->
+                            <div class="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-slate-800/60" id="funnelHojeStrip"></div>
+
                             <div class="flex flex-col lg:flex-row items-start gap-4">
                                 <div class="relative flex-1 min-w-0 w-full lg:max-w-[420px]">
                                     <svg viewBox="0 0 420 368" class="w-full block" style="aspect-ratio: 420 / 368">
@@ -4721,7 +4725,52 @@
             return `<span class="${up ? 'text-brand-400' : 'text-rose-400'} font-bold"><i class="fa-solid fa-arrow-${up ? 'up' : 'down'} text-[8px]"></i> ${Math.abs(delta).toFixed(0)}%</span> <span class="text-slate-500">vs mês anterior</span>`;
         }
 
+        // Tira do funil "acumulado do mês" pra "só hoje": mesma lógica de HOJE já usada nos
+        // Rankings Rápidos (checkPeriodMatch com 'hoje'), mas em cima do filteredDataset/
+        // filteredAgendaDataset/filteredProspeccaoDataset já filtrados (Corretor/Equipe/etc.),
+        // pra respeitar os mesmos filtros estruturais que o resto do Funil de Vendas usa.
+        function renderFunnelHojeStrip() {
+            const el = document.getElementById('funnelHojeStrip');
+            if (!el) return;
+            const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+
+            let prHoje = 0, agHoje = 0, coHoje = 0, anHoje = 0, apHoje = 0, vdHoje = 0;
+            filteredDataset.forEach(row => {
+                if (checkPeriodMatch(row['Data Cadastro'], 'hoje', hojeReal)) anHoje++;
+                if (isAprovado(row['Situação - Analise']) && checkPeriodMatch(dataAprovacaoEfetiva(row), 'hoje', hojeReal)) apHoje++;
+                if (isVendaGanhaReal(row) && checkPeriodMatch(row['Data Ganho'], 'hoje', hojeReal)) vdHoje++;
+            });
+            filteredAgendaDataset.forEach(row => {
+                if (checkPeriodMatch(row['Data'], 'hoje', hojeReal)) {
+                    agHoje++;
+                    if (isCompareceu(row)) coHoje++;
+                }
+            });
+            filteredProspeccaoDataset.forEach(row => {
+                if (checkPeriodMatch(row['Cadastro'], 'hoje', hojeReal)) prHoje++;
+            });
+
+            const chips = [
+                { label: 'Prospecção', valor: prHoje, icon: 'fa-bullhorn', color: 'pink' },
+                { label: 'Agendamentos', valor: agHoje, icon: 'fa-calendar-check', color: 'violet' },
+                { label: 'Compareceu', valor: coHoje, icon: 'fa-door-open', color: 'cyan' },
+                { label: 'Análises', valor: anHoje, icon: 'fa-file-invoice-dollar', color: 'sky' },
+                { label: 'Aprovações', valor: apHoje, icon: 'fa-circle-check', color: 'amber' },
+                { label: 'Vendas', valor: vdHoje, icon: 'fa-house-circle-check', color: 'brand' }
+            ];
+
+            el.innerHTML = `
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mr-1"><i class="fa-solid fa-bolt text-amber-400"></i>Hoje</span>
+                ${chips.map(c => `
+                    <span class="inline-flex items-center gap-1.5 text-[11px] font-bold pl-2 pr-2.5 py-1 rounded-full bg-${c.color}-500/10 text-${c.color}-300 border border-${c.color}-500/20">
+                        <i class="fa-solid ${c.icon} text-${c.color}-400" style="font-size:9px"></i>${c.valor} <span class="font-semibold text-${c.color}-400/80">${c.label}</span>
+                    </span>
+                `).join('')}
+            `;
+        }
+
         function drawFunnel() {
+            renderFunnelHojeStrip();
             const prospeccao = kpiValues.prospeccao;
             const agendamentos = kpiValues.agendamentos;
             const compareceu = kpiValues.compareceu;
