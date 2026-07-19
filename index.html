@@ -211,68 +211,87 @@
             <section class="bg-slate-950/20 border-b border-slate-800 px-6 lg:px-8 py-4" id="filtersBar">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
                     <h2 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                        <i class="fa-solid fa-filter text-brand-500"></i> Filtros de Inteligência Avançada
+                        <i class="fa-solid fa-filter text-brand-500"></i> Filtros
                     </h2>
-                    <button onclick="clearAllFilters()" class="text-xs text-slate-400 hover:text-brand-500 flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
-                    </button>
-                </div>
-
-                <!-- Grid de Seleções Dinâmicas -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                    <!-- Filtro Corretor -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Corretor</label>
-                        <select id="filterCorretor" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                    <!-- Filtro Equipa -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Equipa</label>
-                        <select id="filterEquipe" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
-                            <option value="">Todas</option>
-                        </select>
-                    </div>
-                    <!-- Filtro Construtora -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Construtora</label>
-                        <select id="filterConstrutora" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
-                            <option value="">Todas</option>
-                        </select>
-                    </div>
-                    <!-- Filtro Empreendimento -->
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Empreendimento</label>
-                        <select id="filterEmpreendimento" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
-                            <option value="">Todos</option>
-                        </select>
+                    <div class="flex items-center gap-4">
+                        <button onclick="clearAllFilters()" class="text-xs text-slate-400 hover:text-brand-500 flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                        <button onclick="toggleFiltersBody()" id="btnToggleFiltersBody" class="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition border border-slate-800 rounded-lg px-2.5 py-1.5">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span id="toggleFiltersBodyLabel">Ocultar filtros</span>
+                            <i class="fa-solid fa-chevron-up text-[9px]" id="toggleFiltersBodyChevron"></i>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Filtros de Mês Comercial + Semana (pills) -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    <!-- Mês Comercial -->
-                    <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
-                            <i class="fa-solid fa-calendar-days text-rose-500"></i> Mês Comercial
-                            <span class="normal-case font-medium text-slate-600">— clique em vários pra comparar</span>
-                        </p>
-                        <div id="mesComercialPills" class="grid grid-cols-3 gap-1.5"></div>
+                <div id="filtersBody">
+                    <!-- Grid de Seleções Dinâmicas -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                        <!-- Filtro Corretor -->
+                        <div>
+                            <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-user text-slate-600"></i> Corretor</label>
+                            <select id="filterCorretor" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
+                                <option value="">Todos os corretores</option>
+                            </select>
+                        </div>
+                        <!-- Filtro Equipa -->
+                        <div>
+                            <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-users text-slate-600"></i> Equipa</label>
+                            <select id="filterEquipe" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
+                                <option value="">Todas as equipas</option>
+                            </select>
+                        </div>
+                        <!-- Filtro Construtora -->
+                        <div>
+                            <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-building text-slate-600"></i> Construtora</label>
+                            <select id="filterConstrutora" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
+                                <option value="">Todas as construtoras</option>
+                            </select>
+                        </div>
+                        <!-- Filtro Empreendimento -->
+                        <div>
+                            <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-city text-slate-600"></i> Empreendimento</label>
+                            <select id="filterEmpreendimento" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
+                                <option value="">Todos os empreendimentos</option>
+                            </select>
+                        </div>
                     </div>
-                    <!-- Semana -->
-                    <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
-                            <i class="fa-solid fa-calendar-week text-indigo-400"></i> Semana
-                        </p>
-                        <div id="semanaPills" class="grid grid-cols-3 gap-1.5"></div>
+
+                    <!-- Filtros de Mês Comercial + Semana (pills) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        <!-- Mês Comercial -->
+                        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                                <i class="fa-solid fa-calendar-days text-rose-500"></i> Mês Comercial
+                                <span class="normal-case font-medium text-slate-600">— clique em vários pra comparar</span>
+                            </p>
+                            <div id="mesComercialPills" class="flex items-center gap-1.5 flex-wrap"></div>
+                        </div>
+                        <!-- Semana -->
+                        <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                                <i class="fa-solid fa-calendar-week text-indigo-400"></i> Semana
+                            </p>
+                            <div id="semanaPills" class="grid grid-cols-3 gap-1.5"></div>
+                        </div>
                     </div>
+
+                    <!-- Selects ocultos: mantêm a lógica de filtros/calendário existente; a UI real são os pills acima -->
+                    <select id="filterMes" multiple class="hidden"><option value="">Todos</option></select>
+                    <select id="filterAno" class="hidden"><option value="">Todos</option></select>
+                    <select id="filterSemana" class="hidden"><option value="">Todas</option></select>
                 </div>
 
-                <!-- Selects ocultos: mantêm a lógica de filtros/calendário existente; a UI real são os pills acima -->
-                <select id="filterMes" multiple class="hidden"><option value="">Todos</option></select>
-                <select id="filterAno" class="hidden"><option value="">Todos</option></select>
-                <select id="filterSemana" class="hidden"><option value="">Todas</option></select>
+                <!-- Contador de resultados + chips de filtro ativo -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-800/60">
+                    <div class="flex items-center gap-2 text-xs text-slate-300 shrink-0">
+                        <i class="fa-solid fa-magnifying-glass text-brand-500"></i>
+                        <span class="font-extrabold text-brand-400 text-sm" id="filtersResultCount">0</span>
+                        <span id="filtersResultLabel">análises encontradas</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2" id="filtersActiveChips"></div>
+                </div>
             </section>
 
             <!-- Painel de Notificações / Toasts -->
@@ -4216,10 +4235,10 @@
             const selMesesAntes = getSelectedMeses();
             const selAno = document.getElementById('filterAno').value;
 
-            fillSelect('filterCorretor', getActiveCorretores(), "Todos", selCorretor);
-            fillSelect('filterEquipe', Array.from(equipes).sort(), "Todas", selEquipe);
-            fillSelect('filterConstrutora', Array.from(construtoras).sort(), "Todas", selConstrutora);
-            fillSelect('filterEmpreendimento', Array.from(empreendimentos).sort(), "Todos", selEmpreendimento);
+            fillSelect('filterCorretor', getActiveCorretores(), "Todos os corretores", selCorretor);
+            fillSelect('filterEquipe', Array.from(equipes).sort(), "Todas as equipas", selEquipe);
+            fillSelect('filterConstrutora', Array.from(construtoras).sort(), "Todas as construtoras", selConstrutora);
+            fillSelect('filterEmpreendimento', Array.from(empreendimentos).sort(), "Todos os empreendimentos", selEmpreendimento);
             fillMultiSelect('filterMes', Array.from(meses), selMesesAntes);
             fillSelect('filterAno', Array.from(anos).sort((a,b)=>b-a), "Todos", selAno);
 
@@ -4243,6 +4262,13 @@
                 : base + ' bg-indigo-600 border-indigo-500 text-white shadow shadow-indigo-500/20';
         }
 
+        // Paginação dos pills de Mês Comercial (5 por página, com setas) — a lista de meses só
+        // cresce com o tempo, então sem paginação a área de filtros ia crescendo pra sempre.
+        // null = ainda não inicializada; na 1ª renderização pula pra última página (meses mais
+        // recentes), que é o que o diretor quer ver por padrão.
+        let mesComercialPillsPage = null;
+        const MES_PILLS_POR_PAGINA = 5;
+
         function renderMesComercialPills() {
             const container = document.getElementById('mesComercialPills');
             if (!container) return;
@@ -4259,7 +4285,26 @@
                     return idxA - idxB;
                 });
 
+            const totalPaginas = Math.max(1, Math.ceil(options.length / MES_PILLS_POR_PAGINA));
+            if (mesComercialPillsPage === null) mesComercialPillsPage = totalPaginas - 1;
+            if (mesComercialPillsPage >= totalPaginas) mesComercialPillsPage = totalPaginas - 1;
+            if (mesComercialPillsPage < 0) mesComercialPillsPage = 0;
+
+            const inicio = mesComercialPillsPage * MES_PILLS_POR_PAGINA;
+            const pageOptions = options.slice(inicio, inicio + MES_PILLS_POR_PAGINA);
+            const navBtnClass = (disabled) => 'w-7 h-7 shrink-0 rounded-full text-xs border transition flex items-center justify-center ' +
+                (disabled ? 'bg-slate-950 border-slate-800 text-slate-700 cursor-not-allowed' : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200');
+
             container.innerHTML = '';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.type = 'button';
+            prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left" style="font-size:9px"></i>';
+            prevBtn.disabled = mesComercialPillsPage === 0;
+            prevBtn.className = navBtnClass(prevBtn.disabled);
+            prevBtn.onclick = () => { mesComercialPillsPage--; renderMesComercialPills(); };
+            container.appendChild(prevBtn);
+
             const allBtn = document.createElement('button');
             allBtn.type = 'button';
             allBtn.textContent = 'Todos';
@@ -4268,7 +4313,7 @@
             allBtn.onclick = () => selectMesComercial('');
             container.appendChild(allBtn);
 
-            options.forEach(opt => {
+            pageOptions.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = mesLabelAbbrev(opt.value);
@@ -4277,6 +4322,14 @@
                 btn.onclick = () => selectMesComercial(opt.value);
                 container.appendChild(btn);
             });
+
+            const nextBtn = document.createElement('button');
+            nextBtn.type = 'button';
+            nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right" style="font-size:9px"></i>';
+            nextBtn.disabled = mesComercialPillsPage >= totalPaginas - 1;
+            nextBtn.className = navBtnClass(nextBtn.disabled);
+            nextBtn.onclick = () => { mesComercialPillsPage++; renderMesComercialPills(); };
+            container.appendChild(nextBtn);
         }
 
         // Alterna um mês comercial dentro da seleção (multi-select, pra comparação entre meses).
@@ -4400,6 +4453,74 @@
             }
         }
 
+        // Ocultar/mostrar o corpo do painel de filtros (selects + pills) — só visual, não mexe em
+        // nenhum filtro selecionado. Independente do toggle de view (#filtersBar some inteiro na
+        // aba Rankings) — esse aqui só esconde o CONTEÚDO, mantendo o cabeçalho com o resumo visível.
+        let filtersBodyHidden = false;
+        function toggleFiltersBody() {
+            filtersBodyHidden = !filtersBodyHidden;
+            document.getElementById('filtersBody').classList.toggle('hidden', filtersBodyHidden);
+            document.getElementById('toggleFiltersBodyLabel').textContent = filtersBodyHidden ? 'Mostrar filtros' : 'Ocultar filtros';
+            document.getElementById('toggleFiltersBodyChevron').className = filtersBodyHidden ? 'fa-solid fa-chevron-down text-[9px]' : 'fa-solid fa-chevron-up text-[9px]';
+        }
+
+        // Contador de resultados + chips de filtro ativo (removíveis), abaixo do painel de
+        // filtros. O contador conta ANÁLISES (Mês Cadastro) porque é a base do dataset principal;
+        // respeita Corretor/Equipe/Construtora/Empreendimento (já embutidos em filteredDataset) e
+        // também Mês Comercial/Semana dos pills, que normalmente não recortam filteredDataset.
+        function renderFiltersSummary() {
+            const countEl = document.getElementById('filtersResultCount');
+            const labelEl = document.getElementById('filtersResultLabel');
+            const chipsEl = document.getElementById('filtersActiveChips');
+            if (!countEl || !chipsEl) return;
+
+            const selMeses = getSelectedMeses();
+            const selSemana = document.getElementById('filterSemana').value;
+            let count = 0;
+            filteredDataset.forEach(row => {
+                if (selMeses.length > 0 && !selMeses.includes(row['Mês Cadastro'])) return;
+                if (selSemana) {
+                    const d = parseDate(row['Data Cadastro']);
+                    if (!d || String(Math.ceil(d.getDate() / 7)) !== selSemana) return;
+                }
+                count++;
+            });
+            countEl.textContent = count;
+            labelEl.textContent = count === 1 ? 'análise encontrada' : 'análises encontradas';
+
+            const corretor = document.getElementById('filterCorretor').value;
+            const equipe = document.getElementById('filterEquipe').value;
+            const construtora = document.getElementById('filterConstrutora').value;
+            const empreendimento = document.getElementById('filterEmpreendimento').value;
+
+            const chips = [];
+            if (corretor) chips.push({ label: corretor, remove: () => { document.getElementById('filterCorretor').value = ''; applyFilters(); } });
+            if (equipe) chips.push({ label: equipe, remove: () => { document.getElementById('filterEquipe').value = ''; applyFilters(); } });
+            if (construtora) chips.push({ label: construtora, remove: () => { document.getElementById('filterConstrutora').value = ''; applyFilters(); } });
+            if (empreendimento) chips.push({ label: empreendimento, remove: () => { document.getElementById('filterEmpreendimento').value = ''; applyFilters(); } });
+            selMeses.forEach(m => chips.push({ label: mesLabelAbbrev(m), remove: () => selectMesComercial(m) }));
+            if (selSemana) chips.push({ label: `${selSemana}ª Semana`, remove: () => selectSemana('') });
+
+            if (chips.length === 0) {
+                chipsEl.innerHTML = '<span class="text-[11px] text-slate-600">Nenhum filtro ativo</span>';
+                return;
+            }
+            chipsEl.innerHTML = '';
+            chips.forEach((c, i) => {
+                const chip = document.createElement('span');
+                chip.className = 'inline-flex items-center gap-1.5 text-[11px] font-semibold pl-2.5 pr-1.5 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-700';
+                chip.innerHTML = `${c.label} <button type="button" class="w-4 h-4 rounded-full hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark" style="font-size:8px"></i></button>`;
+                chip.querySelector('button').onclick = c.remove;
+                chipsEl.appendChild(chip);
+            });
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'text-[11px] font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1 ml-1 transition';
+            clearBtn.innerHTML = '<i class="fa-solid fa-trash-can" style="font-size:9px"></i> Limpar todos';
+            clearBtn.onclick = clearAllFilters;
+            chipsEl.appendChild(clearBtn);
+        }
+
         function clearAllFilters() {
             document.getElementById('filterCorretor').value = "";
             document.getElementById('filterEquipe').value = "";
@@ -4486,6 +4607,7 @@
             renderAlerts(referenceDate);
 
             drawProductionCalendar();
+            renderFiltersSummary();
         }
 
         function checkPeriodMatch(rowDateStr, period, referenceDate) {
