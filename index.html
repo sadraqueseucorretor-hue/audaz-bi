@@ -1954,12 +1954,6 @@
                     })
                     .filter(Boolean);
 
-                // "Nome - Cargo" (ex.: "Sadraque Ribeiro - Acesso Gerente") vira nome + badge de cargo
-                const parseNomeCargo = (nomeCompleto) => {
-                    const m = nomeCompleto.match(/^(.+?)\s*[-–]\s*(.+)$/);
-                    return m ? { nome: m[1].trim(), cargo: m[2].trim() } : { nome: nomeCompleto, cargo: null };
-                };
-
                 let melhorNome = '—', melhorPct = null;
                 if (comMetaIndiv.length) {
                     const best = comMetaIndiv.reduce((a, b) => (b.pctC > a.pctC ? b : a));
@@ -3184,15 +3178,32 @@
             return `${getMesName(mesNum)}/${ano}`;
         }
 
-        // A planilha de Prospecção costuma exportar o corretor em CAIXA ALTA ("EDSON LUIS").
-        // Casa (sem diferenciar maiúsculas) contra o roster já conhecido pra usar a grafia
-        // canônica de lá ("Edson Luis") — sem isso, o mesmo corretor apareceria duplicado (uma
-        // entrada "de verdade" e outra em caixa alta) no roster, fotos e rankings.
+        // Remove acentos pra comparar nomes ("Eduardo Prudencio" vs "Eduardo Prudêncio")
+        // sem diferenciar grafia com/sem diacrítico.
+        function stripDiacritics(str) {
+            return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        // "Nome - Cargo" (ex.: "Sadraque Ribeiro - Acesso Gerente") vira nome + badge de cargo.
+        // Global (nao so de drawQuickRankings) pra normalizeProspeccaoCorretor tambem poder
+        // comparar so a parte do nome, ignorando o cargo.
+        function parseNomeCargo(nomeCompleto) {
+            const m = nomeCompleto.match(/^(.+?)\s*[-\u2013]\s*(.+)$/);
+            return m ? { nome: m[1].trim(), cargo: m[2].trim() } : { nome: nomeCompleto, cargo: null };
+        }
+
+        // A planilha de Prospeccao costuma exportar o corretor em CAIXA ALTA e/ou SEM ACENTO
+        // ("EDSON LUIS", "Eduardo Prudencio") e sem o cargo ("Sadraque Ribeiro", enquanto o
+        // roster tem "Sadraque Ribeiro - Acesso Gerente"). Casa sem diferenciar maiusculas,
+        // acentos, nem cargo -- sem isso, o mesmo corretor apareceria duplicado (uma entrada
+        // "de verdade" e outra em caixa alta/sem acento/sem cargo) no roster, fotos e rankings.
         function normalizeProspeccaoCorretor(nomeRaw) {
             if (!nomeRaw) return nomeRaw;
             const trimmed = String(nomeRaw).trim();
             const known = getAllKnownCorretores();
-            const match = known.find(n => n.toLowerCase() === trimmed.toLowerCase());
+            const chave = n => stripDiacritics(parseNomeCargo(n).nome).toLowerCase();
+            const trimmedKey = chave(trimmed);
+            const match = known.find(n => chave(n) === trimmedKey);
             if (match) return match;
             return trimmed.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
         }
@@ -3203,9 +3214,14 @@
         const PROSPECCAO_FIRESTORE_LIMIT = 700 * 1024;
 
         // Reconstrói prospeccaoDataset (usado pelo resto do app) juntando as linhas de TODOS os
-        // meses carregados em prospeccaoPorMes.
+        // meses carregados em prospeccaoPorMes. Renormaliza o Corretor de cada linha de novo aqui
+        // (não só no upload) pra "curar" duplicatas de nome que já tenham sido salvas antes da
+        // comparação de nomes considerar acentos (ex.: "Eduardo Prudencio" x "Eduardo Prudêncio").
         function rebuildProspeccaoDataset() {
-            prospeccaoDataset = Object.values(prospeccaoPorMes).flatMap(m => m.rows);
+            prospeccaoDataset = Object.values(prospeccaoPorMes).flatMap(m => m.rows).map(row => {
+                const norm = normalizeProspeccaoCorretor(row.Corretor);
+                return norm === row.Corretor ? row : Object.assign({}, row, { Corretor: norm });
+            });
         }
 
         function saveProspeccaoLocal() {
