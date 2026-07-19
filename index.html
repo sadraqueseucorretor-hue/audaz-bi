@@ -554,7 +554,7 @@
                     <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
                         <div>
                             <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Evolução Mensal de Operações</h3>
-                            <p class="text-[10px] text-slate-500">Histórico mês a mês de Análises, Aprovações e Vendas. Clique num ponto do gráfico pra ver os clientes.</p>
+                            <p class="text-[10px] text-slate-500">Histórico mês a mês do funil completo — Prospecção, Agendamentos, Compareceu, Análises, Aprovações e Vendas. Clique num ponto do gráfico ou numa etapa da legenda pra ver os clientes / isolar a linha.</p>
                         </div>
                         <select id="evolucaoJanelaSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
                             <option value="3">Últimos 3 meses</option>
@@ -563,10 +563,21 @@
                         </select>
                     </div>
 
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="evolucaoTrendCards"></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5" id="evolucaoTrendCards"></div>
 
-                    <div class="h-64 relative">
-                        <canvas id="chartEvolucaoMensal"></canvas>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Topo do Funil</p>
+                            <div class="h-56 relative">
+                                <canvas id="chartEvolucaoTopoFunil"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Meio e Fim do Funil</p>
+                            <div class="h-56 relative">
+                                <canvas id="chartEvolucaoFunilFinal"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -625,6 +636,7 @@
 
                     <div class="mb-6">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fa-solid fa-percent text-brand-500"></i> Taxa de Conversão</p>
+                        <p class="text-[10px] text-slate-600 mb-2 leading-relaxed">Volume do mês na etapa seguinte ÷ volume do mês na etapa anterior — não é o mesmo lead acompanhado do início ao fim (por isso pode passar de 100% quando entram no mês mais leads represados de meses anteriores).</p>
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs" id="taxaConversaoTable"></table>
                         </div>
@@ -1477,8 +1489,8 @@
             return !inactiveCorretores.includes(name);
         }
 
-        // ====== METAS MENSAIS (VGV, Vendas, Análises, Aprovações) ======
-        let metasMensais = { vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60 };
+        // ====== METAS MENSAIS (VGV, Vendas, Análises, Aprovações, Prospecção, Agendamentos, Compareceu) ======
+        let metasMensais = { vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60, prospeccao: 0, agendamentos: 0, compareceu: 0 };
         let metasEditMode = false;
 
         function loadMetasMensais() {
@@ -3682,7 +3694,7 @@
                 if (Array.isArray(data.corretoresAdded)) { addedCorretores = data.corretoresAdded; localStorage.setItem(`${appId}-corretores-added`, JSON.stringify(addedCorretores)); }
                 if (Array.isArray(data.corretoresInactive)) { inactiveCorretores = data.corretoresInactive; localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores)); }
                 if (data.corretorFotos && typeof data.corretorFotos === 'object') { corretorFotos = data.corretorFotos; localStorage.setItem(`${appId}-corretor-fotos`, JSON.stringify(corretorFotos)); preloadAllCorretorFotos(); }
-                if (data.metasMensais && typeof data.metasMensais === 'object') { metasMensais = Object.assign({ vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60 }, data.metasMensais); localStorage.setItem(`${appId}-metas-mensais`, JSON.stringify(metasMensais)); }
+                if (data.metasMensais && typeof data.metasMensais === 'object') { metasMensais = Object.assign({ vgv: 5000000, vendas: 20, analises: 100, aprovacoes: 60, prospeccao: 0, agendamentos: 0, compareceu: 0 }, data.metasMensais); localStorage.setItem(`${appId}-metas-mensais`, JSON.stringify(metasMensais)); }
                 if (data.rankingsMetas && typeof data.rankingsMetas === 'object') { rankingsMetas = data.rankingsMetas; localStorage.setItem(`${appId}-rankings-metas`, JSON.stringify(rankingsMetas)); }
                 if (data.metasPorCorretor && typeof data.metasPorCorretor === 'object') { metasPorCorretor = data.metasPorCorretor; localStorage.setItem(`${appId}-metas-corretor`, JSON.stringify(metasPorCorretor)); }
                 if (data.vendasMode === 'gerais' || data.vendasMode === 'finalizadas') { vendasMode = data.vendasMode; localStorage.setItem(`${appId}-vendas-mode`, vendasMode); }
@@ -4653,11 +4665,20 @@
         }
 
         // Abre o detalhamento de clientes de um ponto do gráfico "Evolução Mensal de Operações"
-        // (clique em Análises/Aprovações/Vendas de um mês), cada métrica pela sua própria coluna
-        // de mês (Cadastro/Aprovação/Ganho) — igual ao critério usado no resto do painel.
+        // (clique em qualquer etapa do funil de um mês), cada métrica pela sua própria fonte/coluna
+        // de mês — igual ao critério usado no resto do painel e no mesmo bucketing do addEvolucao().
         function openEvolucaoMesDetail(metrica, mesNome, mesAno) {
             let rows, label;
-            if (metrica === 'analises') {
+            if (metrica === 'prospeccao') {
+                rows = filteredProspeccaoDataset.filter(row => normalizeMes(row['_MesComercialNorm']) === mesNome && (getMesAno(row['_MesComercialNorm']) || 0) === mesAno);
+                label = 'Prospecção';
+            } else if (metrica === 'agendamentos') {
+                rows = filteredAgendaDataset.filter(row => { const m = agendaMesStr(row); return normalizeMes(m) === mesNome && (getMesAno(m) || 0) === mesAno; });
+                label = 'Agendamentos';
+            } else if (metrica === 'compareceu') {
+                rows = filteredAgendaDataset.filter(row => { const m = agendaMesStr(row); return isCompareceu(row) && normalizeMes(m) === mesNome && (getMesAno(m) || 0) === mesAno; });
+                label = 'Compareceram';
+            } else if (metrica === 'analises') {
                 rows = filteredDataset.filter(row => normalizeMes(row['Mês Cadastro']) === mesNome && (getMesAno(row['Mês Cadastro']) || 0) === mesAno);
                 label = 'Análises';
             } else if (metrica === 'aprovacoes') {
@@ -5076,7 +5097,7 @@
         // Mini gráfico de linha (SVG puro, sem Chart.js) usado dentro dos cards de tendência.
         function renderSparklineSvg(serie, color) {
             if (!serie || serie.length < 2) return '';
-            const colorHex = { sky: '#38bdf8', amber: '#fbbf24', brand: '#10b981', indigo: '#818cf8' }[color] || '#94a3b8';
+            const colorHex = { sky: '#38bdf8', amber: '#fbbf24', brand: '#10b981', indigo: '#818cf8', pink: '#f472b6', violet: '#a78bfa', cyan: '#22d3ee' }[color] || '#94a3b8';
             const w = 64, h = 32, pad = 3;
             const max = Math.max(...serie, 1);
             const min = Math.min(...serie, 0);
@@ -5090,8 +5111,28 @@
             return `<svg viewBox="0 0 ${w} ${h}" class="w-full h-full"><polyline points="${pts}" fill="none" stroke="${colorHex}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
         }
 
-        // 4 cards de tendência (Análises/Aprovações/Vendas/Conversão Total): valor do mês mais
-        // recente da janela, variação vs mês anterior, sparkline e barra de progresso da meta.
+        // Ordem/identidade visual das 6 etapas do funil, reaproveitada pelos cards de tendência,
+        // pela tabela de conversão e pelas atividades recentes — mesmas cores/ícones do Funil de
+        // Vendas (drawFunnel) e dos Rankings Rápidos, pra nunca ter uma cor "nova" pra mesma etapa.
+        const FUNIL_ETAPAS = [
+            { key: 'prospeccao',   label: 'Prospecção',   icon: 'fa-bullhorn',              color: 'pink' },
+            { key: 'agendamentos', label: 'Agendamentos', icon: 'fa-calendar-check',        color: 'violet' },
+            { key: 'compareceu',   label: 'Compareceu',   icon: 'fa-door-open',             color: 'cyan' },
+            { key: 'analises',     label: 'Análises',      icon: 'fa-file-invoice-dollar',   color: 'sky' },
+            { key: 'aprovacoes',   label: 'Aprovações',    icon: 'fa-circle-check',          color: 'amber' },
+            { key: 'vendas',       label: 'Vendas',        icon: 'fa-house-circle-check',    color: 'brand' }
+        ];
+        const FUNIL_CORES = {
+            pink:   { text: 'text-pink-400',   border: 'border-pink-500/20',   bar: 'bg-pink-500' },
+            violet: { text: 'text-violet-400', border: 'border-violet-500/20', bar: 'bg-violet-500' },
+            cyan:   { text: 'text-cyan-400',   border: 'border-cyan-500/20',   bar: 'bg-cyan-500' },
+            sky:    { text: 'text-sky-400',    border: 'border-sky-500/20',    bar: 'bg-sky-500' },
+            amber:  { text: 'text-amber-400',  border: 'border-amber-500/20',  bar: 'bg-amber-500' },
+            brand:  { text: 'text-brand-400',  border: 'border-brand-500/20',  bar: 'bg-brand-500' }
+        };
+
+        // 6 cards de tendência (uma por etapa do funil completo): valor do mês mais recente da
+        // janela, variação vs mês anterior, sparkline e barra de progresso da meta (quando houver).
         function renderEvolucaoTrendCards(janela) {
             const container = document.getElementById('evolucaoTrendCards');
             if (!container) return;
@@ -5099,7 +5140,6 @@
 
             const atual = janela[janela.length - 1];
             const anterior = janela.length > 1 ? janela[janela.length - 2] : null;
-            const mesAnteriorLabel = anterior ? `${anterior.nome.slice(0, 3)}/${String(anterior.ano).slice(-2)}` : null;
 
             function trend(valAtual, valAnterior) {
                 if (!anterior) return null;
@@ -5107,48 +5147,45 @@
                 return ((valAtual - valAnterior) / valAnterior) * 100;
             }
 
-            const conversaoAtual = atual.analises > 0 ? (atual.vendas / atual.analises) * 100 : 0;
-            const conversaoAnterior = anterior && anterior.analises > 0 ? (anterior.vendas / anterior.analises) * 100 : 0;
-            const metaConversao = (metasMensais.analises > 0) ? (metasMensais.vendas / metasMensais.analises) * 100 : null;
-
-            const cards = [
-                { label: 'Análises Enviadas', icon: 'fa-file-invoice-dollar', color: 'sky', valor: atual.analises, meta: metasMensais.analises, trendPct: trend(atual.analises, anterior ? anterior.analises : 0), serie: janela.map(m => m.analises) },
-                { label: 'Aprovações', icon: 'fa-circle-check', color: 'amber', valor: atual.aprovacoes, meta: metasMensais.aprovacoes, trendPct: trend(atual.aprovacoes, anterior ? anterior.aprovacoes : 0), serie: janela.map(m => m.aprovacoes) },
-                { label: 'Vendas', icon: 'fa-house-circle-check', color: 'brand', valor: atual.vendas, meta: metasMensais.vendas, trendPct: trend(atual.vendas, anterior ? anterior.vendas : 0), serie: janela.map(m => m.vendas) },
-                { label: 'Conversão Total', icon: 'fa-filter', color: 'indigo', valor: conversaoAtual, meta: metaConversao, trendPct: anterior ? (conversaoAtual - conversaoAnterior) : null, isPct: true, serie: janela.map(m => m.analises > 0 ? (m.vendas / m.analises) * 100 : 0) }
-            ];
-
-            const cor = {
-                sky: { text: 'text-sky-400', border: 'border-sky-500/20', bar: 'bg-sky-500' },
-                amber: { text: 'text-amber-400', border: 'border-amber-500/20', bar: 'bg-amber-500' },
-                brand: { text: 'text-brand-400', border: 'border-brand-500/20', bar: 'bg-brand-500' },
-                indigo: { text: 'text-indigo-400', border: 'border-indigo-500/20', bar: 'bg-indigo-500' }
-            };
+            const cards = FUNIL_ETAPAS.map(e => ({
+                label: e.label,
+                icon: e.icon,
+                color: e.color,
+                valor: atual[e.key],
+                meta: metasMensais[e.key] || 0,
+                trendPct: trend(atual[e.key], anterior ? anterior[e.key] : 0),
+                serie: janela.map(m => m[e.key])
+            }));
 
             container.innerHTML = cards.map(c => {
-                const cl = cor[c.color];
-                const valorTxt = c.isPct ? `${c.valor.toFixed(1)}%` : Math.round(c.valor);
+                const cl = FUNIL_CORES[c.color];
+                const valorTxt = Math.round(c.valor);
                 const metaPct = c.meta ? Math.min(100, (c.valor / c.meta) * 100) : null;
-                const metaTxt = c.meta ? (c.isPct ? `Meta: ${c.meta.toFixed(0)}%` : `Meta: ${Math.round(c.meta)}`) : '';
+                const trendHtml = c.trendPct === null ? '' : `
+                    <span class="text-[10px] font-bold ${c.trendPct >= 0 ? 'text-emerald-400' : 'text-rose-400'} flex items-center gap-0.5 shrink-0">
+                        <i class="fa-solid ${c.trendPct >= 0 ? 'fa-arrow-up' : 'fa-arrow-down'}" style="font-size:8px"></i>${Math.abs(c.trendPct).toFixed(0)}%
+                    </span>`;
                 return `
                     <div class="bg-slate-950/50 rounded-xl border ${cl.border} p-3">
-                        <p class="text-[9px] font-bold ${cl.text} uppercase tracking-wider flex items-center gap-1.5 mb-1.5"><i class="fa-solid ${c.icon}"></i> ${c.label}</p>
+                        <p class="text-[9px] font-bold ${cl.text} uppercase tracking-wider flex items-center gap-1.5 mb-1.5 truncate"><i class="fa-solid ${c.icon}"></i> ${c.label}</p>
                         <div class="flex items-end justify-between gap-2">
                             <p class="text-xl font-extrabold text-slate-100">${valorTxt}</p>
-                            <div class="w-16 h-8 shrink-0">${renderSparklineSvg(c.serie, c.color)}</div>
+                            ${trendHtml}
                         </div>
+                        <div class="w-full h-6 mt-1.5">${renderSparklineSvg(c.serie, c.color)}</div>
                         ${c.meta ? `
-                        <div class="mt-2">
+                        <div class="mt-1.5">
                             <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden"><div class="h-full ${cl.bar} rounded-full" style="width:${metaPct}%"></div></div>
-                            <p class="text-[9px] text-slate-500 mt-1">${metaTxt} · ${metaPct.toFixed(0)}% da meta</p>
+                            <p class="text-[9px] text-slate-500 mt-1">Meta: ${Math.round(c.meta)} · ${metaPct.toFixed(0)}%</p>
                         </div>` : ''}
                     </div>
                 `;
             }).join('');
         }
 
-        // Tabela de Taxa de Conversão por mês (Análise→Aprovação, Aprovação→Venda, Análise→Venda),
-        // com o mês mais recente da janela destacado.
+        // Tabela de Taxa de Conversão por mês, cobrindo o funil inteiro etapa a etapa (Prospecção
+        // → Agendamento → Compareceu → Análise → Aprovação → Venda) + uma linha "geral" de ponta a
+        // ponta (Prospecção → Venda) destacada no fim, com o mês mais recente da janela em destaque.
         function renderTaxaConversaoTable(janela) {
             const el = document.getElementById('taxaConversaoTable');
             if (!el) return;
@@ -5161,22 +5198,29 @@
             }).join('');
 
             const linhas = [
+                { label: 'Prospecção → Agendamento', calc: m => m.prospeccao > 0 ? (m.agendamentos / m.prospeccao) * 100 : 0 },
+                { label: 'Agendamento → Compareceu', calc: m => m.agendamentos > 0 ? (m.compareceu / m.agendamentos) * 100 : 0 },
+                { label: 'Compareceu → Análise', calc: m => m.compareceu > 0 ? (m.analises / m.compareceu) * 100 : 0 },
                 { label: 'Análise → Aprovação', calc: m => m.analises > 0 ? (m.aprovacoes / m.analises) * 100 : 0 },
                 { label: 'Aprovação → Venda', calc: m => m.aprovacoes > 0 ? (m.vendas / m.aprovacoes) * 100 : 0 },
-                { label: 'Análise → Venda', calc: m => m.analises > 0 ? (m.vendas / m.analises) * 100 : 0 }
+                { label: 'Prospecção → Venda (geral)', calc: m => m.prospeccao > 0 ? (m.vendas / m.prospeccao) * 100 : 0, destaque: true }
             ];
             const bodyRows = linhas.map(l => {
                 const cells = janela.map((m, i) => {
                     const isUltimo = i === janela.length - 1;
-                    return `<td class="text-center py-2 px-3 font-semibold ${isUltimo ? 'text-slate-100 bg-brand-500/5' : 'text-slate-300'}">${l.calc(m).toFixed(1)}%</td>`;
+                    return `<td class="text-center py-2 px-3 font-semibold ${l.destaque ? 'text-brand-400' : (isUltimo ? 'text-slate-100 bg-brand-500/5' : 'text-slate-300')}">${l.calc(m).toFixed(1)}%</td>`;
                 }).join('');
-                return `<tr class="border-t border-slate-800/60"><td class="py-2 pr-3 text-slate-400 whitespace-nowrap">${l.label}</td>${cells}</tr>`;
+                const rowCls = l.destaque ? 'border-t-2 border-slate-700 bg-slate-950/40' : 'border-t border-slate-800/60';
+                const labelCls = l.destaque ? 'py-2 pr-3 text-brand-300 font-bold whitespace-nowrap' : 'py-2 pr-3 text-slate-400 whitespace-nowrap';
+                return `<tr class="${rowCls}"><td class="${labelCls}">${l.label}</td>${cells}</tr>`;
             }).join('');
 
             el.innerHTML = `<thead><tr><th class="text-left py-1.5 pr-3"></th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody>`;
         }
 
-        // Texto automático (sem IA) comparando o mês mais recente da janela com o anterior.
+        // Texto automático (POR REGRA, sem IA) comparando o mês mais recente da janela contra o
+        // anterior: volume do topo do funil (Prospecção quando houver dado, senão Análises) e a
+        // etapa com a maior queda de conversão entre as 5 transições do funil completo.
         function renderInsightMes(janela) {
             const el = document.getElementById('insightMesText');
             if (!el) return;
@@ -5186,35 +5230,48 @@
             const anterior = janela[janela.length - 2];
             const mesAnteriorLabel = anterior.ano ? `${anterior.nome}/${anterior.ano}` : anterior.nome;
 
-            const volumeDelta = anterior.analises > 0
-                ? ((atual.analises - anterior.analises) / anterior.analises) * 100
-                : (atual.analises > 0 ? 100 : 0);
+            const topoFunil = atual.prospeccao > 0 || anterior.prospeccao > 0 ? 'prospeccao' : 'analises';
+            const topoLabel = topoFunil === 'prospeccao' ? 'prospecções' : 'análises';
+            const volumeAtual = atual[topoFunil];
+            const volumeAnteriorRef = anterior[topoFunil];
+            const volumeDelta = volumeAnteriorRef > 0 ? ((volumeAtual - volumeAnteriorRef) / volumeAnteriorRef) * 100 : (volumeAtual > 0 ? 100 : 0);
 
-            const convAtual = {
-                'Análise → Aprovação': atual.analises > 0 ? (atual.aprovacoes / atual.analises) * 100 : 0,
-                'Aprovação → Venda': atual.aprovacoes > 0 ? (atual.vendas / atual.aprovacoes) * 100 : 0
-            };
-            const convAnterior = {
-                'Análise → Aprovação': anterior.analises > 0 ? (anterior.aprovacoes / anterior.analises) * 100 : 0,
-                'Aprovação → Venda': anterior.aprovacoes > 0 ? (anterior.vendas / anterior.aprovacoes) * 100 : 0
-            };
+            // "denom" = volume da etapa ANTERIOR do par (o denominador da razão) — exige um mínimo
+            // dos dois meses pra não deixar a maior queda ser decidida por uma etapa com amostra
+            // muito pequena. "Compareceu → Análise" fica de fora dessa busca de propósito: entre a
+            // visita e o envio da documentação passam-se costumeiramente semanas, então a razão do
+            // MESMO mês pra essas duas etapas é estruturalmente ruidosa (o lead que "virou análise"
+            // nesse mês quase sempre compareceu num mês anterior) — continua na tabela de baixo
+            // (com a ressalva explicada ali), só não entra no resumo automático de 1 frase.
+            const AMOSTRA_MINIMA = 3;
+            const etapas = [
+                { label: 'Prospecção → Agendamento', denom: m => m.prospeccao, calc: m => m.prospeccao > 0 ? (m.agendamentos / m.prospeccao) * 100 : null },
+                { label: 'Agendamento → Compareceu', denom: m => m.agendamentos, calc: m => m.agendamentos > 0 ? (m.compareceu / m.agendamentos) * 100 : null },
+                { label: 'Análise → Aprovação', denom: m => m.analises, calc: m => m.analises > 0 ? (m.aprovacoes / m.analises) * 100 : null },
+                { label: 'Aprovação → Venda', denom: m => m.aprovacoes, calc: m => m.aprovacoes > 0 ? (m.vendas / m.aprovacoes) * 100 : null }
+            ];
 
             let maiorQuedaEtapa = null, maiorQueda = 0;
-            Object.keys(convAtual).forEach(etapa => {
-                const delta = convAtual[etapa] - convAnterior[etapa];
-                if (delta < maiorQueda) { maiorQueda = delta; maiorQuedaEtapa = etapa; }
+            etapas.forEach(e => {
+                if (e.denom(atual) < AMOSTRA_MINIMA || e.denom(anterior) < AMOSTRA_MINIMA) return;
+                const vAtual = e.calc(atual);
+                const vAnterior = e.calc(anterior);
+                if (vAtual === null || vAnterior === null) return;
+                const delta = vAtual - vAnterior;
+                if (delta < maiorQueda) { maiorQueda = delta; maiorQuedaEtapa = e.label; }
             });
 
             const direcaoVolume = volumeDelta >= 0 ? 'subiu' : 'caiu';
-            let texto = `O volume de análises ${direcaoVolume} ${Math.abs(volumeDelta).toFixed(1)}% em relação a ${mesAnteriorLabel}.`;
+            let texto = `O volume de ${topoLabel} ${direcaoVolume} ${Math.abs(volumeDelta).toFixed(1)}% em relação a ${mesAnteriorLabel}.`;
             texto += maiorQuedaEtapa
                 ? ` A maior queda de conversão foi na etapa ${maiorQuedaEtapa} (${maiorQueda.toFixed(1)} pontos percentuais).`
-                : ` As taxas de conversão se mantiveram estáveis ou melhoraram em relação a ${mesAnteriorLabel}.`;
+                : ` As taxas de conversão do funil se mantiveram estáveis ou melhoraram em relação a ${mesAnteriorLabel}.`;
             el.textContent = texto;
         }
 
-        // Feed das atividades mais recentes (análise/aprovação/venda) do recorte atual. A planilha
-        // só tem DATA (sem horário), então mostra "Hoje"/"Ontem"/data — nunca um horário inventado.
+        // Feed das atividades mais recentes do funil completo (prospecção/agendamento/compareceu/
+        // análise/aprovação/venda) do recorte atual. As planilhas só têm DATA (sem horário), então
+        // mostra "Hoje"/"Ontem"/data — nunca um horário inventado.
         function renderAtividadesRecentes() {
             const el = document.getElementById('atividadesRecentesList');
             if (!el) return;
@@ -5235,9 +5292,19 @@
                     if (dGanho) atividades.push({ tipo: 'venda', cliente: row.Cliente, corretor: row.Corretor, data: dGanho });
                 }
             });
+            filteredAgendaDataset.forEach(row => {
+                const d = parseDate(row['Data']);
+                if (!d) return;
+                atividades.push({ tipo: 'agendamento', cliente: row.Cliente, corretor: row.Corretor, data: d });
+                if (isCompareceu(row)) atividades.push({ tipo: 'compareceu', cliente: row.Cliente, corretor: row.Corretor, data: d });
+            });
+            filteredProspeccaoDataset.forEach(row => {
+                const d = parseDate(row['Cadastro']);
+                if (d) atividades.push({ tipo: 'prospeccao', cliente: row.Cliente, corretor: row.Corretor, data: d });
+            });
 
             atividades.sort((a, b) => b.data - a.data);
-            atividades = atividades.slice(0, 8);
+            atividades = atividades.slice(0, 10);
 
             if (!atividades.length) {
                 el.innerHTML = '<p class="text-xs text-slate-500">Nenhuma atividade no recorte atual.</p>';
@@ -5245,9 +5312,12 @@
             }
 
             const iconMap = {
-                analise: { icon: 'fa-file-invoice-dollar', color: 'text-sky-400', bg: 'bg-sky-500/10', label: 'Nova análise enviada' },
-                aprovacao: { icon: 'fa-circle-check', color: 'text-amber-400', bg: 'bg-amber-500/10', label: 'Cliente aprovado' },
-                venda: { icon: 'fa-house-circle-check', color: 'text-brand-400', bg: 'bg-brand-500/10', label: 'Venda realizada' }
+                prospeccao:   { icon: 'fa-bullhorn',              color: 'text-pink-400',   bg: 'bg-pink-500/10',   label: 'Novo lead prospectado' },
+                agendamento:  { icon: 'fa-calendar-check',        color: 'text-violet-400', bg: 'bg-violet-500/10', label: 'Visita agendada' },
+                compareceu:   { icon: 'fa-door-open',             color: 'text-cyan-400',   bg: 'bg-cyan-500/10',   label: 'Cliente compareceu' },
+                analise:      { icon: 'fa-file-invoice-dollar',   color: 'text-sky-400',    bg: 'bg-sky-500/10',    label: 'Nova análise enviada' },
+                aprovacao:    { icon: 'fa-circle-check',          color: 'text-amber-400',  bg: 'bg-amber-500/10',  label: 'Cliente aprovado' },
+                venda:        { icon: 'fa-house-circle-check',    color: 'text-brand-400',  bg: 'bg-brand-500/10',  label: 'Venda realizada' }
             };
 
             el.innerHTML = atividades.map(a => {
@@ -5266,6 +5336,7 @@
                 `;
             }).join('');
         }
+
 
         // ===== RITMO DO MÊS: real acumulado dia a dia vs a linha ideal pra bater a meta =====
         let ritmoMetric = 'analises'; // analises | aprovacoes | vendas
@@ -5734,21 +5805,25 @@
         }
 
         function renderCharts() {
-            if (charts.evolucaoMensal) charts.evolucaoMensal.destroy();
+            if (charts.evolucaoTopoFunil) charts.evolucaoTopoFunil.destroy();
+            if (charts.evolucaoFunilFinal) charts.evolucaoFunilFinal.destroy();
             if (charts.evolucaoVgv) charts.evolucaoVgv.destroy();
             if (charts.performanceCorretor) charts.performanceCorretor.destroy();
             if (charts.performanceEquipe) charts.performanceEquipe.destroy();
 
             // Agrupa por MÊS + ANO (não só o nome do mês) — senão "Junho" de 2025 e de 2026
             // ficariam somados na mesma barra. A chave junta os dois; a ordenação usa ano+índice
-            // do mês pra sair em ordem cronológica de verdade, não alfabética.
+            // do mês pra sair em ordem cronológica de verdade, não alfabética. Cobre o funil
+            // completo: Prospecção (CSV manual) e Agendamentos/Compareceu (Agenda de Visitas) além
+            // das 3 métricas originais da planilha mestra (Análises/Aprovações/Vendas) — cada fonte
+            // bucketa pelo seu próprio campo de mês, igual ao resto do app.
             let evolucaoMesMap = {};
             function addEvolucao(mesStr, campo, vgvInc) {
                 const nome = normalizeMes(mesStr);
                 if (!nome || !(nome in MESES_IDX)) return;
                 const ano = getMesAno(mesStr) || 0;
                 const chave = `${nome}/${ano}`;
-                if (!evolucaoMesMap[chave]) evolucaoMesMap[chave] = { nome, ano, idx: MESES_IDX[nome], analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                if (!evolucaoMesMap[chave]) evolucaoMesMap[chave] = { nome, ano, idx: MESES_IDX[nome], prospeccao: 0, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                 evolucaoMesMap[chave][campo]++;
                 if (vgvInc) evolucaoMesMap[chave].vgv += vgvInc;
             }
@@ -5756,6 +5831,14 @@
                 addEvolucao(row['Mês Cadastro'], 'analises');
                 if (isAprovado(row['Situação - Analise'])) addEvolucao(mesAprovacaoEfetivo(row), 'aprovacoes');
                 if (isGanho(row)) addEvolucao(row['Mês Ganho'], 'vendas', getVGV(row));
+            });
+            filteredProspeccaoDataset.forEach(row => {
+                addEvolucao(row['_MesComercialNorm'], 'prospeccao');
+            });
+            filteredAgendaDataset.forEach(row => {
+                const mesStr = agendaMesStr(row);
+                addEvolucao(mesStr, 'agendamentos');
+                if (isCompareceu(row)) addEvolucao(mesStr, 'compareceu');
             });
 
             const evolucaoOrdenada = Object.values(evolucaoMesMap).sort((a, b) => (a.ano - b.ano) || (a.idx - b.idx));
@@ -5772,10 +5855,12 @@
             const janelaMeses = janelaSel ? parseInt(janelaSel.value) || 0 : 3;
             const evolucaoJanela = janelaMeses > 0 ? evolucaoOrdenada.slice(-janelaMeses) : evolucaoOrdenada;
             const labelsJanela = evolucaoJanela.map(m => m.ano ? `${m.nome.slice(0, 3)}/${String(m.ano).slice(-2)}` : m.nome);
+            const prospJanela = evolucaoJanela.map(m => m.prospeccao);
+            const agendJanela = evolucaoJanela.map(m => m.agendamentos);
+            const compJanela = evolucaoJanela.map(m => m.compareceu);
             const anaJanela = evolucaoJanela.map(m => m.analises);
             const aprovJanela = evolucaoJanela.map(m => m.aprovacoes);
             const vendJanela = evolucaoJanela.map(m => m.vendas);
-            const metaAnalisesLinha = evolucaoJanela.map(() => metasMensais.analises || 0);
 
             renderEvolucaoTrendCards(evolucaoJanela);
             renderTaxaConversaoTable(evolucaoJanela);
@@ -5783,130 +5868,70 @@
             renderAtividadesRecentes();
             renderRitmoMesChart();
 
-            // 1. Gráfico de Evolução Operacional - Otimização de Contraste e Espessura
-            const ctxEvol = document.getElementById('chartEvolucaoMensal').getContext('2d');
-            charts.evolucaoMensal = new Chart(ctxEvol, {
+            // 1a. TOPO DO FUNIL (Prospecção/Agendamentos/Compareceu) e 1b. MEIO E FIM DO FUNIL
+            // (Análises/Aprovações/Vendas) — dois mini-gráficos separados em vez de 1 só com as 6
+            // séries juntas: Prospecção tem uma escala muito maior que as demais etapas (centenas
+            // vs dezenas), então plotadas todas no mesmo eixo linear as etapas menores viravam
+            // linhas achatadas perto do zero, ilegíveis. Separar por metade do funil já ajuda bastante,
+            // mas mesmo dentro do "Topo do Funil" Prospecção ainda é bem maior que Agendamentos/
+            // Compareceu — por isso Prospecção usa um EIXO SECUNDÁRIO à direita (cor rosa, igual à
+            // linha), enquanto Agendamentos/Compareceu dividem o eixo principal à esquerda, ambos
+            // legíveis ao mesmo tempo. Sem preenchimento de área (fill:false) pra não embolar visualmente.
+            const funilChartOptions = (metricas, comEixoSecundario) => ({
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 20, bottom: 8 } },
+                onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+                onClick: (evt, els) => {
+                    if (!els.length) return;
+                    const mes = evolucaoJanela[els[0].index];
+                    if (!mes) return;
+                    openEvolucaoMesDetail(metricas[els[0].datasetIndex], mes.nome, mes.ano);
+                },
+                plugins: {
+                    legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12, boxWidth: 10 } },
+                    tooltip: { callbacks: { title: (items) => labelsJanela[items[0].dataIndex] } }
+                },
+                scales: Object.assign({
+                    x: { grid: { color: 'rgba(255, 255, 255, 0.12)' }, ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } } },
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.12)' }, ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } }, beginAtZero: true }
+                }, comEixoSecundario ? {
+                    y1: { position: 'right', grid: { display: false }, ticks: { color: '#f9a8d4', font: { size: 11, weight: '500' } }, beginAtZero: true, title: { display: true, text: 'Prospecção', color: '#f9a8d4', font: { size: 9 } } }
+                } : {})
+            });
+            const funilDataset = (label, data, hex, thick, yAxisID) => ({
+                label, data, borderColor: hex, backgroundColor: hex,
+                borderWidth: thick ? 3 : 2.5, pointRadius: thick ? 4 : 3, pointHoverRadius: thick ? 7 : 6,
+                pointBackgroundColor: hex, pointBorderColor: '#0b1220', pointBorderWidth: thick ? 1.5 : 1,
+                tension: 0.3, fill: false, yAxisID: yAxisID || 'y'
+            });
+
+            const ctxTopo = document.getElementById('chartEvolucaoTopoFunil').getContext('2d');
+            charts.evolucaoTopoFunil = new Chart(ctxTopo, {
                 type: 'line',
                 data: {
                     labels: labelsJanela,
                     datasets: [
-                        {
-                            label: 'Análises Enviadas',
-                            data: anaJanela,
-                            borderColor: '#38bdf8',
-                            backgroundColor: 'rgba(56, 189, 248, 0.08)',
-                            borderWidth: 4,
-                            pointRadius: 5,
-                            pointHoverRadius: 8,
-                            pointBackgroundColor: '#38bdf8',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1.5,
-                            tension: 0.3,
-                            fill: true
-                        },
-                        {
-                            label: 'Aprovações',
-                            data: aprovJanela,
-                            borderColor: '#fb923c',
-                            backgroundColor: 'rgba(251, 146, 60, 0.05)',
-                            borderWidth: 4,
-                            pointRadius: 5,
-                            pointHoverRadius: 8,
-                            pointBackgroundColor: '#fb923c',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 1.5,
-                            tension: 0.3,
-                            fill: true
-                        },
-                        {
-                            label: 'Vendas',
-                            data: vendJanela,
-                            borderColor: '#4ade80',
-                            backgroundColor: 'rgba(74, 222, 128, 0.08)',
-                            borderWidth: 4,
-                            pointRadius: 6,
-                            pointHoverRadius: 9,
-                            pointBackgroundColor: '#4ade80',
-                            pointBorderColor: '#ffffff',
-                            pointBorderWidth: 2,
-                            tension: 0.3,
-                            fill: true
-                        },
-                        {
-                            label: `Meta Análises (${metasMensais.analises || 0})`,
-                            data: metaAnalisesLinha,
-                            borderColor: 'rgba(226, 232, 240, 0.45)',
-                            borderWidth: 2,
-                            borderDash: [6, 5],
-                            pointRadius: 0,
-                            pointHoverRadius: 0,
-                            tension: 0,
-                            fill: false
-                        }
+                        funilDataset('Prospecção (eixo direito)', prospJanela, '#f472b6', false, 'y1'),
+                        funilDataset('Agendamentos', agendJanela, '#a78bfa'),
+                        funilDataset('Compareceu', compJanela, '#22d3ee')
                     ]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { top: 24, bottom: 8 } },
-                    onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
-                    onClick: (evt, els) => {
-                        if (!els.length) return;
-                        if (els[0].datasetIndex === 3) return; // linha de meta não abre detalhamento
-                        const mes = evolucaoJanela[els[0].index];
-                        if (!mes) return;
-                        const metrica = els[0].datasetIndex === 0 ? 'analises' : els[0].datasetIndex === 1 ? 'aprovacoes' : 'vendas';
-                        openEvolucaoMesDetail(metrica, mes.nome, mes.ano);
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: '#f1f5f9',
-                                font: { size: 12, weight: 'bold' },
-                                padding: 15
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(255, 255, 255, 0.12)' },
-                            ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } }
-                        },
-                        y: {
-                            grid: { color: 'rgba(255, 255, 255, 0.12)' },
-                            ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } }
-                        }
-                    }
+                options: funilChartOptions(['prospeccao', 'agendamentos', 'compareceu'], true)
+            });
+
+            const ctxFinal = document.getElementById('chartEvolucaoFunilFinal').getContext('2d');
+            charts.evolucaoFunilFinal = new Chart(ctxFinal, {
+                type: 'line',
+                data: {
+                    labels: labelsJanela,
+                    datasets: [
+                        funilDataset('Análises', anaJanela, '#38bdf8'),
+                        funilDataset('Aprovações', aprovJanela, '#fb923c'),
+                        funilDataset('Vendas', vendJanela, '#4ade80', true)
+                    ]
                 },
-                plugins: [{
-                    id: 'operacoesValueLabels',
-                    afterDatasetsDraw(chart) {
-                        const { ctx } = chart;
-                        ctx.save();
-                        ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.lineWidth = 3;
-                        ctx.strokeStyle = '#0b1220';
-                        // Cada série escreve o número perto do próprio ponto — Análises/Aprovações acima,
-                        // Vendas abaixo, pra não colidir quando as curvas ficam próximas no final do período.
-                        const series = [
-                            { idx: 0, data: anaJanela, color: '#38bdf8', dy: -16 },
-                            { idx: 1, data: aprovJanela, color: '#fb923c', dy: -16 },
-                            { idx: 2, data: vendJanela, color: '#4ade80', dy: 18 }
-                        ];
-                        series.forEach(s => {
-                            const meta = chart.getDatasetMeta(s.idx);
-                            meta.data.forEach((point, i) => {
-                                const text = String(s.data[i]);
-                                const y = point.y + s.dy;
-                                ctx.fillStyle = s.color;
-                                ctx.strokeText(text, point.x, y);
-                                ctx.fillText(text, point.x, y);
-                            });
-                        });
-                        ctx.restore();
-                    }
-                }]
+                options: funilChartOptions(['analises', 'aprovacoes', 'vendas'])
             });
 
             // 2. Gráfico de Evolução de VGV — barras com o valor escrito em cima + bolha com a
