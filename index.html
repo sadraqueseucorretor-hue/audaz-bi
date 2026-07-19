@@ -602,6 +602,10 @@
                             <div class="h-64 relative">
                                 <canvas id="chartRitmoMes"></canvas>
                             </div>
+                            <!-- Régua de dias do mês comercial: data + dia da semana, agrupados por
+                                 semana (separador tracejado antes de cada segunda-feira) — mesmo
+                                 acompanhamento visual de "quantos dias faltam por semana". -->
+                            <div class="flex items-start gap-3 overflow-x-auto pb-1 mt-3" id="ritmoMesDiasStrip"></div>
                         </div>
                         <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-4" id="ritmoMesResumo"></div>
                     </div>
@@ -5425,6 +5429,36 @@
             return { mesNome, ano, monthIdx, inicioReal, fimEstimado, diasNoMes, diaHoje, mesEhAtual, configMes, pertenceAoMes, linhaDoRow };
         }
 
+        // Régua de dias do mês comercial abaixo do gráfico do Ritmo do Mês: uma coluna por dia
+        // (dd + dia da semana abreviado), agrupadas por semana — semana nova sempre numa
+        // segunda-feira (exceto o 1º dia do mês comercial, que pode cair em qualquer dia), com
+        // separador tracejado entre grupos e o rótulo "Nª SEM" centralizado embaixo de cada um.
+        function renderRitmoMesDiasStrip(inicioReal, diasNoMes, diaHoje) {
+            const el = document.getElementById('ritmoMesDiasStrip');
+            if (!el) return;
+            const DOW = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+            const semanas = [];
+            let semanaAtual = null;
+            for (let d = 1; d <= diasNoMes; d++) {
+                const data = new Date(inicioReal);
+                data.setDate(data.getDate() + (d - 1));
+                const dow = data.getDay();
+                if (!semanaAtual || dow === 1) { semanaAtual = []; semanas.push(semanaAtual); }
+                semanaAtual.push({ d, data, dow });
+            }
+            el.innerHTML = semanas.map((dias, wi) => `
+                <div class="flex flex-col items-center shrink-0 ${wi > 0 ? 'border-l border-dashed border-slate-700 pl-3' : ''}">
+                    <div class="flex gap-1.5">
+                        ${dias.map(x => `
+                            <div class="flex flex-col items-center w-7 shrink-0">
+                                <span class="text-[11px] font-extrabold rounded px-1 ${x.d === diaHoje ? 'bg-brand-500 text-white' : 'text-slate-300'}">${String(x.data.getDate()).padStart(2, '0')}</span>
+                                <span class="text-[8px] font-bold text-slate-500 uppercase mt-0.5">${DOW[x.dow]}</span>
+                            </div>`).join('')}
+                    </div>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-1.5">${wi + 1}ª SEM</span>
+                </div>`).join('');
+        }
+
         function renderRitmoMesChart() {
             const canvas = document.getElementById('chartRitmoMes');
             if (!canvas) return;
@@ -5451,6 +5485,8 @@
             if (diasFaltamEl) diasFaltamEl.textContent = `${diasRestantes} dias`;
             const encerramentoEl = document.getElementById('ritmoMesEncerramento');
             if (encerramentoEl) encerramentoEl.textContent = `Encerramento: ${formatDate(fimEstimado)}`;
+
+            renderRitmoMesDiasStrip(inicioReal, diasNoMes, mesEhAtual ? diaHoje : null);
 
             const meta = metasMensais[ritmoMetric] || 0;
 
