@@ -1548,11 +1548,17 @@
             }
 
             const modeFin = vendasMode === 'finalizadas';
+            // Mesma ordem do Funil de Vendas — Prospecção → Agendamentos → Compareceu →
+            // Análises → Aprovações → Vendas — com o VGV como primeiro card (visão geral de
+            // faturamento antes do funil de contagens).
             const cards = [
-                { campo: 'vgv',        label: modeFin ? 'VGV (finalizado)' : 'VGV (geral)', icon: 'fa-coins',      cor: 'indigo',  money: true,  atual: modeFin ? kpiValues.vgvFinal : kpiValues.vgvGeral,      info: modeFin ? `Geral: ${formatBRL(kpiValues.vgvGeral)}` : `Finalizado: ${formatBRL(kpiValues.vgvFinal)}` },
-                { campo: 'vendas',     label: modeFin ? 'Vendas (final.)' : 'Vendas (gerais)',  icon: 'fa-house-circle-check', cor: 'brand', money: false, atual: modeFin ? kpiValues.salesFinal : kpiValues.salesGeral, info: modeFin ? `Geral: ${kpiValues.salesGeral}` : `Finalizadas: ${kpiValues.salesFinal}` },
-                { campo: 'analises',   label: 'Análises',   icon: 'fa-file-invoice-dollar', cor: 'sky', money: false, atual: kpiValues.analyses, info: '' },
-                { campo: 'aprovacoes', label: 'Aprovações', icon: 'fa-circle-check',    cor: 'amber',   money: false, atual: kpiValues.approvals, info: '' }
+                { campo: 'vgv',           label: modeFin ? 'VGV (finalizado)' : 'VGV (geral)', icon: 'fa-coins',            cor: 'indigo', money: true,  atual: modeFin ? kpiValues.vgvFinal : kpiValues.vgvGeral, info: modeFin ? `Geral: ${formatBRL(kpiValues.vgvGeral)}` : `Finalizado: ${formatBRL(kpiValues.vgvFinal)}` },
+                { campo: 'prospeccao',    label: 'Prospecção',    icon: 'fa-bullhorn',          cor: 'pink',   money: false, atual: kpiValues.prospeccao,   info: '' },
+                { campo: 'agendamentos',  label: 'Agendamentos',  icon: 'fa-calendar-check',    cor: 'violet', money: false, atual: kpiValues.agendamentos, info: '' },
+                { campo: 'compareceu',    label: 'Compareceu',    icon: 'fa-door-open',         cor: 'cyan',   money: false, atual: kpiValues.compareceu,   info: '' },
+                { campo: 'analises',      label: 'Análises',      icon: 'fa-file-invoice-dollar', cor: 'sky',  money: false, atual: kpiValues.analyses,     info: '' },
+                { campo: 'aprovacoes',    label: 'Aprovações',    icon: 'fa-circle-check',      cor: 'amber',  money: false, atual: kpiValues.approvals,    info: '' },
+                { campo: 'vendas',        label: modeFin ? 'Vendas (final.)' : 'Vendas (gerais)', icon: 'fa-house-circle-check', cor: 'brand', money: false, atual: modeFin ? kpiValues.salesFinal : kpiValues.salesGeral, info: modeFin ? `Geral: ${kpiValues.salesGeral}` : `Finalizadas: ${kpiValues.salesFinal}` }
             ];
 
             grid.innerHTML = cards.map(c => {
