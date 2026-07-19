@@ -5483,6 +5483,10 @@
             return { mesNome, ano, monthIdx, inicioReal, fimEstimado, diasNoMes, diaHoje, mesEhAtual, configMes, pertenceAoMes, linhaDoRow };
         }
 
+        // Dias da semana abreviados — compartilhado pela régua de dias e pelo eixo do gráfico
+        // do Ritmo do Mês, pra ficarem sempre consistentes entre si.
+        const DOW_PT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+
         // Régua de dias do mês comercial abaixo do gráfico do Ritmo do Mês: uma coluna por dia
         // (dd + dia da semana abreviado), agrupadas por semana — semana nova sempre numa
         // segunda-feira (exceto o 1º dia do mês comercial, que pode cair em qualquer dia), com
@@ -5490,7 +5494,7 @@
         function renderRitmoMesDiasStrip(inicioReal, diasNoMes, diaHoje) {
             const el = document.getElementById('ritmoMesDiasStrip');
             if (!el) return;
-            const DOW = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+            const DOW = DOW_PT;
             const semanas = [];
             let semanaAtual = null;
             for (let d = 1; d <= diasNoMes; d++) {
@@ -5555,11 +5559,15 @@
             });
 
             const labels = [];
+            const labelDatas = []; // data real de cada ponto, na mesma ordem de labels — usada no tooltip
             const realAcumulado = [];
             const ritmoIdeal = [];
             let acumulado = 0;
             for (let d = 1; d <= diasNoMes; d++) {
-                labels.push(String(d));
+                const dataDoDia = new Date(inicioReal);
+                dataDoDia.setDate(dataDoDia.getDate() + (d - 1));
+                labelDatas.push(dataDoDia);
+                labels.push(`${String(dataDoDia.getDate()).padStart(2, '0')}/${String(dataDoDia.getMonth() + 1).padStart(2, '0')}`);
                 acumulado += porDia[d];
                 realAcumulado.push(d <= diaHoje ? acumulado : null);
                 ritmoIdeal.push((meta * d) / diasNoMes);
@@ -5607,13 +5615,13 @@
                     layout: { padding: { top: 46, right: 70 } },
                     plugins: {
                         legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12 } },
-                        tooltip: { callbacks: { title: (items) => `Dia ${items[0].label}` } }
+                        tooltip: { callbacks: { title: (items) => `${items[0].label} (${DOW_PT[labelDatas[items[0].dataIndex].getDay()]})` } }
                     },
                     scales: {
                         x: {
                             grid: { display: false },
                             ticks: { color: '#94a3b8', font: { size: 9 }, maxTicksLimit: 12 },
-                            title: { display: true, text: 'Dia do mês comercial', color: '#64748b', font: { size: 10 } }
+                            title: { display: true, text: 'Data (mês comercial)', color: '#64748b', font: { size: 10 } }
                         },
                         y: {
                             grid: { color: 'rgba(255, 255, 255, 0.08)' },
