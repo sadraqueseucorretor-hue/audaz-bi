@@ -181,6 +181,9 @@
                         <button onclick="switchView('rankings')" id="navLinkRankings" title="Rankings para Apresentação" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-trophy text-amber-500"></i><span class="hidden lg:inline">Rankings</span>
                         </button>
+                        <button onclick="switchView('corretor')" id="navLinkCorretor" title="Painel do Corretor" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-user text-sky-400"></i><span class="hidden lg:inline">Corretor</span>
+                        </button>
                     </nav>
 
                     <!-- Dynamic Live-Sync Indicator -->
@@ -868,6 +871,22 @@
                         <!-- Populado Dinamicamente -->
                     </div>
                 </section>
+
+                <!-- ABA CORRETOR: funil completo + conversões de cada corretor no mês -->
+                <div id="corretorSection" class="hidden space-y-4">
+                    <div class="flex items-center justify-between flex-wrap gap-3">
+                        <div>
+                            <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-user text-sky-400"></i> Painel do Corretor
+                            </h2>
+                            <p class="text-xs text-slate-500">Funil completo (Prospecção → Vendas) e conversões entre etapas de cada corretor no mês.</p>
+                        </div>
+                        <span class="flex items-center gap-2 text-xs bg-slate-800 text-slate-300 font-bold px-3 py-2 rounded-lg" id="corretorSectionPeriodo">
+                            <i class="fa-solid fa-calendar-days text-slate-500"></i> —
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4" id="corretorCardsGrid"></div>
+                </div>
 
                 <!-- CALENDÁRIO DE PRODUÇÃO / MAPA DE CALOR OPERACIONAL (inline no painel, sempre visível) -->
                 <div id="calendarView" class="space-y-6 pt-5 mt-2 border-t border-slate-800/60">
@@ -3465,25 +3484,29 @@
             const linkDashboard = document.getElementById('navLinkDashboard');
             const linkCalendar = document.getElementById('navLinkCalendar');
             const linkRankings = document.getElementById('navLinkRankings');
+            const linkCorretor = document.getElementById('navLinkCorretor');
             if (linkDashboard) linkDashboard.className = viewName === 'dashboard' ? onCls : offCls;
             if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
             if (linkRankings) linkRankings.className = viewName === 'rankings' ? onCls : offCls;
+            if (linkCorretor) linkCorretor.className = viewName === 'corretor' ? onCls : offCls;
 
-            // "Rankings" é uma tela dedicada e limpa pra apresentação (projetar/print): esconde
-            // todo o resto do Painel (Hero, KPIs, Funil, Calendário — que hoje é inline aqui
-            // dentro) e mostra só a seção de Rankings Rápidos — cards + a barrinha de
-            // data (Semana/Mês) e os botões de editar metas, que continuam visíveis pra dar
-            // pra ajustar período/metas ali mesmo antes de apresentar. Nas outras views a
-            // seção some (só existe dentro da aba Rankings, evita duplicar no Painel normal).
+            // "Rankings" e "Corretor" são telas dedicadas (escondem todo o resto do Painel — Hero,
+            // KPIs, Funil, Calendário — que hoje é inline aqui dentro — e mostram só a própria
+            // seção). Nas outras views (dashboard/calendar) as duas somem, pra não duplicar
+            // conteúdo — Calendário só rola até #calendarView, mantendo o resto visível.
             const dashboardViewEl = document.getElementById('dashboardView');
             const quickSection = document.getElementById('quickRankingsSection');
-            if (dashboardViewEl && quickSection) {
+            const corretorSection = document.getElementById('corretorSection');
+            if (dashboardViewEl) {
                 Array.from(dashboardViewEl.children).forEach(child => {
-                    child.classList.toggle('hidden', child === quickSection ? viewName !== 'rankings' : viewName === 'rankings');
+                    if (child === quickSection) { child.classList.toggle('hidden', viewName !== 'rankings'); return; }
+                    if (child === corretorSection) { child.classList.toggle('hidden', viewName !== 'corretor'); return; }
+                    child.classList.toggle('hidden', viewName === 'rankings' || viewName === 'corretor');
                 });
             }
             const filtersBar = document.getElementById('filtersBar');
             if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings');
+            if (viewName === 'corretor') renderCorretorCards();
 
             const sb = document.getElementById('sidebar');
             if (sb) {
@@ -3496,7 +3519,7 @@
                 }
             }
 
-            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : 'dashboardView');
+            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : (viewName === 'corretor' ? 'corretorSection' : 'dashboardView'));
             const target = document.getElementById(targetId);
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -4608,6 +4631,7 @@
 
             drawProductionCalendar();
             renderFiltersSummary();
+            renderCorretorCards();
         }
 
         function checkPeriodMatch(rowDateStr, period, referenceDate) {
@@ -4744,6 +4768,84 @@
 
         // Abre o detalhamento de clientes de UMA etapa do funil (Análises/Aprovações/Vendas),
         // usando exatamente o mesmo critério de cada métrica que os cartões de KPI já usam.
+        // Aba "Corretor": um card por corretor com o funil completo do mês (mesmos critérios por
+        // etapa do Funil de Vendas — cada uma pela sua própria fonte/coluna de data) + conversão
+        // entre cada etapa consecutiva. Respeita os filtros do topo (Corretor/Equipe/Construtora/
+        // Empreendimento já embutidos em filteredDataset/filteredAgendaDataset/
+        // filteredProspeccaoDataset, e Mês Comercial via currentRefDate*).
+        function renderCorretorCards() {
+            const container = document.getElementById('corretorCardsGrid');
+            if (!container) return;
+
+            const periodoEl = document.getElementById('corretorSectionPeriodo');
+            if (periodoEl) periodoEl.innerHTML = `<i class="fa-solid fa-calendar-days text-slate-500"></i> ${getMesName(currentRefDate.getMonth() + 1)}/${currentRefDate.getFullYear()}`;
+
+            // Respeita o filtro de Corretor do topo — se um corretor específico estiver
+            // selecionado, mostra só o card dele em vez dos 11 (10 deles zerados).
+            const selCorretorFiltro = document.getElementById('filterCorretor').value;
+            const corretores = selCorretorFiltro ? [selCorretorFiltro] : getActiveCorretores();
+            const dados = corretores.map(c => {
+                const prospeccao = filteredProspeccaoDataset.filter(row => row.Corretor === c && metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', currentRefDateProspeccao)).length;
+                const agendaRows = filteredAgendaDataset.filter(row => row.Corretor === c && agendaMatchesRef(row, currentRefDateAgenda));
+                const agendamentos = agendaRows.length;
+                const compareceu = agendaRows.filter(isCompareceu).length;
+                const analises = filteredDataset.filter(row => row.Corretor === c && metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', currentRefDate)).length;
+                const aprovacoes = filteredDataset.filter(row => row.Corretor === c && isAprovadoNoPeriodo(row, currentRefDate)).length;
+                const vendaRows = filteredDataset.filter(row => row.Corretor === c && isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', currentRefDate));
+                const vendas = vendaRows.length;
+                const vgv = vendaRows.reduce((s, r) => s + getVGV(r), 0);
+                return { nomeCompleto: c, prospeccao, agendamentos, compareceu, analises, aprovacoes, vendas, vgv };
+            }).sort((a, b) => (b.vendas - a.vendas) || (b.aprovacoes - a.aprovacoes) || (b.analises - a.analises));
+
+            if (dados.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500 col-span-full">Nenhum corretor ativo neste período.</p>';
+                return;
+            }
+
+            container.innerHTML = dados.map(d => {
+                const { nome, cargo } = parseNomeCargo(d.nomeCompleto);
+                const avatar = corretorAvatarInner(d.nomeCompleto, 'h-9 w-9', 'text-[11px]');
+
+                const stageHtml = FUNIL_ETAPAS.map((e, i) => {
+                    const valor = d[e.key];
+                    const cl = FUNIL_CORES[e.color];
+                    const badge = `
+                        <div class="flex flex-col items-center shrink-0" title="${e.label}: ${valor}">
+                            <div class="w-9 h-9 rounded-lg border ${cl.border} bg-${e.color}-500/10 flex items-center justify-center text-${e.color}-400">
+                                <i class="fa-solid ${e.icon}" style="font-size:11px"></i>
+                            </div>
+                            <div class="text-[11px] font-extrabold text-slate-100 mt-1">${valor}</div>
+                        </div>`;
+                    if (i === 0) return badge;
+                    const anterior = d[FUNIL_ETAPAS[i - 1].key];
+                    const pct = anterior > 0 ? Math.round((valor / anterior) * 100) : 0;
+                    const seta = `
+                        <div class="flex flex-col items-center shrink-0 px-0.5 pt-2.5">
+                            <i class="fa-solid fa-arrow-right text-slate-700" style="font-size:9px"></i>
+                            <div class="text-[8px] font-bold text-slate-500 whitespace-nowrap">${pct}%</div>
+                        </div>`;
+                    return seta + badge;
+                }).join('');
+
+                return `
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
+                        <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-slate-800/60">
+                            ${avatar}
+                            <div class="min-w-0 flex-1">
+                                <div class="font-bold text-slate-200 text-sm truncate">${nome}</div>
+                                ${cargo ? `<span class="text-[9px] font-bold text-slate-400 bg-slate-800 rounded px-1.5 py-0.5">${cargo}</span>` : ''}
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="text-[9px] text-slate-500 uppercase tracking-wide font-bold">VGV</div>
+                                <div class="text-xs font-extrabold text-emerald-400">${formatCurrencyMillions(d.vgv)}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-0.5 overflow-x-auto pb-1">${stageHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function openFunnelDetail(metrica) {
             const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
             const refDate = metrica === 'prospeccao' ? currentRefDateProspeccao : (isAgendaMetrica ? currentRefDateAgenda : currentRefDate);
