@@ -656,6 +656,31 @@
                     </div>
                 </div>
 
+                <!-- Evolução Semanal do Mês: funil completo (Prospecção→Vendas) por semana, mesma
+                     lógica de mês comercial (janela real) do "Ritmo do Mês" acima -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                    <div class="flex items-center justify-between mb-1 flex-wrap gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-chart-column text-indigo-400"></i> Evolução Semanal do Mês
+                            </h3>
+                            <p class="text-[10px] text-slate-500" id="evolucaoSemanalPeriodoLabel">Mês comercial: — a —</p>
+                        </div>
+                        <span class="text-xs bg-slate-800 text-slate-300 font-bold px-3 py-1.5 rounded-lg" id="evolucaoSemanalTituloMes">—</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mb-4">Funil completo (Prospecção → Vendas) semana a semana dentro do mês comercial atual — mesmo raciocínio de janela real do Ritmo do Mês, só que agrupado por semana em vez de por dia.</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Topo do Funil</p>
+                            <div class="h-56 relative"><canvas id="chartEvolucaoSemanalTopo"></canvas></div>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Meio e Fim do Funil</p>
+                            <div class="h-56 relative"><canvas id="chartEvolucaoSemanalFinal"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Conversão, Insight & Atividades -->
                 <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                     <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase mb-4">Conversão, Insight & Atividades</h3>
@@ -6365,6 +6390,119 @@
             });
         }
 
+        // "Evolução Semanal do Mês": mesmo raciocínio de mês comercial do "Ritmo do Mês" (janela
+        // REAL, não o calendário — pode começar/acabar fora do dia 1/último dia), mas agrupado por
+        // SEMANA em vez de por dia, e com o funil completo (Prospecção→Vendas) em vez de uma
+        // métrica por vez. A janela de Análises (getJanelaMesComercial('analises')) vira a "régua"
+        // de semanas compartilhada pelo gráfico — cada uma das 6 etapas continua contando pela SUA
+        // PRÓPRIA regra de pertencimento ao mês (igual ao resto do app: Prospecção por
+        // _MesComercialNorm, Agendamentos/Compareceu por Data+agendaMatchesRef, etc.), só a POSIÇÃO
+        // de cada linha dentro da semana usa essa janela comum, pra dar pra comparar as 6 lado a
+        // lado. Dois mini-gráficos (Topo/Meio-Fim do Funil) pelo mesmo motivo de escala do card
+        // "Evolução Mensal de Operações" — Prospecção tem volume muito maior que as demais etapas.
+        function renderEvolucaoSemanalChart() {
+            const canvasTopo = document.getElementById('chartEvolucaoSemanalTopo');
+            const canvasFinal = document.getElementById('chartEvolucaoSemanalFinal');
+            if (!canvasTopo || !canvasFinal) return;
+            if (charts.evolucaoSemanalTopo) charts.evolucaoSemanalTopo.destroy();
+            if (charts.evolucaoSemanalFinal) charts.evolucaoSemanalFinal.destroy();
+
+            const { inicioReal, diasNoMes, fimEstimado, mesNome, ano } = getJanelaMesComercial('analises');
+
+            const tituloEl = document.getElementById('evolucaoSemanalTituloMes');
+            if (tituloEl) tituloEl.textContent = `${mesNome.charAt(0).toUpperCase()}${mesNome.slice(1)}/${ano}`;
+            const periodoEl = document.getElementById('evolucaoSemanalPeriodoLabel');
+            if (periodoEl) periodoEl.textContent = `Mês comercial: ${formatDate(inicioReal)} a ${formatDate(fimEstimado)}`;
+
+            // Grupos de semana — mesma regra do renderRitmoMesDiasStrip (nova semana toda
+            // segunda-feira, exceto o dia 1 do mês comercial, que sempre abre a semana 1).
+            const semanas = [];
+            let semanaAtual = null;
+            for (let d = 1; d <= diasNoMes; d++) {
+                const data = new Date(inicioReal);
+                data.setDate(data.getDate() + (d - 1));
+                if (!semanaAtual || data.getDay() === 1) { semanaAtual = []; semanas.push(semanaAtual); }
+                semanaAtual.push(d);
+            }
+            const diaParaSemanaIdx = new Array(diasNoMes + 1).fill(0);
+            semanas.forEach((dias, wi) => dias.forEach(d => { diaParaSemanaIdx[d] = wi; }));
+            const labelsSemana = semanas.map((dias, wi) => {
+                const primeiro = new Date(inicioReal); primeiro.setDate(primeiro.getDate() + (dias[0] - 1));
+                const ultimo = new Date(inicioReal); ultimo.setDate(ultimo.getDate() + (dias[dias.length - 1] - 1));
+                return `${wi + 1}ª SEM (${String(primeiro.getDate()).padStart(2, '0')}-${String(ultimo.getDate()).padStart(2, '0')})`;
+            });
+
+            const contagens = {};
+            FUNIL_ETAPAS.forEach(e => { contagens[e.key] = new Array(semanas.length).fill(0); });
+            const somarPorDia = (dataStr, key) => {
+                const d = parseDate(dataStr);
+                if (!d) return;
+                const diaIdx = Math.floor((d - inicioReal) / 86400000) + 1;
+                if (diaIdx < 1 || diaIdx > diasNoMes) return; // fora da janela do mês (raro, mas evita erro de índice)
+                contagens[key][diaParaSemanaIdx[diaIdx]]++;
+            };
+
+            filteredProspeccaoDataset.forEach(row => {
+                if (metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', currentRefDateProspeccao)) somarPorDia(row['Cadastro'], 'prospeccao');
+            });
+            filteredAgendaDataset.forEach(row => {
+                if (!agendaMatchesRef(row, currentRefDateAgenda)) return;
+                somarPorDia(row['Data'], 'agendamentos');
+                if (isCompareceu(row)) somarPorDia(row['Data'], 'compareceu');
+            });
+            filteredDataset.forEach(row => {
+                if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', currentRefDate)) somarPorDia(row['Data Cadastro'], 'analises');
+                if (isAprovadoNoPeriodo(row, currentRefDate)) somarPorDia(dataAprovacaoEfetiva(row), 'aprovacoes');
+                if (isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', currentRefDate)) somarPorDia(row['Data Ganho'], 'vendas');
+            });
+
+            const dsFn = (label, data, hex, thick, yAxisID) => ({
+                label, data, borderColor: hex, backgroundColor: hex,
+                borderWidth: thick ? 3 : 2.5, pointRadius: thick ? 4 : 3, pointHoverRadius: thick ? 7 : 6,
+                pointBackgroundColor: hex, pointBorderColor: '#0b1220', pointBorderWidth: thick ? 1.5 : 1,
+                tension: 0.3, fill: false, yAxisID: yAxisID || 'y'
+            });
+            const optsFn = (comEixoSecundario) => ({
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 20, bottom: 8 } },
+                plugins: {
+                    legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12, boxWidth: 10 } }
+                },
+                scales: Object.assign({
+                    x: { grid: { color: 'rgba(255, 255, 255, 0.12)' }, ticks: { color: '#cbd5e1', font: { size: 10, weight: '500' } } },
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.12)' }, ticks: { color: '#cbd5e1', font: { size: 11, weight: '500' } }, beginAtZero: true }
+                }, comEixoSecundario ? {
+                    y1: { position: 'right', grid: { display: false }, ticks: { color: '#f9a8d4', font: { size: 11, weight: '500' } }, beginAtZero: true, title: { display: true, text: 'Prospecção', color: '#f9a8d4', font: { size: 9 } } }
+                } : {})
+            });
+
+            charts.evolucaoSemanalTopo = new Chart(canvasTopo.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labelsSemana,
+                    datasets: [
+                        dsFn('Prospecção (eixo direito)', contagens.prospeccao, '#f472b6', false, 'y1'),
+                        dsFn('Agendamentos', contagens.agendamentos, '#a78bfa'),
+                        dsFn('Compareceu', contagens.compareceu, '#22d3ee')
+                    ]
+                },
+                options: optsFn(true)
+            });
+            charts.evolucaoSemanalFinal = new Chart(canvasFinal.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labelsSemana,
+                    datasets: [
+                        dsFn('Análises', contagens.analises, '#38bdf8'),
+                        dsFn('Aprovações', contagens.aprovacoes, '#fb923c'),
+                        dsFn('Vendas', contagens.vendas, '#4ade80', true)
+                    ]
+                },
+                options: optsFn(false)
+            });
+        }
+
         function renderCharts() {
             if (charts.evolucaoTopoFunil) charts.evolucaoTopoFunil.destroy();
             if (charts.evolucaoFunilFinal) charts.evolucaoFunilFinal.destroy();
@@ -6428,6 +6566,7 @@
             renderInsightMes(evolucaoJanela);
             renderAtividadesRecentes();
             renderRitmoMesChart();
+            if (typeof renderEvolucaoSemanalChart === 'function') renderEvolucaoSemanalChart();
 
             // 1a. TOPO DO FUNIL (Prospecção/Agendamentos/Compareceu) e 1b. MEIO E FIM DO FUNIL
             // (Análises/Aprovações/Vendas) — dois mini-gráficos separados em vez de 1 só com as 6
