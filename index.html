@@ -367,6 +367,8 @@
                                         <span class="h-1.5 w-1.5 rounded-full bg-slate-500"></span>
                                         <span id="funnelStatusText">—</span>
                                     </span>
+                                    <!-- Indica se as metas mostradas são da equipe ou de um corretor específico (filtro do topo) -->
+                                    <span id="funnelMetaFonteLabel" class="text-[10px] font-semibold text-slate-500"></span>
                                 </div>
                             </div>
 
@@ -5356,13 +5358,21 @@
             // Meta, % da meta e "ideal hoje" ao lado de cada etapa — mesma janela (início/fim/dia
             // de hoje) que desenha a linha de tendência do "Ritmo do Mês", uma por métrica (a
             // Agenda de Visitas e a Prospecção seguem a MESMA lógica de janela deslizante/config
-            // manual, cada uma com seu próprio mês corrente).
-            const metaProspeccao = metasMensais.prospeccao || 0;
-            const metaAgendamentos = metasMensais.agendamentos || 0;
-            const metaCompareceu = metasMensais.compareceu || 0;
-            const metaAnalises = metasMensais.analises || 0;
-            const metaAprovacoes = metasMensais.aprovacoes || 0;
-            const metaVendas = metasMensais.vendas || 0;
+            // manual, cada uma com seu próprio mês corrente). Se o filtro de Corretor do topo
+            // estiver com um nome específico selecionado, usa a meta MENSAL INDIVIDUAL daquele
+            // corretor (metasPorCorretor[nome].prMes/agMes/coMes/anMes/apMes/vdMes — painel "Metas
+            // por Corretor") em vez da meta da empresa inteira (metasMensais), mesmo padrão já
+            // usado na Evolução Semanal do Mês.
+            const selCorretorFiltroFunil = document.getElementById('filterCorretor').value;
+            const metasFonteFunil = (selCorretorFiltroFunil && metasPorCorretor[selCorretorFiltroFunil]) ? metasPorCorretor[selCorretorFiltroFunil] : null;
+            const metaProspeccao = metasFonteFunil ? (metasFonteFunil.prMes || 0) : (metasMensais.prospeccao || 0);
+            const metaAgendamentos = metasFonteFunil ? (metasFonteFunil.agMes || 0) : (metasMensais.agendamentos || 0);
+            const metaCompareceu = metasFonteFunil ? (metasFonteFunil.coMes || 0) : (metasMensais.compareceu || 0);
+            const metaAnalises = metasFonteFunil ? (metasFonteFunil.anMes || 0) : (metasMensais.analises || 0);
+            const metaAprovacoes = metasFonteFunil ? (metasFonteFunil.apMes || 0) : (metasMensais.aprovacoes || 0);
+            const metaVendas = metasFonteFunil ? (metasFonteFunil.vdMes || 0) : (metasMensais.vendas || 0);
+            const funnelMetaFonteEl = document.getElementById('funnelMetaFonteLabel');
+            if (funnelMetaFonteEl) funnelMetaFonteEl.textContent = metasFonteFunil ? `· Metas de ${selCorretorFiltroFunil}` : '· Metas da equipe';
             const janelaProspeccao = getJanelaMesComercial('prospeccao');
             const janelaAgendamentos = getJanelaMesComercial('agendamentos');
             const janelaCompareceu = getJanelaMesComercial('compareceu');
