@@ -881,11 +881,54 @@
                             </h2>
                             <p class="text-xs text-slate-500">Funil completo (Prospecção → Vendas) e conversões entre etapas de cada corretor no mês.</p>
                         </div>
-                        <span class="flex items-center gap-2 text-xs bg-slate-800 text-slate-300 font-bold px-3 py-2 rounded-lg" id="corretorSectionPeriodo">
-                            <i class="fa-solid fa-calendar-days text-slate-500"></i> —
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <select id="corretorMesSelect" onchange="corretorMesSelectChanged(this.value)" class="bg-slate-900 border border-slate-800 text-xs font-bold rounded-lg px-3 py-2 text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition"></select>
+                            <button onclick="exportCorretorSummaryCSV()" class="flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 rounded-lg px-3 py-2 transition">
+                                <i class="fa-solid fa-download"></i> Exportar
+                            </button>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4" id="corretorCardsGrid"></div>
+
+                    <!-- 5 cards de resumo do mês (empresa toda, respeitando os filtros do topo) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" id="corretorSummaryCards"></div>
+
+                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+                            <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                                Desempenho por Corretor
+                                <i class="fa-solid fa-circle-info text-slate-600" title="Cada card mostra o funil do mês daquele corretor e a % de conversão entre cada etapa consecutiva."></i>
+                            </h3>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-[11px] text-slate-500 font-bold">Ordenar por:</span>
+                                <select id="corretorSortSelect" onchange="renderCorretorCards()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
+                                    <option value="vgv">VGV (maior)</option>
+                                    <option value="vendas">Vendas (maior)</option>
+                                    <option value="analises">Análises (maior)</option>
+                                    <option value="conversao">Taxa de Conversão (maior)</option>
+                                </select>
+                                <div class="flex items-center bg-slate-950 rounded-lg border border-slate-800 p-0.5">
+                                    <button onclick="setCorretorViewMode('grid')" id="corretorViewGridBtn" class="px-2.5 py-1.5 rounded-md text-xs transition" title="Ver em cards"><i class="fa-solid fa-grip"></i></button>
+                                    <button onclick="setCorretorViewMode('list')" id="corretorViewListBtn" class="px-2.5 py-1.5 rounded-md text-xs transition" title="Ver em lista"><i class="fa-solid fa-list"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Legenda das 6 etapas do funil (mesma ordem/ícones dos cards abaixo) -->
+                        <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-3 border-b border-slate-800/60" id="corretorLegendRow"></div>
+
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4" id="corretorCardsGrid"></div>
+                        <div class="overflow-x-auto hidden" id="corretorListWrap">
+                            <table class="w-full text-xs" id="corretorListTable"></table>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mt-4 pt-4 border-t border-slate-800/60 text-[11px] text-slate-500">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-info"></i> As porcentagens representam a taxa de conversão entre cada etapa do funil.</span>
+                            <span class="flex items-center gap-2" id="corretorUpdatedAt">
+                                <i class="fa-solid fa-rotate cursor-pointer hover:text-slate-300 transition" onclick="renderCorretorCards()" title="Atualizar agora"></i>
+                                <span>Dados atualizados até --/--/---- --:--</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- CALENDÁRIO DE PRODUÇÃO / MAPA DE CALOR OPERACIONAL (inline no painel, sempre visível) -->
@@ -4766,25 +4809,220 @@
             kpiValues.prospeccao = total;
         }
 
-        // Abre o detalhamento de clientes de UMA etapa do funil (Análises/Aprovações/Vendas),
-        // usando exatamente o mesmo critério de cada métrica que os cartões de KPI já usam.
         // Aba "Corretor": um card por corretor com o funil completo do mês (mesmos critérios por
         // etapa do Funil de Vendas — cada uma pela sua própria fonte/coluna de data) + conversão
         // entre cada etapa consecutiva. Respeita os filtros do topo (Corretor/Equipe/Construtora/
         // Empreendimento já embutidos em filteredDataset/filteredAgendaDataset/
         // filteredProspeccaoDataset, e Mês Comercial via currentRefDate*).
+        let corretorViewMode = 'grid'; // 'grid' | 'list'
+        let corretorDadosCache = []; // último cálculo, usado pelo botão Exportar
+
+        function setCorretorViewMode(mode) {
+            corretorViewMode = mode;
+            renderCorretorCards();
+        }
+
+        // Badge de posição no ranking do mês (por VGV/Vendas/Análises/Conversão, conforme o
+        // "Ordenar por" selecionado) — troféu nos 3 primeiros, texto simples nos demais.
+        function corretorRankBadge(rank) {
+            if (rank === 1) return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 rounded-full px-2 py-1 shrink-0"><i class="fa-solid fa-trophy" style="font-size:9px"></i> 1º Lugar</span>`;
+            if (rank === 2) return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-300 bg-slate-700/40 border border-slate-600/40 rounded-full px-2 py-1 shrink-0"><i class="fa-solid fa-trophy" style="font-size:9px"></i> 2º Lugar</span>`;
+            if (rank === 3) return `<span class="inline-flex items-center gap-1 text-[10px] font-bold text-orange-300 bg-orange-500/15 border border-orange-500/30 rounded-full px-2 py-1 shrink-0"><i class="fa-solid fa-trophy" style="font-size:9px"></i> 3º Lugar</span>`;
+            return `<span class="text-[10px] font-bold text-slate-500 bg-slate-800 border border-slate-700 rounded-full px-2 py-1 shrink-0">${rank}º Lugar</span>`;
+        }
+
+        // Legenda das 6 etapas do funil (ícone + nome), reaproveitada em cima dos cards/lista —
+        // mesma ordem/cores usadas em cada card e na Evolução Mensal (FUNIL_ETAPAS/FUNIL_CORES).
+        function renderCorretorLegendRow() {
+            const el = document.getElementById('corretorLegendRow');
+            if (!el) return;
+            el.innerHTML = FUNIL_ETAPAS.map((e, i) => {
+                const cl = FUNIL_CORES[e.color];
+                const badge = `
+                    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 shrink-0">
+                        <span class="w-5 h-5 rounded border ${cl.border} bg-${e.color}-500/10 text-${e.color}-400 flex items-center justify-center"><i class="fa-solid ${e.icon}" style="font-size:8px"></i></span>
+                        ${e.label}
+                    </span>`;
+                return i === 0 ? badge : `<i class="fa-solid fa-chevron-right text-slate-700 shrink-0" style="font-size:8px"></i>${badge}`;
+            }).join('');
+        }
+
+        // Popula o seletor de mês do Painel do Corretor com os mesmos meses comerciais dos pills
+        // do topo, sincronizado com o mês de referência atual.
+        function renderCorretorMesSelect() {
+            const sel = document.getElementById('corretorMesSelect');
+            if (!sel) return;
+            const mesSelect = document.getElementById('filterMes');
+            const options = Array.from(mesSelect.options)
+                .filter(o => o.value !== '')
+                .sort((a, b) => {
+                    const anoA = getMesAno(a.value) || 0, anoB = getMesAno(b.value) || 0;
+                    if (anoA !== anoB) return anoA - anoB;
+                    return (MESES_IDX[normalizeMes(a.value)] ?? 0) - (MESES_IDX[normalizeMes(b.value)] ?? 0);
+                });
+            sel.innerHTML = options.map(o => `<option value="${o.value}">${mesLabelAbbrev(o.value)}</option>`).join('');
+            const valorAtual = `${getMesName(currentRefDate.getMonth() + 1)}/${currentRefDate.getFullYear()}`.toLowerCase();
+            const match = options.find(o => o.value.toLowerCase() === valorAtual);
+            if (match) sel.value = match.value;
+        }
+
+        // Ao trocar o mês no seletor do Painel do Corretor, seleciona SÓ aquele mês nos pills
+        // globais de Mês Comercial (substitui, não soma) — uma única fonte de verdade do filtro.
+        function corretorMesSelectChanged(value) {
+            if (!value) return;
+            const mesSelect = document.getElementById('filterMes');
+            Array.from(mesSelect.options).forEach(o => { o.selected = (o.value === value); });
+            const anoSelect = document.getElementById('filterAno');
+            const refMes = getReferenceMesComercial();
+            anoSelect.value = refMes ? refMes.ano : '';
+            applyFilters();
+            renderMesComercialPills();
+            renderSemanaPills();
+        }
+
+        // Variação percentual simples vs mês anterior — null quando não há base de comparação.
+        function corretorTrendPct(atual, anterior) {
+            if (!anterior) return atual > 0 ? 100 : null;
+            return ((atual - anterior) / anterior) * 100;
+        }
+
+        // 5 cards de resumo do mês (dentro do filtro atual): VGV Total, Análises, Aprovados,
+        // Vendas, Taxa de Conversão Geral (Vendas ÷ Análises) — cada um com variação vs mês
+        // anterior. "Mês anterior" segue o mesmo padrão ad-hoc já usado nos 5 cards financeiros
+        // do Funil de Vendas: decrementa o mês de referência atual e reaplica os mesmos critérios
+        // de matching (metricMatchesRef/isAprovadoNoPeriodo/isVendaGanhaReal).
+        function renderCorretorSummaryCards() {
+            const el = document.getElementById('corretorSummaryCards');
+            if (!el) return;
+
+            let mesAnteriorIdx = currentRefDate.getMonth() - 1, anoAnterior = currentRefDate.getFullYear();
+            if (mesAnteriorIdx < 0) { mesAnteriorIdx = 11; anoAnterior -= 1; }
+            const refAnterior = new Date(anoAnterior, mesAnteriorIdx, 15);
+
+            let analisesAnt = 0, aprovAnt = 0, vendasAnt = 0, vgvAnt = 0;
+            filteredDataset.forEach(row => {
+                if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refAnterior)) analisesAnt++;
+                if (isAprovadoNoPeriodo(row, refAnterior)) aprovAnt++;
+                if (isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refAnterior)) { vendasAnt++; vgvAnt += getVGV(row); }
+            });
+
+            const analisesAtual = kpiValues.analyses || 0;
+            const aprovAtual = kpiValues.approvals || 0;
+            const vendasAtual = kpiValues.sales || 0;
+            const vgvAtual = kpiValues.vgv || 0;
+            const convAtual = analisesAtual > 0 ? (vendasAtual / analisesAtual) * 100 : 0;
+            const convAnt = analisesAnt > 0 ? (vendasAnt / analisesAnt) * 100 : 0;
+
+            const CORES5 = {
+                indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400' },
+                emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+                sky: { bg: 'bg-sky-500/10', text: 'text-sky-400' },
+                amber: { bg: 'bg-amber-500/10', text: 'text-amber-400' },
+                rose: { bg: 'bg-rose-500/10', text: 'text-rose-400' }
+            };
+
+            const cards = [
+                { label: 'VGV Total do Mês', valor: formatCurrencyMillions(vgvAtual), icon: 'fa-sack-dollar', color: 'indigo', trendPct: corretorTrendPct(vgvAtual, vgvAnt) },
+                { label: 'Total de Análises', valor: analisesAtual, icon: 'fa-users', color: 'emerald', trendPct: corretorTrendPct(analisesAtual, analisesAnt) },
+                { label: 'Aprovados', valor: aprovAtual, icon: 'fa-shield-halved', color: 'sky', trendPct: corretorTrendPct(aprovAtual, aprovAnt) },
+                { label: 'Vendas', valor: vendasAtual, icon: 'fa-bag-shopping', color: 'amber', trendPct: corretorTrendPct(vendasAtual, vendasAnt) },
+                { label: 'Taxa de Conversão Geral', valor: `${convAtual.toFixed(1)}%`, icon: 'fa-chart-line', color: 'rose', trendPct: (convAtual || convAnt) ? (convAtual - convAnt) : null, isPP: true }
+            ];
+
+            el.innerHTML = cards.map(c => {
+                const cl = CORES5[c.color];
+                let trendHtml = '<span class="text-slate-600">sem mês anterior</span>';
+                if (c.trendPct !== null) {
+                    const up = c.trendPct >= 0;
+                    const txt = c.isPP ? `${Math.abs(c.trendPct).toFixed(1)} p.p.` : `${Math.abs(c.trendPct).toFixed(1)}%`;
+                    trendHtml = `<span class="${up ? 'text-emerald-400' : 'text-rose-400'} font-bold"><i class="fa-solid fa-arrow-${up ? 'up' : 'down'}" style="font-size:8px"></i> ${txt}</span> <span class="text-slate-600">vs mês anterior</span>`;
+                }
+                return `
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <div class="w-8 h-8 rounded-full ${cl.bg} ${cl.text} flex items-center justify-center text-xs"><i class="fa-solid ${c.icon}"></i></div>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">${c.label}</span>
+                        </div>
+                        <div class="text-xl font-extrabold text-white">${c.valor}</div>
+                        <div class="text-[10px] mt-1">${trendHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Monta a versão em tabela (modo "lista") do Desempenho por Corretor.
+        function buildCorretorListTable(dados) {
+            const headCells = FUNIL_ETAPAS.map(e => `<th class="text-center py-2 px-2 text-[10px] uppercase text-slate-500">${e.label}</th>`).join('');
+            const rows = dados.map((d, i) => {
+                const conv = d.analises > 0 ? ((d.vendas / d.analises) * 100).toFixed(1) : '0.0';
+                const cells = FUNIL_ETAPAS.map(e => `<td class="text-center py-2 px-2 font-semibold text-slate-200">${d[e.key]}</td>`).join('');
+                return `
+                    <tr class="border-t border-slate-800/60 hover:bg-slate-800/20 transition">
+                        <td class="py-2 pl-2 text-slate-500 font-bold">${i + 1}º</td>
+                        <td class="py-2 px-2 font-bold text-slate-200 whitespace-nowrap">${d.nomeCompleto}</td>
+                        ${cells}
+                        <td class="text-center py-2 px-2 font-bold text-emerald-400">${formatCurrencyMillions(d.vgv)}</td>
+                        <td class="text-center py-2 px-2 font-bold text-brand-400">${conv}%</td>
+                    </tr>`;
+            }).join('');
+            return `
+                <thead>
+                    <tr class="border-b border-slate-800">
+                        <th class="text-left py-2 pl-2 text-[10px] uppercase text-slate-500">Pos</th>
+                        <th class="text-left py-2 px-2 text-[10px] uppercase text-slate-500">Corretor</th>
+                        ${headCells}
+                        <th class="text-center py-2 px-2 text-[10px] uppercase text-slate-500">VGV</th>
+                        <th class="text-center py-2 px-2 text-[10px] uppercase text-slate-500">Conversão</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>`;
+        }
+
+        // Exporta a tabela de desempenho por corretor (último cálculo renderizado) em .csv.
+        function exportCorretorSummaryCSV() {
+            if (!corretorDadosCache.length) { showToast('Nada para exportar.', true); return; }
+            const headers = ['Corretor', 'Prospecção', 'Agendamentos', 'Compareceu', 'Análises', 'Aprovações', 'Vendas', 'VGV', 'Taxa de Conversão'];
+            const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+            const lines = [headers.map(esc).join(';')];
+            corretorDadosCache.forEach(d => {
+                const conv = d.analises > 0 ? `${((d.vendas / d.analises) * 100).toFixed(1)}%` : '0.0%';
+                lines.push([d.nomeCompleto, d.prospeccao, d.agendamentos, d.compareceu, d.analises, d.aprovacoes, d.vendas, formatCurrency(d.vgv), conv].map(esc).join(';'));
+            });
+            const csvContent = '\ufeff' + lines.join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `painel-corretor-${getMesName(currentRefDate.getMonth() + 1).toLowerCase()}-${currentRefDate.getFullYear()}.csv`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Excel exportado: ${corretorDadosCache.length} corretor(es).`);
+        }
+
         function renderCorretorCards() {
             const container = document.getElementById('corretorCardsGrid');
             if (!container) return;
 
-            const periodoEl = document.getElementById('corretorSectionPeriodo');
-            if (periodoEl) periodoEl.innerHTML = `<i class="fa-solid fa-calendar-days text-slate-500"></i> ${getMesName(currentRefDate.getMonth() + 1)}/${currentRefDate.getFullYear()}`;
+            renderCorretorMesSelect();
+            renderCorretorSummaryCards();
+            renderCorretorLegendRow();
+
+            const updEl = document.querySelector('#corretorUpdatedAt span');
+            if (updEl) {
+                const ts = lastSyncTime || new Date();
+                const dd = String(ts.getDate()).padStart(2, '0');
+                const mm = String(ts.getMonth() + 1).padStart(2, '0');
+                const yyyy = ts.getFullYear();
+                const hh = String(ts.getHours()).padStart(2, '0');
+                const mi = String(ts.getMinutes()).padStart(2, '0');
+                updEl.textContent = `Dados atualizados até ${dd}/${mm}/${yyyy} ${hh}:${mi}`;
+            }
 
             // Respeita o filtro de Corretor do topo — se um corretor específico estiver
             // selecionado, mostra só o card dele em vez dos 11 (10 deles zerados).
             const selCorretorFiltro = document.getElementById('filterCorretor').value;
             const corretores = selCorretorFiltro ? [selCorretorFiltro] : getActiveCorretores();
-            const dados = corretores.map(c => {
+            let dados = corretores.map(c => {
                 const prospeccao = filteredProspeccaoDataset.filter(row => row.Corretor === c && metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', currentRefDateProspeccao)).length;
                 const agendaRows = filteredAgendaDataset.filter(row => row.Corretor === c && agendaMatchesRef(row, currentRefDateAgenda));
                 const agendamentos = agendaRows.length;
@@ -4795,16 +5033,46 @@
                 const vendas = vendaRows.length;
                 const vgv = vendaRows.reduce((s, r) => s + getVGV(r), 0);
                 return { nomeCompleto: c, prospeccao, agendamentos, compareceu, analises, aprovacoes, vendas, vgv };
-            }).sort((a, b) => (b.vendas - a.vendas) || (b.aprovacoes - a.aprovacoes) || (b.analises - a.analises));
+            });
+
+            const sortSel = document.getElementById('corretorSortSelect');
+            const sortBy = sortSel ? sortSel.value : 'vgv';
+            const sorters = {
+                vgv: (a, b) => b.vgv - a.vgv,
+                vendas: (a, b) => b.vendas - a.vendas,
+                analises: (a, b) => b.analises - a.analises,
+                conversao: (a, b) => (b.analises > 0 ? b.vendas / b.analises : 0) - (a.analises > 0 ? a.vendas / a.analises : 0)
+            };
+            dados.sort(sorters[sortBy] || sorters.vgv);
+            corretorDadosCache = dados;
+
+            const listWrap = document.getElementById('corretorListWrap');
+            const gridBtn = document.getElementById('corretorViewGridBtn');
+            const listBtn = document.getElementById('corretorViewListBtn');
+            const activeBtnCls = 'px-2.5 py-1.5 rounded-md text-xs transition bg-slate-800 text-slate-100';
+            const inactiveBtnCls = 'px-2.5 py-1.5 rounded-md text-xs transition text-slate-500 hover:text-slate-300';
+            if (gridBtn) gridBtn.className = corretorViewMode === 'grid' ? activeBtnCls : inactiveBtnCls;
+            if (listBtn) listBtn.className = corretorViewMode === 'list' ? activeBtnCls : inactiveBtnCls;
+            container.classList.toggle('hidden', corretorViewMode !== 'grid');
+            if (listWrap) listWrap.classList.toggle('hidden', corretorViewMode !== 'list');
 
             if (dados.length === 0) {
                 container.innerHTML = '<p class="text-xs text-slate-500 col-span-full">Nenhum corretor ativo neste período.</p>';
+                const listTable = document.getElementById('corretorListTable');
+                if (listTable) listTable.innerHTML = '';
                 return;
             }
 
-            container.innerHTML = dados.map(d => {
+            if (corretorViewMode === 'list') {
+                const listTable = document.getElementById('corretorListTable');
+                if (listTable) listTable.innerHTML = buildCorretorListTable(dados);
+                return;
+            }
+
+            container.innerHTML = dados.map((d, idx) => {
                 const { nome, cargo } = parseNomeCargo(d.nomeCompleto);
                 const avatar = corretorAvatarInner(d.nomeCompleto, 'h-9 w-9', 'text-[11px]');
+                const conv = d.analises > 0 ? ((d.vendas / d.analises) * 100).toFixed(1) : '0.0';
 
                 const stageHtml = FUNIL_ETAPAS.map((e, i) => {
                     const valor = d[e.key];
@@ -4828,7 +5096,7 @@
                 }).join('');
 
                 return `
-                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4">
+                    <div class="bg-slate-950/40 rounded-xl border border-slate-800 p-4">
                         <div class="flex items-center gap-2.5 mb-3 pb-3 border-b border-slate-800/60">
                             ${avatar}
                             <div class="min-w-0 flex-1">
@@ -4841,11 +5109,26 @@
                             </div>
                         </div>
                         <div class="flex items-start gap-0.5 overflow-x-auto pb-1">${stageHtml}</div>
+                        <div class="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-slate-800/60 flex-wrap">
+                            <div class="flex items-center gap-4">
+                                <div>
+                                    <div class="text-[9px] text-slate-500 uppercase font-bold">Taxa de Conversão</div>
+                                    <div class="text-sm font-extrabold text-slate-100">${conv}%</div>
+                                </div>
+                                <div>
+                                    <div class="text-[9px] text-slate-500 uppercase font-bold">Vendas</div>
+                                    <div class="text-sm font-extrabold text-slate-100">${d.vendas}</div>
+                                </div>
+                            </div>
+                            ${corretorRankBadge(idx + 1)}
+                        </div>
                     </div>
                 `;
             }).join('');
         }
 
+        // Abre o detalhamento de clientes de UMA etapa do funil (Análises/Aprovações/Vendas),
+        // usando exatamente o mesmo critério de cada métrica que os cartões de KPI já usam.
         function openFunnelDetail(metrica) {
             const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
             const refDate = metrica === 'prospeccao' ? currentRefDateProspeccao : (isAgendaMetrica ? currentRefDateAgenda : currentRefDate);
