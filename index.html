@@ -6556,14 +6556,13 @@
             const totais = {};
             FUNIL_ETAPAS.forEach(e => { totais[e.key] = soma(contagens[e.key]); });
 
-            // Metas semanais: a meta MENSAL vem dos mesmos campos já usados nos Rankings Rápidos
-            // (rankingsMetas.prMes/agMes/coMes/anMes/apMes/vdMes — os totais de equipe configurados
-            // em "Editar metas"), dividida igualmente pelas semanas do mês.
-            const METAS_SEMANAIS_KEYS = { prospeccao: 'prMes', agendamentos: 'agMes', compareceu: 'coMes', analises: 'anMes', aprovacoes: 'apMes', vendas: 'vdMes' };
+            // Meta semanal = a meta JÁ CADASTRADA por semana nos Rankings Rápidos
+            // (rankingsMetas.prSem/agSem/coSem/anSem/apSem/vdSem, editada em "Editar metas") — não
+            // é a meta mensal dividida por semana, é o valor semanal que o diretor já configura lá.
+            const METAS_SEMANAIS_KEYS = { prospeccao: 'prSem', agendamentos: 'agSem', compareceu: 'coSem', analises: 'anSem', aprovacoes: 'apSem', vendas: 'vdSem' };
             const metaSemanal = {};
             FUNIL_ETAPAS.forEach(e => {
-                const metaMensal = rankingsMetas[METAS_SEMANAIS_KEYS[e.key]] || 0;
-                metaSemanal[e.key] = numSemanas > 0 ? metaMensal / numSemanas : 0;
+                metaSemanal[e.key] = rankingsMetas[METAS_SEMANAIS_KEYS[e.key]] || 0;
             });
             const metaLineData = key => new Array(numSemanas).fill(Math.round(metaSemanal[key]));
 
