@@ -684,10 +684,13 @@
                             <p class="text-2xl font-extrabold text-amber-400 leading-tight" id="ritmoMesDiasFaltam">—</p>
                             <p class="text-[10px] text-slate-500" id="ritmoMesEncerramento">—</p>
                         </div>
-                        <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
-                            <button onclick="setRitmoMetric('analises')" id="ritmoBtn-analises" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Análises</button>
-                            <button onclick="setRitmoMetric('aprovacoes')" id="ritmoBtn-aprovacoes" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovações</button>
-                            <button onclick="setRitmoMetric('vendas')" id="ritmoBtn-vendas" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
+                        <div>
+                            <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                <button onclick="setRitmoMetric('analises')" id="ritmoBtn-analises" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-brand-500 text-white">Análises</button>
+                                <button onclick="setRitmoMetric('aprovacoes')" id="ritmoBtn-aprovacoes" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovações</button>
+                                <button onclick="setRitmoMetric('vendas')" id="ritmoBtn-vendas" class="ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 text-right mt-1" id="ritmoMesMetaFonteLabel"></p>
                         </div>
                     </div>
 
@@ -6244,7 +6247,16 @@
 
             renderRitmoMesDiasStrip(inicioReal, diasNoMes, mesEhAtual ? diaHoje : null);
 
-            const meta = metasMensais[ritmoMetric] || 0;
+            // Se o filtro de Corretor do topo estiver com um nome específico selecionado, a linha
+            // de tendência usa a meta MENSAL INDIVIDUAL daquele corretor (metasPorCorretor[nome])
+            // em vez da meta da empresa inteira — mesmo padrão já aplicado no Funil de Vendas e na
+            // Evolução Semanal do Mês.
+            const RITMO_METAS_CORRETOR_KEYS = { analises: 'anMes', aprovacoes: 'apMes', vendas: 'vdMes' };
+            const selCorretorFiltroRitmo = document.getElementById('filterCorretor').value;
+            const metasCorretorRitmo = (selCorretorFiltroRitmo && metasPorCorretor[selCorretorFiltroRitmo]) ? metasPorCorretor[selCorretorFiltroRitmo] : null;
+            const meta = metasCorretorRitmo ? (metasCorretorRitmo[RITMO_METAS_CORRETOR_KEYS[ritmoMetric]] || 0) : (metasMensais[ritmoMetric] || 0);
+            const ritmoMetaFonteEl = document.getElementById('ritmoMesMetaFonteLabel');
+            if (ritmoMetaFonteEl) ritmoMetaFonteEl.textContent = metasCorretorRitmo ? `· Meta de ${selCorretorFiltroRitmo}` : '· Meta da equipe';
 
             const porDia = new Array(diasNoMes + 1).fill(0); // índice 1..diasNoMes, dia 1 = inicioReal
             filteredDataset.forEach(row => {
