@@ -590,7 +590,7 @@
 
                     <div class="flex items-start gap-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 mb-4">
                         <i class="fa-solid fa-circle-info text-indigo-400 mt-0.5 shrink-0"></i>
-                        <p class="text-xs text-slate-300">Funil completo (Prospecção → Vendas) semana a semana dentro do mês comercial atual — mesmo raciocínio de janela real do Ritmo do Mês, só que agrupado por semana em vez de por dia.</p>
+                        <p class="text-xs text-slate-300">Funil completo (Prospecção → Vendas) semana a semana dentro do mês comercial atual — mesmo raciocínio de janela real do Ritmo do Mês, só que agrupado por semana em vez de por dia. <span id="evolucaoSemanalMetaFonteLabel" class="font-bold text-indigo-300"></span></p>
                     </div>
 
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4" id="evolucaoSemanalSummaryCards"></div>
@@ -6556,15 +6556,27 @@
             const totais = {};
             FUNIL_ETAPAS.forEach(e => { totais[e.key] = soma(contagens[e.key]); });
 
-            // Meta semanal = a meta JÁ CADASTRADA por semana nos Rankings Rápidos
-            // (rankingsMetas.prSem/agSem/coSem/anSem/apSem/vdSem, editada em "Editar metas") — não
-            // é a meta mensal dividida por semana, é o valor semanal que o diretor já configura lá.
+            // Meta semanal = a meta JÁ CADASTRADA por semana (rankingsMetas.*Sem, editada em
+            // "Editar metas") — não é a meta mensal dividida por semana, é o valor semanal que o
+            // diretor já configura lá. Se o filtro de Corretor do topo estiver com um nome
+            // específico selecionado, usa a meta INDIVIDUAL daquele corretor
+            // (metasPorCorretor[nome], mesmas chaves *Sem — painel "Metas por Corretor") em vez da
+            // meta da equipe inteira, pra dar pra acompanhar a linha de tendência dele sozinho.
             const METAS_SEMANAIS_KEYS = { prospeccao: 'prSem', agendamentos: 'agSem', compareceu: 'coSem', analises: 'anSem', aprovacoes: 'apSem', vendas: 'vdSem' };
+            const selCorretorFiltroMeta = document.getElementById('filterCorretor').value;
+            const metasFonte = (selCorretorFiltroMeta && metasPorCorretor[selCorretorFiltroMeta]) ? metasPorCorretor[selCorretorFiltroMeta] : rankingsMetas;
             const metaSemanal = {};
             FUNIL_ETAPAS.forEach(e => {
-                metaSemanal[e.key] = rankingsMetas[METAS_SEMANAIS_KEYS[e.key]] || 0;
+                metaSemanal[e.key] = metasFonte[METAS_SEMANAIS_KEYS[e.key]] || 0;
             });
             const metaLineData = key => new Array(numSemanas).fill(Math.round(metaSemanal[key]));
+
+            const metaFonteLabelEl = document.getElementById('evolucaoSemanalMetaFonteLabel');
+            if (metaFonteLabelEl) {
+                metaFonteLabelEl.textContent = (selCorretorFiltroMeta && metasFonte !== rankingsMetas)
+                    ? `Metas individuais de ${selCorretorFiltroMeta}.`
+                    : 'Metas da equipe.';
+            }
 
             // ===== 6 CARDS DE RESUMO (total do mês + valor da 1ª semana) =====
             const summaryEl = document.getElementById('evolucaoSemanalSummaryCards');
