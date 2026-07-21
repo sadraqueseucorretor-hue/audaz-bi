@@ -597,13 +597,15 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div>
-                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Topo do Funil</p>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Topo do Funil</p>
+                            <p class="text-[9px] text-slate-600 mb-1.5">Prospecção → Agendamentos → Compareceu</p>
                             <div class="h-56 relative"><canvas id="chartEvolucaoSemanalTopo"></canvas></div>
                             <div class="overflow-x-auto mt-3"><table class="w-full text-[10px]" id="evolucaoSemanalTopoTable"></table></div>
                             <div class="text-center mt-2" id="evolucaoSemanalTopoTotal"></div>
                         </div>
                         <div>
-                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Meio e Fim do Funil</p>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Meio e Fim do Funil</p>
+                            <p class="text-[9px] text-slate-600 mb-1.5">Análises → Aprovações → Vendas</p>
                             <div class="h-56 relative"><canvas id="chartEvolucaoSemanalFinal"></canvas></div>
                             <div class="overflow-x-auto mt-3"><table class="w-full text-[10px]" id="evolucaoSemanalFinalTable"></table></div>
                             <div class="flex items-center justify-center gap-2 flex-wrap mt-2" id="evolucaoSemanalFinalTotais"></div>
@@ -6436,6 +6438,7 @@
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = '#0b1220';
                 chart.data.datasets.forEach((ds, i) => {
+                    if (ds.label && ds.label.startsWith('Meta ')) return; // linha de meta não repete rótulo em cada ponto
                     const meta = chart.getDatasetMeta(i);
                     if (meta.hidden) return;
                     meta.data.forEach((el, idx) => {
@@ -6451,14 +6454,43 @@
             }
         };
 
-        // Monta a tabela compacta (etapa x semana) que fica abaixo de cada mini-gráfico.
+        // Monta a tabela (etapa x semana) que fica abaixo de cada mini-gráfico: 3 sub-linhas por
+        // etapa (Meta / Realizado / % Ating.) + coluna Total no fim, igual ao formato pedido.
         function buildEvoSemanalTable(labelsCurtos, linhas) {
-            const head = `<tr><th class="text-left py-1 pr-1 text-slate-500"></th>${labelsCurtos.map(l => `<th class="text-center py-1 px-1 text-slate-500 font-bold">${l}</th>`).join('')}</tr>`;
-            const body = linhas.map(l => `
-                <tr class="border-t border-slate-800/50">
-                    <td class="py-1 pr-1 font-bold whitespace-nowrap" style="color:${l.hex}">${l.label}</td>
-                    ${l.data.map(v => `<td class="text-center py-1 px-1 text-slate-300 font-semibold">${v}</td>`).join('')}
-                </tr>`).join('');
+            const headCols = labelsCurtos.map(l => `<th class="text-center py-1.5 px-2 text-slate-500 font-bold whitespace-nowrap">${l} Sem</th>`).join('');
+            const head = `<tr class="border-b border-slate-800"><th class="text-left py-1.5 pr-2 text-slate-500"></th><th class="text-left py-1.5 px-2 text-slate-500"></th>${headCols}<th class="text-center py-1.5 px-2 text-slate-500 font-bold">Total</th></tr>`;
+
+            const pctCls = (p) => p >= 100 ? 'text-emerald-400' : (p >= 50 ? 'text-slate-300' : 'text-rose-400');
+
+            const body = linhas.map(l => {
+                const totalRealizado = l.realizado.reduce((a, b) => a + b, 0);
+                const totalMeta = l.meta.reduce((a, b) => a + b, 0);
+                const pcts = l.realizado.map((v, i) => l.meta[i] > 0 ? Math.round((v / l.meta[i]) * 100) : 0);
+                const pctTotal = totalMeta > 0 ? Math.round((totalRealizado / totalMeta) * 100) : 0;
+
+                const metaCells = l.meta.map(v => `<td class="text-center py-1 px-2 text-slate-500">${Math.round(v)}</td>`).join('');
+                const realCells = l.realizado.map(v => `<td class="text-center py-1 px-2 text-slate-200 font-semibold">${v}</td>`).join('');
+                const pctCells = pcts.map(p => `<td class="text-center py-1 px-2 font-bold ${pctCls(p)}">${p}%</td>`).join('');
+
+                return `
+                    <tr class="border-t border-slate-800/60">
+                        <td class="py-1 pr-1 align-top whitespace-nowrap" rowspan="3"><span class="inline-block w-2 h-2 rounded-full align-middle mr-1.5" style="background:${l.hex}"></span><span class="font-bold text-slate-200 align-middle">${l.label}</span></td>
+                        <td class="py-1 px-2 text-slate-500">Meta</td>
+                        ${metaCells}
+                        <td class="text-center py-1 px-2 font-bold text-slate-400">${Math.round(totalMeta)}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-1 px-2 text-slate-500">Realizado</td>
+                        ${realCells}
+                        <td class="text-center py-1 px-2 font-bold text-slate-100">${totalRealizado}</td>
+                    </tr>
+                    <tr class="border-b border-slate-800/60">
+                        <td class="py-1 px-2 text-slate-500">% Ating.</td>
+                        ${pctCells}
+                        <td class="text-center py-1 px-2 font-extrabold ${pctCls(pctTotal)}">${pctTotal}%</td>
+                    </tr>`;
+            }).join('');
+
             return `<thead>${head}</thead><tbody>${body}</tbody>`;
         }
 
@@ -6494,6 +6526,7 @@
                 return `${wi + 1}ª SEM (${String(primeiro.getDate()).padStart(2, '0')}-${String(ultimo.getDate()).padStart(2, '0')})`;
             });
             const labelsSemanaCurtos = semanas.map((_, wi) => `${wi + 1}ª`);
+            const numSemanas = semanas.length;
 
             const contagens = {};
             FUNIL_ETAPAS.forEach(e => { contagens[e.key] = new Array(semanas.length).fill(0); });
@@ -6523,6 +6556,17 @@
             const totais = {};
             FUNIL_ETAPAS.forEach(e => { totais[e.key] = soma(contagens[e.key]); });
 
+            // Metas semanais: a meta MENSAL vem dos mesmos campos já usados nos Rankings Rápidos
+            // (rankingsMetas.prMes/agMes/coMes/anMes/apMes/vdMes — os totais de equipe configurados
+            // em "Editar metas"), dividida igualmente pelas semanas do mês.
+            const METAS_SEMANAIS_KEYS = { prospeccao: 'prMes', agendamentos: 'agMes', compareceu: 'coMes', analises: 'anMes', aprovacoes: 'apMes', vendas: 'vdMes' };
+            const metaSemanal = {};
+            FUNIL_ETAPAS.forEach(e => {
+                const metaMensal = rankingsMetas[METAS_SEMANAIS_KEYS[e.key]] || 0;
+                metaSemanal[e.key] = numSemanas > 0 ? metaMensal / numSemanas : 0;
+            });
+            const metaLineData = key => new Array(numSemanas).fill(Math.round(metaSemanal[key]));
+
             // ===== 6 CARDS DE RESUMO (total do mês + valor da 1ª semana) =====
             const summaryEl = document.getElementById('evolucaoSemanalSummaryCards');
             if (summaryEl) {
@@ -6542,13 +6586,13 @@
                 }).join('');
             }
 
-            // ===== GRÁFICOS (barras + linha de Prospecção no eixo direito) =====
+            // ===== GRÁFICOS (barras + linha de Prospecção no eixo direito + linhas de meta) =====
             const optsFn = (comEixoSecundario) => ({
                 responsive: true,
                 maintainAspectRatio: false,
                 layout: { padding: { top: 24, bottom: 8 } },
                 plugins: {
-                    legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12, boxWidth: 10 } }
+                    legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12, boxWidth: 10, filter: item => !item.text.startsWith('Meta ') } }
                 },
                 scales: Object.assign({
                     x: { grid: { color: 'rgba(255, 255, 255, 0.12)' }, ticks: { color: '#cbd5e1', font: { size: 10, weight: '500' } } },
@@ -6556,6 +6600,11 @@
                 }, comEixoSecundario ? {
                     y1: { position: 'right', grid: { display: false }, ticks: { color: '#f9a8d4', font: { size: 11, weight: '500' } }, beginAtZero: true, title: { display: true, text: 'Prospecção', color: '#f9a8d4', font: { size: 9 } } }
                 } : {})
+            });
+            const metaDs = (label, key, hex, yAxisID) => ({
+                type: 'line', label: `Meta ${label} (${Math.round(metaSemanal[key])}/sem)`, data: metaLineData(key),
+                borderColor: hex, borderWidth: 2, borderDash: [6, 4], pointRadius: 0, pointHoverRadius: 0,
+                tension: 0, fill: false, yAxisID: yAxisID || 'y'
             });
 
             charts.evolucaoSemanalTopo = new Chart(canvasTopo.getContext('2d'), {
@@ -6565,7 +6614,10 @@
                     datasets: [
                         { type: 'bar', label: 'Agendamentos', data: contagens.agendamentos, backgroundColor: '#a78bfa', borderRadius: 4, yAxisID: 'y' },
                         { type: 'bar', label: 'Compareceu', data: contagens.compareceu, backgroundColor: '#22d3ee', borderRadius: 4, yAxisID: 'y' },
-                        { type: 'line', label: 'Prospecção (eixo direito)', data: contagens.prospeccao, borderColor: '#f472b6', backgroundColor: '#f472b6', borderWidth: 3, pointRadius: 4, pointHoverRadius: 7, pointBackgroundColor: '#f472b6', pointBorderColor: '#0b1220', pointBorderWidth: 1.5, tension: 0.3, fill: false, yAxisID: 'y1' }
+                        { type: 'line', label: 'Prospecção (eixo direito)', data: contagens.prospeccao, borderColor: '#f472b6', backgroundColor: '#f472b6', borderWidth: 3, pointRadius: 4, pointHoverRadius: 7, pointBackgroundColor: '#f472b6', pointBorderColor: '#0b1220', pointBorderWidth: 1.5, tension: 0.3, fill: false, yAxisID: 'y1' },
+                        metaDs('Prospecção', 'prospeccao', 'rgba(244,114,182,0.6)', 'y1'),
+                        metaDs('Agendamentos', 'agendamentos', 'rgba(167,139,250,0.6)'),
+                        metaDs('Compareceu', 'compareceu', 'rgba(34,211,238,0.6)')
                     ]
                 },
                 options: optsFn(true),
@@ -6578,20 +6630,23 @@
                     datasets: [
                         { label: 'Análises', data: contagens.analises, backgroundColor: '#38bdf8', borderRadius: 4 },
                         { label: 'Aprovações', data: contagens.aprovacoes, backgroundColor: '#fb923c', borderRadius: 4 },
-                        { label: 'Vendas', data: contagens.vendas, backgroundColor: '#4ade80', borderRadius: 4 }
+                        { label: 'Vendas', data: contagens.vendas, backgroundColor: '#4ade80', borderRadius: 4 },
+                        metaDs('Análises', 'analises', 'rgba(56,189,248,0.6)'),
+                        metaDs('Aprovações', 'aprovacoes', 'rgba(251,146,60,0.6)'),
+                        metaDs('Vendas', 'vendas', 'rgba(74,222,128,0.6)')
                     ]
                 },
                 options: optsFn(false),
                 plugins: [EVO_SEMANAL_VALUE_LABELS_PLUGIN]
             });
 
-            // ===== TABELAS + TOTAIS ABAIXO DE CADA GRÁFICO =====
+            // ===== TABELAS (Meta/Realizado/% Ating. por semana + Total) ABAIXO DE CADA GRÁFICO =====
             const topoTableEl = document.getElementById('evolucaoSemanalTopoTable');
             if (topoTableEl) {
                 topoTableEl.innerHTML = buildEvoSemanalTable(labelsSemanaCurtos, [
-                    { label: 'Prospecção', hex: '#f472b6', data: contagens.prospeccao },
-                    { label: 'Agendamentos', hex: '#a78bfa', data: contagens.agendamentos },
-                    { label: 'Compareceu', hex: '#22d3ee', data: contagens.compareceu }
+                    { label: 'Prospecção', hex: '#f472b6', realizado: contagens.prospeccao, meta: metaLineData('prospeccao') },
+                    { label: 'Agendamentos', hex: '#a78bfa', realizado: contagens.agendamentos, meta: metaLineData('agendamentos') },
+                    { label: 'Compareceu', hex: '#22d3ee', realizado: contagens.compareceu, meta: metaLineData('compareceu') }
                 ]);
             }
             const topoTotalEl = document.getElementById('evolucaoSemanalTopoTotal');
@@ -6600,9 +6655,9 @@
             const finalTableEl = document.getElementById('evolucaoSemanalFinalTable');
             if (finalTableEl) {
                 finalTableEl.innerHTML = buildEvoSemanalTable(labelsSemanaCurtos, [
-                    { label: 'Análises', hex: '#38bdf8', data: contagens.analises },
-                    { label: 'Aprovações', hex: '#fb923c', data: contagens.aprovacoes },
-                    { label: 'Vendas', hex: '#4ade80', data: contagens.vendas }
+                    { label: 'Análises', hex: '#38bdf8', realizado: contagens.analises, meta: metaLineData('analises') },
+                    { label: 'Aprovações', hex: '#fb923c', realizado: contagens.aprovacoes, meta: metaLineData('aprovacoes') },
+                    { label: 'Vendas', hex: '#4ade80', realizado: contagens.vendas, meta: metaLineData('vendas') }
                 ]);
             }
             const finalTotaisEl = document.getElementById('evolucaoSemanalFinalTotais');
