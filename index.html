@@ -1916,6 +1916,9 @@
         let rankingCardsSnapshot = []; // dados "crus" de cada card, na mesma ordem do grid — usado por
                                         // exportRankingCardImage() pra desenhar a imagem via Canvas 2D
                                         // (sem depender de tirar print do DOM, que se mostrou instável).
+        // { [cardKey]: { [nomeCorretor]: [linhas...] } } — as linhas por trás de cada número "Feito"
+        // dos Rankings Rápidos, pra abrir o detalhamento de clientes ao clicar (openQuickRankingDetail).
+        let quickRankingRowsCache = {};
         function drawQuickRankings() {
             const grid = document.getElementById('quickRankingsGrid');
             if (!grid) return;
@@ -1947,11 +1950,20 @@
                 return isCorretorActive(row.Corretor);
             });
 
-            function addTo(map, nome, vgv) {
+            // cacheKey/row (opcionais) guardam a linha em quickRankingRowsCache pra abrir o
+            // detalhamento de clientes ao clicar no número "Feito" de cada card — sem isso, o
+            // card só sabia contar, não sabia QUAIS linhas formavam a contagem.
+            quickRankingRowsCache = {};
+            function addTo(map, nome, vgv, cacheKey, row) {
                 if (!nome) return;
                 if (!map[nome]) map[nome] = { count: 0, vgv: 0 };
                 map[nome].count++;
                 map[nome].vgv += (vgv || 0);
+                if (cacheKey && row) {
+                    if (!quickRankingRowsCache[cacheKey]) quickRankingRowsCache[cacheKey] = {};
+                    if (!quickRankingRowsCache[cacheKey][nome]) quickRankingRowsCache[cacheKey][nome] = [];
+                    quickRankingRowsCache[cacheKey][nome].push(row);
+                }
             }
 
             // Pré-popula TODOS os corretores ativos com 0 (aparecem mesmo sem registro).
@@ -1972,18 +1984,18 @@
             };
             base.forEach(row => {
                 const c = row.Corretor;
-                if (checkPeriodMatch(row['Data Cadastro'], 'hoje', hojeReal)) addTo(anHoje, c, 0);
-                if (checkPeriodMatch(row['Data Cadastro'], 'semana', refSM)) addTo(anSem, c, 0);
-                if (ehMesCadastro(row)) addTo(anMes, c, 0);
+                if (checkPeriodMatch(row['Data Cadastro'], 'hoje', hojeReal)) addTo(anHoje, c, 0, 'anHoje', row);
+                if (checkPeriodMatch(row['Data Cadastro'], 'semana', refSM)) addTo(anSem, c, 0, 'anSem', row);
+                if (ehMesCadastro(row)) addTo(anMes, c, 0, 'anMes', row);
                 const aprovado = isAprovado(row['Situação - Analise']);
-                if (aprovado && checkPeriodMatch(dataAprovacaoEfetiva(row), 'hoje', hojeReal)) addTo(apHoje, c, 0);
-                if (aprovado && checkPeriodMatch(dataAprovacaoEfetiva(row), 'semana', refSM)) addTo(apSem, c, 0);
-                if (aprovado && ehMesAprovacao(row)) addTo(apMes, c, 0);
+                if (aprovado && checkPeriodMatch(dataAprovacaoEfetiva(row), 'hoje', hojeReal)) addTo(apHoje, c, 0, 'apHoje', row);
+                if (aprovado && checkPeriodMatch(dataAprovacaoEfetiva(row), 'semana', refSM)) addTo(apSem, c, 0, 'apSem', row);
+                if (aprovado && ehMesAprovacao(row)) addTo(apMes, c, 0, 'apMes', row);
                 if (isVendaModo(row)) {
                     const vgv = getVGV(row);
-                    if (checkPeriodMatch(row['Data Ganho'], 'semana', refSM)) addTo(vdSem, c, vgv);
+                    if (checkPeriodMatch(row['Data Ganho'], 'semana', refSM)) addTo(vdSem, c, vgv, 'vdSem', row);
                     const anoG = getMesAno(row['Mês Ganho']);
-                    if (normalizeMes(row['Mês Ganho']) === mesAtual && (anoG === null || anoG === anoAtual)) addTo(vdMes, c, vgv);
+                    if (normalizeMes(row['Mês Ganho']) === mesAtual && (anoG === null || anoG === anoAtual)) addTo(vdMes, c, vgv, 'vdMes', row);
                 }
             });
 
@@ -2008,13 +2020,13 @@
                 // agendamento), não a Data da visita — é uma métrica de produtividade do dia
                 // (quantos agendamentos ele criou hoje), diferente de Semana/Mês (que continuam
                 // pela Data da visita, igual ao resto do app).
-                if (checkPeriodMatch(row['Data de Cadastro'], 'hoje', hojeReal)) addTo(agHoje, c, 0);
-                if (checkPeriodMatch(row['Data'], 'semana', refSM)) addTo(agSem, c, 0);
-                if (ehMesAgenda(row)) addTo(agMes, c, 0);
+                if (checkPeriodMatch(row['Data de Cadastro'], 'hoje', hojeReal)) addTo(agHoje, c, 0, 'agHoje', row);
+                if (checkPeriodMatch(row['Data'], 'semana', refSM)) addTo(agSem, c, 0, 'agSem', row);
+                if (ehMesAgenda(row)) addTo(agMes, c, 0, 'agMes', row);
                 if (isCompareceu(row)) {
-                    if (checkPeriodMatch(row['Data'], 'hoje', hojeReal)) addTo(coHoje, c, 0);
-                    if (checkPeriodMatch(row['Data'], 'semana', refSM)) addTo(coSem, c, 0);
-                    if (ehMesAgenda(row)) addTo(coMes, c, 0);
+                    if (checkPeriodMatch(row['Data'], 'hoje', hojeReal)) addTo(coHoje, c, 0, 'coHoje', row);
+                    if (checkPeriodMatch(row['Data'], 'semana', refSM)) addTo(coSem, c, 0, 'coSem', row);
+                    if (ehMesAgenda(row)) addTo(coMes, c, 0, 'coMes', row);
                 }
             });
 
@@ -2033,9 +2045,9 @@
             };
             baseProspeccao.forEach(row => {
                 const c = row.Corretor;
-                if (checkPeriodMatch(row['Cadastro'], 'hoje', hojeReal)) addTo(prHoje, c, 0);
-                if (checkPeriodMatch(row['Cadastro'], 'semana', refSM)) addTo(prSem, c, 0);
-                if (ehMesProspeccao(row)) addTo(prMes, c, 0);
+                if (checkPeriodMatch(row['Cadastro'], 'hoje', hojeReal)) addTo(prHoje, c, 0, 'prHoje', row);
+                if (checkPeriodMatch(row['Cadastro'], 'semana', refSM)) addTo(prSem, c, 0, 'prSem', row);
+                if (ehMesProspeccao(row)) addTo(prMes, c, 0, 'prMes', row);
             });
 
             // Sincroniza os controles de referência (Semana/Mês) e o texto de contexto.
@@ -2212,7 +2224,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="py-1.5 text-center text-xs font-extrabold text-emerald-400 align-middle">${r.count}</td>
+                            <td onclick="openQuickRankingDetail('${card.key}', '${r.nome.replace(/'/g, "\\'")}', '${card.title.replace(/'/g, "\\'")}')" class="py-1.5 text-center text-xs font-extrabold text-emerald-400 align-middle cursor-pointer hover:underline hover:text-emerald-300 transition" title="Ver clientes">${r.count}</td>
                             <td class="py-1.5 text-center text-xs font-extrabold text-amber-400 align-middle">${faltaC === null ? '–' : faltaC}</td>
                             <td class="py-1.5 ${card.vgv ? 'pr-1.5' : 'pr-3'} align-middle">${progressoCell}</td>
                             ${card.vgv ? `<td class="py-1.5 pr-2 text-right text-[10px] font-semibold text-indigo-300 whitespace-nowrap align-middle">${fmtInt(r.vgv)}</td>` : ''}
@@ -5010,7 +5022,8 @@
             const headCells = FUNIL_ETAPAS.map(e => `<th class="text-center py-2 px-2 text-[10px] uppercase text-slate-500">${e.label}</th>`).join('');
             const rows = dados.map((d, i) => {
                 const conv = d.analises > 0 ? ((d.vendas / d.analises) * 100).toFixed(1) : '0.0';
-                const cells = FUNIL_ETAPAS.map(e => `<td class="text-center py-2 px-2 font-semibold text-slate-200">${d[e.key]}</td>`).join('');
+                const nomeEsc = d.nomeCompleto.replace(/'/g, "\\'");
+                const cells = FUNIL_ETAPAS.map(e => `<td onclick="openCorretorEtapaDetail('${nomeEsc}', '${e.key}')" class="text-center py-2 px-2 font-semibold text-slate-200 cursor-pointer hover:underline hover:text-white transition" title="Ver clientes">${d[e.key]}</td>`).join('');
                 return `
                     <tr class="border-t border-slate-800/60 hover:bg-slate-800/20 transition">
                         <td class="py-2 pl-2 text-slate-500 font-bold">${i + 1}º</td>
@@ -5052,6 +5065,41 @@
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
             showToast(`Excel exportado: ${corretorDadosCache.length} corretor(es).`);
+        }
+
+        // Abre o detalhamento de clientes de UMA etapa do funil de UM corretor específico (clique
+        // num número do Painel do Corretor, card ou lista) — mesmos critérios do openFunnelDetail,
+        // só que também filtrado por row.Corretor, pra funcionar mesmo quando o filtro de Corretor
+        // do topo está em "Todos" (o painel mostra vários corretores ao mesmo tempo).
+        function openCorretorEtapaDetail(corretorNome, metrica) {
+            const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
+            const refDate = metrica === 'prospeccao' ? currentRefDateProspeccao : (isAgendaMetrica ? currentRefDateAgenda : currentRefDate);
+            let rows, label;
+            if (metrica === 'prospeccao') {
+                rows = filteredProspeccaoDataset.filter(row => row.Corretor === corretorNome && metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', refDate));
+                label = 'Prospecção';
+            } else if (metrica === 'agendamentos') {
+                rows = filteredAgendaDataset.filter(row => row.Corretor === corretorNome && agendaMatchesRef(row, refDate));
+                label = 'Agendamentos';
+            } else if (metrica === 'compareceu') {
+                rows = filteredAgendaDataset.filter(row => row.Corretor === corretorNome && agendaMatchesRef(row, refDate) && isCompareceu(row));
+                label = 'Compareceram';
+            } else if (metrica === 'analises') {
+                rows = filteredDataset.filter(row => row.Corretor === corretorNome && metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDate));
+                label = 'Análises';
+            } else if (metrica === 'aprovacoes') {
+                rows = filteredDataset.filter(row => row.Corretor === corretorNome && isAprovadoNoPeriodo(row, refDate));
+                label = 'Aprovações';
+            } else {
+                rows = filteredDataset.filter(row => row.Corretor === corretorNome && isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refDate));
+                label = 'Vendas';
+            }
+            showDetailModal({
+                label1: 'Corretor', label2: 'Etapa do Funil',
+                nome: corretorNome, dataStr: `${label} — ${getMesName(refDate.getMonth() + 1)}/${refDate.getFullYear()}`,
+                rows, showCorretor: false,
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
+            });
         }
 
         function renderCorretorCards() {
@@ -5133,7 +5181,7 @@
                     const valor = d[e.key];
                     const cl = FUNIL_CORES[e.color];
                     const badge = `
-                        <div class="flex flex-col items-center shrink-0" title="${e.label}: ${valor}">
+                        <div onclick="openCorretorEtapaDetail('${d.nomeCompleto.replace(/'/g, "\\'")}', '${e.key}')" class="flex flex-col items-center shrink-0 cursor-pointer hover:opacity-80 transition" title="${e.label}: ${valor} — clique pra ver os clientes">
                             <div class="w-9 h-9 rounded-lg border ${cl.border} bg-${e.color}-500/10 flex items-center justify-center text-${e.color}-400">
                                 <i class="fa-solid ${e.icon}" style="font-size:11px"></i>
                             </div>
@@ -5578,6 +5626,21 @@
                 nome: tipo === 'corretor' ? nome : `Equipa ${nome}`,
                 dataStr: metricaLbl,
                 rows, showCorretor: tipo === 'equipe',
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
+            });
+        }
+
+        // Abre o detalhamento de clientes por trás do número "Feito" de um card dos Rankings
+        // Rápidos (Prospecção/Agendamentos/Compareceu/Análises/Aprovações/Vendas × Hoje/Semana/
+        // Mês) — lê de quickRankingRowsCache, preenchido linha a linha dentro de drawQuickRankings()
+        // com os MESMOS critérios usados pra contar, então o modal sempre bate com o número clicado.
+        function openQuickRankingDetail(cardKey, nome, cardTitle) {
+            const cache = quickRankingRowsCache[cardKey] && quickRankingRowsCache[cardKey][nome];
+            const rows = cache || [];
+            showDetailModal({
+                label1: 'Corretor', label2: 'Período',
+                nome, dataStr: cardTitle || cardKey,
+                rows, showCorretor: false,
                 totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
             });
         }
