@@ -1919,6 +1919,9 @@
         // { [cardKey]: { [nomeCorretor]: [linhas...] } } — as linhas por trás de cada número "Feito"
         // dos Rankings Rápidos, pra abrir o detalhamento de clientes ao clicar (openQuickRankingDetail).
         let quickRankingRowsCache = {};
+        // { [etapaKey]: [linhas...] } — mesmo padrão, mas pra tira "Produtividade de Hoje" do Funil
+        // (openFunnelHojeDetail).
+        let funnelHojeRowsCache = {};
         function drawQuickRankings() {
             const grid = document.getElementById('quickRankingsGrid');
             if (!grid) return;
@@ -5348,40 +5351,56 @@
             if (!el) return;
             const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date();
 
-            let prHoje = 0, agHoje = 0, coHoje = 0, anHoje = 0, apHoje = 0, vdHoje = 0;
+            funnelHojeRowsCache = { prospeccao: [], agendamentos: [], compareceu: [], analises: [], aprovacoes: [], vendas: [] };
             filteredDataset.forEach(row => {
-                if (checkPeriodMatch(row['Data Cadastro'], 'hoje', hojeReal)) anHoje++;
-                if (isAprovado(row['Situação - Analise']) && checkPeriodMatch(dataAprovacaoEfetiva(row), 'hoje', hojeReal)) apHoje++;
-                if (isVendaGanhaReal(row) && checkPeriodMatch(row['Data Ganho'], 'hoje', hojeReal)) vdHoje++;
+                if (checkPeriodMatch(row['Data Cadastro'], 'hoje', hojeReal)) funnelHojeRowsCache.analises.push(row);
+                if (isAprovado(row['Situação - Analise']) && checkPeriodMatch(dataAprovacaoEfetiva(row), 'hoje', hojeReal)) funnelHojeRowsCache.aprovacoes.push(row);
+                if (isVendaGanhaReal(row) && checkPeriodMatch(row['Data Ganho'], 'hoje', hojeReal)) funnelHojeRowsCache.vendas.push(row);
             });
             filteredAgendaDataset.forEach(row => {
                 // Agendamentos hoje = quando o corretor CADASTROU o agendamento (Data de Cadastro),
                 // não a data da visita — é produtividade do dia. Compareceu hoje continua pela Data
                 // da visita (é o dia em que o cliente efetivamente apareceu).
-                if (checkPeriodMatch(row['Data de Cadastro'], 'hoje', hojeReal)) agHoje++;
-                if (isCompareceu(row) && checkPeriodMatch(row['Data'], 'hoje', hojeReal)) coHoje++;
+                if (checkPeriodMatch(row['Data de Cadastro'], 'hoje', hojeReal)) funnelHojeRowsCache.agendamentos.push(row);
+                if (isCompareceu(row) && checkPeriodMatch(row['Data'], 'hoje', hojeReal)) funnelHojeRowsCache.compareceu.push(row);
             });
             filteredProspeccaoDataset.forEach(row => {
-                if (checkPeriodMatch(row['Cadastro'], 'hoje', hojeReal)) prHoje++;
+                if (checkPeriodMatch(row['Cadastro'], 'hoje', hojeReal)) funnelHojeRowsCache.prospeccao.push(row);
             });
 
             const chips = [
-                { label: 'Prospecção', valor: prHoje, icon: 'fa-bullhorn', color: 'pink' },
-                { label: 'Agendamentos', valor: agHoje, icon: 'fa-calendar-check', color: 'violet' },
-                { label: 'Compareceu', valor: coHoje, icon: 'fa-door-open', color: 'cyan' },
-                { label: 'Análises', valor: anHoje, icon: 'fa-file-invoice-dollar', color: 'sky' },
-                { label: 'Aprovações', valor: apHoje, icon: 'fa-circle-check', color: 'amber' },
-                { label: 'Vendas', valor: vdHoje, icon: 'fa-house-circle-check', color: 'brand' }
+                { key: 'prospeccao', label: 'Prospecção', valor: funnelHojeRowsCache.prospeccao.length, icon: 'fa-bullhorn', color: 'pink' },
+                { key: 'agendamentos', label: 'Agendamentos', valor: funnelHojeRowsCache.agendamentos.length, icon: 'fa-calendar-check', color: 'violet' },
+                { key: 'compareceu', label: 'Compareceu', valor: funnelHojeRowsCache.compareceu.length, icon: 'fa-door-open', color: 'cyan' },
+                { key: 'analises', label: 'Análises', valor: funnelHojeRowsCache.analises.length, icon: 'fa-file-invoice-dollar', color: 'sky' },
+                { key: 'aprovacoes', label: 'Aprovações', valor: funnelHojeRowsCache.aprovacoes.length, icon: 'fa-circle-check', color: 'amber' },
+                { key: 'vendas', label: 'Vendas', valor: funnelHojeRowsCache.vendas.length, icon: 'fa-house-circle-check', color: 'brand' }
             ];
 
             el.innerHTML = `
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mr-1"><i class="fa-solid fa-bolt text-amber-400"></i>Hoje</span>
                 ${chips.map(c => `
-                    <span class="inline-flex items-center gap-1.5 text-[11px] font-bold pl-2 pr-2.5 py-1 rounded-full bg-${c.color}-500/10 text-${c.color}-300 border border-${c.color}-500/20">
+                    <span onclick="openFunnelHojeDetail('${c.key}')" class="inline-flex items-center gap-1.5 text-[11px] font-bold pl-2 pr-2.5 py-1 rounded-full bg-${c.color}-500/10 text-${c.color}-300 border border-${c.color}-500/20 cursor-pointer hover:brightness-125 transition">
                         <i class="fa-solid ${c.icon} text-${c.color}-400" style="font-size:9px"></i>${c.valor} <span class="font-semibold text-${c.color}-400/80">${c.label}</span>
                     </span>
                 `).join('')}
             `;
+        }
+
+        // Clique num chip da tira "Produtividade de Hoje": abre os clientes por trás daquele
+        // número, usando o cache montado na mesma passagem de contagem do renderFunnelHojeStrip
+        // (mesmo padrão do openQuickRankingDetail, pra nunca divergir do número mostrado).
+        function openFunnelHojeDetail(etapaKey) {
+            const rows = funnelHojeRowsCache[etapaKey] || [];
+            const labels = { prospeccao: 'Prospecção', agendamentos: 'Agendamentos', compareceu: 'Compareceram', analises: 'Análises', aprovacoes: 'Aprovações', vendas: 'Vendas' };
+            const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            showDetailModal({
+                label1: 'Etapa do Funil', label2: 'Data',
+                nome: `Hoje — ${labels[etapaKey] || etapaKey}`,
+                dataStr: hojeReal.toLocaleDateString('pt-BR'),
+                rows, showCorretor: true,
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
+            });
         }
 
         function drawFunnel() {
