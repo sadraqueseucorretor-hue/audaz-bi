@@ -7608,8 +7608,9 @@
                         <td onclick="toggleCalRowHighlight(this)" title="Clique para destacar a linha · ${st.title}" class="p-2.5 pl-4 text-left bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 cursor-pointer hover:bg-slate-900/40 transition">
                             <div class="flex items-center gap-2.5">
                                 ${medalhaRank(rank)}
+                                ${corretorAvatarInner(c, 'h-8 w-8 flex-shrink-0', 'text-[10px]')}
                                 <div class="min-w-0">
-                                    <div class="font-bold text-slate-200 text-[13px] truncate max-w-[140px]"><i class="fa-solid fa-user text-[9px] text-slate-600 mr-1"></i>${c}</div>
+                                    <div class="font-bold text-slate-200 text-[13px] truncate max-w-[140px]">${c}</div>
                                     <div class="flex items-center gap-1 text-[10px] font-bold ${stColor.text}"><i class="fa-solid ${st.icon} text-[9px] ${stColor.icon}"></i>${st.label}</div>
                                 </div>
                             </div>
