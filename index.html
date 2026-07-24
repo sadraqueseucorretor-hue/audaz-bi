@@ -7333,24 +7333,31 @@
         }
 
         function drawProductionCalendar() {
-            // Calendário agora é inline e sempre renderiza (sem guard de view). Com vários meses
-            // comerciais selecionados (comparativo), usa o MAIS RECENTE deles como mês exibido.
-            const refMesCal = getReferenceMesComercial();
-            const lcCal = (!refMesCal && !isMockDataActive) ? getLatestCommercialMonth() : null;
-            const activeMonth = refMesCal ? refMesCal.nome : (lcCal ? lcCal.nome : getMesName(new Date().getMonth() + 1));
-            const activeYear = refMesCal ? refMesCal.ano : (lcCal ? lcCal.ano : new Date().getFullYear());
+            // Mesma janela deslizante de mês comercial usada no resto do painel (Funil, Ritmo do
+            // Mês, Evolução Semanal): início real = data mais antiga lançada nesse mês (pode ser
+            // antes do dia 1 do calendário), ou o período exato configurado manualmente em "Meses
+            // Comerciais" quando existir — nunca mais o dia 1 fixo do calendário.
+            const metricaJanela = calendarMetric === 'aprovados' ? 'aprovacoes' : calendarMetric;
+            const janela = getJanelaMesComercial(metricaJanela);
+            const activeMonth = janela.mesNome;
+            const activeYear = janela.ano;
+            const yearNum = activeYear;
+            const inicioMes = janela.inicioReal; // âncora do dia 1 da grade (não é mais o dia 1 do calendário)
+            const maxDia = janela.diasNoMes;
+            const diaHojeIdx = janela.mesEhAtual ? janela.diaHoje : null;
 
             document.getElementById('calMonthLabel').innerHTML = `<i class="fa-solid fa-calendar-days text-slate-500"></i> ${activeMonth}/${activeYear}`;
 
-            const monthMap = {
-                'Janeiro': 1, 'Fevereiro': 2, 'Março': 3, 'Abril': 4, 'Maio': 5, 'Junho': 6,
-                'Julho': 7, 'Agosto': 8, 'Setembro': 9, 'Outubro': 10, 'Novembro': 11, 'Dezembro': 12
+            // Membership genérico (mesmo critério do getJanelaMesComercial): com "Meses Comerciais"
+            // configurado manualmente, a DATA manda; sem config, o texto do Mês* da planilha manda.
+            const pertenceAoMesGenerico = (ok, mesRef, dataRef) => {
+                if (!ok) return false;
+                if (janela.configMes) {
+                    const d = parseDate(dataRef);
+                    return d && d >= janela.inicioReal && d <= janela.fimEstimado;
+                }
+                return normalizeMes(mesRef) === activeMonth && (getMesAno(mesRef) || activeYear) === activeYear;
             };
-
-            const monthNum = monthMap[activeMonth] || new Date().getMonth() + 1;
-            const yearNum = parseInt(activeYear) || new Date().getFullYear();
-
-            const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
 
             // Roster de corretores ativos (inclui pré-cadastrados, exclui desativados)
             const activeCorretores = getActiveCorretores();
@@ -7407,31 +7414,14 @@
                 gray:   { text: 'text-slate-500',   icon: 'text-slate-600' }
             };
 
-            // ===== CONTINUIDADE DO MÊS COMERCIAL =====
-            // O mês comercial pode terminar já no calendário seguinte (ex.: junho fecha em 3/jul).
-            // Por isso o "dia" é um índice CONTÍNUO a partir do 1º do mês: jun/1=1 ... jun/30=30, jul/1=31, jul/2=32...
-            const inicioMes = new Date(yearNum, monthNum - 1, 1);
-            const noMes = (mesStr) => normalizeMes(mesStr) === activeMonth && (getMesAno(mesStr) || yearNum) === yearNum;
+            // Índice contínuo do dia dentro da janela deslizante: dia 1 = inicioMes (o início real
+            // do mês comercial, não o dia 1 do calendário) ... dia maxDia = fimEstimado.
             const diaDe = (dataStr) => {
                 const dt = parseDate(dataStr);
                 if (!dt) return 1;
                 const idx = Math.floor((dt - inicioMes) / 86400000) + 1;
-                return idx < 1 ? 1 : idx;
+                return idx < 1 ? 1 : (idx > maxDia ? maxDia : idx);
             };
-            // Índice contínuo do dia de HOJE dentro deste mês comercial (null se hoje não cai neste mês em exibição).
-            const diaHojeIdxRaw = Math.floor((hojeStatusCal - inicioMes) / 86400000) + 1;
-
-            // Estende as colunas até o último dia realmente usado pelos lançamentos do mês comercial.
-            let maxDia = daysInMonth;
-            filteredDataset.forEach(row => {
-                if (!activeSet.has(row.Corretor)) return;
-                if (noMes(row['Mês Cadastro'])) maxDia = Math.max(maxDia, diaDe(row['Data Cadastro']));
-                if (isAprovado(row['Situação - Analise']) && noMes(mesAprovacaoEfetivo(row))) maxDia = Math.max(maxDia, diaDe(dataAprovacaoEfetiva(row)));
-                if (isGanho(row) && noMes(row['Mês Ganho'])) maxDia = Math.max(maxDia, diaDe(row['Data Ganho']));
-            });
-            maxDia = Math.min(maxDia, daysInMonth + 15); // trava de segurança contra data muito fora
-
-            const diaHojeIdx = (diaHojeIdxRaw >= 1 && diaHojeIdxRaw <= maxDia) ? diaHojeIdxRaw : null;
 
             // Cada célula guarda 3 métricas: a=análises, ap=aprovados, v=vendas — cada uma pela sua própria data
             let cellMatrix = {};       // `${c}_${d}` -> { a, ap, v }
@@ -7463,7 +7453,7 @@
                 if (!activeSet.has(corr)) return;
 
                 // Análise -> Data Cadastro / Mês Cadastro
-                if (noMes(row['Mês Cadastro'])) {
+                if (pertenceAoMesGenerico(true, row['Mês Cadastro'], row['Data Cadastro'])) {
                     const day = diaDe(row['Data Cadastro']);
                     const key = `${corr}_${day}`;
                     if (cellMatrix[key]) {
@@ -7475,7 +7465,7 @@
                     }
                 }
                 // Aprovado -> Data Aprovação / Mês Aprovação (respalda em Cadastro se estiver em branco)
-                if (isAprovado(row['Situação - Analise']) && noMes(mesAprovacaoEfetivo(row))) {
+                if (pertenceAoMesGenerico(isAprovado(row['Situação - Analise']), mesAprovacaoEfetivo(row), dataAprovacaoEfetiva(row))) {
                     const day = diaDe(dataAprovacaoEfetiva(row));
                     const key = `${corr}_${day}`;
                     if (cellMatrix[key]) {
@@ -7486,7 +7476,7 @@
                     }
                 }
                 // Venda -> Data Ganho / Mês Ganho
-                if (isGanho(row) && noMes(row['Mês Ganho'])) {
+                if (pertenceAoMesGenerico(isGanho(row), row['Mês Ganho'], row['Data Ganho'])) {
                     const day = diaDe(row['Data Ganho']);
                     const key = `${corr}_${day}`;
                     if (cellMatrix[key]) {
@@ -7526,9 +7516,10 @@
             headerRow.innerHTML = `<th class="p-3 pl-4 text-left min-w-[170px] bg-slate-950 sticky left-0 z-20">Corretor</th>`;
 
             for (let d = 1; d <= maxDia; d++) {
-                const tempDateObj = new Date(yearNum, monthNum - 1, d); // normaliza: d=31 -> 1/jul, d=32 -> 2/jul...
+                const tempDateObj = new Date(inicioMes);
+                tempDateObj.setDate(tempDateObj.getDate() + (d - 1)); // dia 1 = início real do mês comercial (pode já estar no calendário anterior/seguinte)
                 const weekDayName = tempDateObj.toLocaleDateString('pt-BR', { weekday: 'short' }).substring(0, 3).toUpperCase();
-                const ehSpill = tempDateObj.getMonth() !== (monthNum - 1); // dia já no calendário seguinte
+                const ehSpill = tempDateObj.getMonth() !== janela.monthIdx; // dia fora do mês de calendário "nominal" (antes ou depois)
                 const ehHoje = d === diaHojeIdx;
                 const diaReal = String(tempDateObj.getDate()).padStart(2, '0');
                 const mesTag = ehSpill ? `<div class="text-[7px] text-amber-400 font-extrabold uppercase leading-none mt-0.5">${tempDateObj.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</div>` : '';
