@@ -346,9 +346,9 @@
                 </div>
 
                 <!-- 2. FUNIL DE CONVERSÃO -->
-                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col">
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-4 flex flex-col">
                         <div>
-                            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                            <div class="flex items-center justify-between mb-2 flex-wrap gap-3">
                                 <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
                                     <i class="fa-solid fa-filter text-brand-500"></i> Funil de Vendas
                                 </h3>
@@ -369,18 +369,18 @@
 
                             <!-- Produtividade de Hoje: contagem do dia atual em cada etapa (diferente
                                  do resto do funil, que é sempre acumulado do mês comercial) -->
-                            <div class="flex flex-wrap items-center gap-2 mb-4 pb-4 border-b border-slate-800/60" id="funnelHojeStrip"></div>
+                            <div class="flex flex-wrap items-center gap-2 mb-2 pb-2 border-b border-slate-800/60" id="funnelHojeStrip"></div>
 
                             <!-- 2 funis lado a lado: Documentação (Prospecção→Análises→Aprovações→Vendas) e
                                  Agendamento & Visita (Prospecção→Agendamento→Compareceu→Vendas) — mesmo
                                  lead visto por 2 caminhos paralelos do CRM, cada um com suas próprias
                                  metas/ritmo (pedido do usuário: eram 6 bandas empilhadas num funil só,
                                  o que sugeria uma sequência única que não existe de verdade nos dados). -->
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
                                 <!-- ===== FUNIL 1: DOCUMENTAÇÃO ===== -->
-                                <div class="bg-slate-950/40 rounded-xl border border-slate-800/70 p-4">
-                                    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <div class="bg-slate-950/40 rounded-xl border border-slate-800/70 p-3">
+                                    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
                                         <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                                             <i class="fa-solid fa-file-signature text-blue-400"></i> Documentação
                                         </h4>
@@ -389,23 +389,23 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgDoc" viewBox="0 0 480 292" class="w-full block mb-3"></svg>
-                                    <div id="funnelMetaPanelDoc" class="space-y-2 mb-3"></div>
+                                    <svg id="funnelSvgDoc" viewBox="0 0 480 192" class="w-full block mb-2"></svg>
+                                    <div id="funnelMetaPanelDoc" class="space-y-1.5 mb-2"></div>
                                     <div class="grid grid-cols-2 gap-2">
-                                        <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-xl p-3 text-center">
-                                            <p class="text-[9px] font-bold text-brand-300 uppercase tracking-wider mb-1">Conversão Geral · Lead → Venda</p>
-                                            <p class="text-2xl font-black text-white" id="funnelConvGeralLeadVendaDoc">0%</p>
+                                        <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-lg px-3 py-1.5 text-center">
+                                            <p class="text-[8px] font-bold text-brand-300 uppercase tracking-wider">Geral · Lead → Venda</p>
+                                            <p class="text-lg font-black text-white" id="funnelConvGeralLeadVendaDoc">0%</p>
                                         </div>
-                                        <div class="bg-gradient-to-br from-indigo-500/15 to-indigo-500/5 border border-indigo-500/30 rounded-xl p-3 text-center">
-                                            <p class="text-[9px] font-bold text-indigo-300 uppercase tracking-wider mb-1">Conversão Geral · Análise → Venda</p>
-                                            <p class="text-2xl font-black text-white" id="funnelConvGeralAnaliseVendaDoc">0%</p>
+                                        <div class="bg-gradient-to-br from-indigo-500/15 to-indigo-500/5 border border-indigo-500/30 rounded-lg px-3 py-1.5 text-center">
+                                            <p class="text-[8px] font-bold text-indigo-300 uppercase tracking-wider">Geral · Análise → Venda</p>
+                                            <p class="text-lg font-black text-white" id="funnelConvGeralAnaliseVendaDoc">0%</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- ===== FUNIL 2: AGENDAMENTO & VISITA ===== -->
-                                <div class="bg-slate-950/40 rounded-xl border border-slate-800/70 p-4">
-                                    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <div class="bg-slate-950/40 rounded-xl border border-slate-800/70 p-3">
+                                    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
                                         <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                                             <i class="fa-solid fa-calendar-check text-violet-400"></i> Agendamento &amp; Visita
                                         </h4>
@@ -414,8 +414,8 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgAg" viewBox="0 0 480 292" class="w-full block mb-3"></svg>
-                                    <div id="funnelMetaPanelAg" class="space-y-2"></div>
+                                    <svg id="funnelSvgAg" viewBox="0 0 480 192" class="w-full block mb-2"></svg>
+                                    <div id="funnelMetaPanelAg" class="space-y-1.5"></div>
                                 </div>
                             </div>
                             <p class="text-[9px] text-slate-500 flex items-center gap-3 mt-2">
@@ -425,7 +425,7 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-5">
+                        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-2">
                             <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3 text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Ticket Médio</p>
                                 <p class="text-base font-extrabold text-slate-100" id="funnelTicket">R$ 0,00</p>
@@ -5321,7 +5321,7 @@
         // cantos EXTERNOS arredondam (topo da 1ª banda, base da última) — as divisas internas entre
         // bandas ficam retas, com um traço escuro fino separando (stroke no path).
         const FUNIL_BOUNDARIES = [320, 270, 215, 155, 110];
-        const FUNIL_BAND_H = 70, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 6, FUNIL_CX = 175, FUNIL_CORNER_R = 14;
+        const FUNIL_BAND_H = 46, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 4, FUNIL_CX = 175, FUNIL_CORNER_R = 10;
         const FUNIL_PILL_X = 360, FUNIL_PILL_W = 110; // corredor fixo do badge de conversão, à direita das bandas
         const FUNIL_GRADIENTS = {
             pink: ['#be185d', '#f472b6'], violet: ['#6d28d9', '#8b5cf6'], cyan: ['#0e7490', '#22d3ee'],
@@ -5359,10 +5359,10 @@
                         <title>Ver clientes desta etapa</title>
                         <path d="${path}" fill="url(#${gradId})" stroke="#020617" stroke-width="${i === 0 ? 0 : 2}"/>
                         <foreignObject x="${(FUNIL_CX - textW / 2).toFixed(1)}" y="${yTop}" width="${textW.toFixed(1)}" height="${FUNIL_BAND_H}">
-                            <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:2px;">
-                                <i class="fa-solid ${e.icon}" style="color:#fff;font-size:16px;"></i>
-                                <div style="font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${e.label}</div>
-                                <div style="font-size:25px;font-weight:800;color:#fff;line-height:1;">${e.realizado}</div>
+                            <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:0px;">
+                                <i class="fa-solid ${e.icon}" style="color:#fff;font-size:11px;line-height:1;"></i>
+                                <div style="font-size:8px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.3;">${e.label}</div>
+                                <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.1;">${e.realizado}</div>
                             </div>
                         </foreignObject>
                     </g>`;
@@ -5397,31 +5397,23 @@
                 const ritmoPct = e.ideal > 0 ? (e.realizado / e.ideal) * 100 : (e.realizado > 0 ? 100 : 0);
                 let ritmoColor, ritmoBg, ritmoLabel;
                 if (ritmoPct >= 100) { ritmoColor = 'text-emerald-400'; ritmoBg = 'bg-emerald-500/15 border-emerald-500/40'; ritmoLabel = 'No ritmo'; }
-                else if (ritmoPct >= 80) { ritmoColor = 'text-amber-400'; ritmoBg = 'bg-amber-500/15 border-amber-500/40'; ritmoLabel = 'Perto do ritmo'; }
-                else { ritmoColor = 'text-rose-400'; ritmoBg = 'bg-rose-500/15 border-rose-500/40'; ritmoLabel = 'Abaixo do ritmo'; }
-                const diff = e.realizado - e.ideal;
+                else if (ritmoPct >= 80) { ritmoColor = 'text-amber-400'; ritmoBg = 'bg-amber-500/15 border-amber-500/40'; ritmoLabel = 'Perto'; }
+                else { ritmoColor = 'text-rose-400'; ritmoBg = 'bg-rose-500/15 border-rose-500/40'; ritmoLabel = 'Abaixo'; }
+                // Linha única e compacta por etapa (não mais card empilhado de 5 linhas): nome,
+                // realizado/meta, barra com marca do ideal hoje (mesmo padrão de antes, só mais
+                // enxuto), % da meta, faltam e badge de ritmo — tudo cabe numa linha só, pra "Funil
+                // de Vendas" caber na tela sem descer, mesmo mantendo tudo legível.
                 return `
-                    <div onclick="openFunnelDetail('${e.metrica}')" class="bg-slate-950/50 border border-slate-800/70 rounded-lg p-2.5 cursor-pointer hover:bg-slate-900/60 transition">
-                        <div class="flex items-center justify-between mb-1.5 gap-2">
-                            <span class="text-[10px] font-bold text-${e.color}-400 uppercase tracking-wider flex items-center gap-1.5 truncate"><i class="fa-solid ${e.icon}"></i>${e.label}</span>
-                            <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${ritmoBg} ${ritmoColor}">${ritmoLabel}</span>
-                        </div>
-                        <div class="flex items-end justify-between mb-1.5 gap-2">
-                            <div><span class="text-xl font-black text-slate-100">${e.realizado}</span><span class="text-slate-500 text-xs font-semibold"> / ${e.meta}</span></div>
-                            <span class="text-[10px] text-slate-400 shrink-0">Faltam <b class="text-slate-200">${faltam}</b></span>
-                        </div>
-                        <div class="flex items-center justify-between mb-1 text-[9px] text-slate-500 uppercase font-bold tracking-wide">
-                            <span>Progresso da meta</span>
-                            <span class="text-${e.color}-300 text-[11px]">${pctMeta.toFixed(0)}%</span>
-                        </div>
-                        <div class="relative h-2.5 mb-1.5">
+                    <div onclick="openFunnelDetail('${e.metrica}')" class="flex items-center gap-2.5 bg-slate-950/50 border border-slate-800/70 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-slate-900/60 transition">
+                        <span class="text-[10px] font-bold text-${e.color}-400 uppercase tracking-wide w-[70px] shrink-0 flex items-center gap-1 truncate"><i class="fa-solid ${e.icon}" style="font-size:9px"></i>${e.label}</span>
+                        <span class="text-sm font-black text-slate-100 shrink-0 w-[64px]">${e.realizado}<span class="text-slate-500 text-[10px] font-semibold">/${e.meta}</span></span>
+                        <div class="relative h-2 flex-1 min-w-[40px]">
                             <div class="absolute inset-0 bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-${e.color}-500 rounded-full transition-all" style="width:${pctMeta}%"></div></div>
-                            <div class="absolute top-1/2 w-[3px] h-[14px] -mt-[7px] bg-white rounded-full ring-2 ring-slate-950" style="left:calc(${idealPct}% - 1.5px)" title="Ideal hoje: ${e.ideal}"></div>
+                            <div class="absolute top-1/2 w-[2px] h-[10px] -mt-[5px] bg-white rounded-full ring-1 ring-slate-950" style="left:calc(${idealPct}% - 1px)" title="Ideal hoje: ${e.ideal}"></div>
                         </div>
-                        <div class="flex items-center justify-between text-[10px] gap-2">
-                            <span class="text-slate-500">◆ Ideal hoje: <b class="text-slate-300">${e.ideal}</b></span>
-                            <span class="${ritmoColor} font-bold">${diff >= 0 ? '+' : ''}${diff} vs ideal</span>
-                        </div>
+                        <span class="text-[10px] font-bold text-${e.color}-300 w-8 text-right shrink-0">${pctMeta.toFixed(0)}%</span>
+                        <span class="text-[9px] text-slate-500 shrink-0 w-16 text-right hidden sm:inline">Faltam <b class="text-slate-300">${faltam}</b></span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${ritmoBg} ${ritmoColor}">${ritmoLabel}</span>
                     </div>`;
             }).join('');
         }
