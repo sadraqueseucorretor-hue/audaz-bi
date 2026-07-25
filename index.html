@@ -389,18 +389,14 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <div class="overflow-x-auto -mx-1">
-                                        <table class="w-full text-left border-collapse min-w-[380px]">
-                                            <thead>
-                                                <tr class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">
-                                                    <th class="pb-1.5 px-1">Etapa</th>
-                                                    <th class="pb-1.5 px-1">Realizado / Meta</th>
-                                                    <th class="pb-1.5 px-1 text-right">Conversão</th>
-                                                    <th class="pb-1.5 px-1 text-right">Perda</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="funnelTableBodyDoc"></tbody>
-                                        </table>
+                                    <div class="overflow-x-auto -mx-1 px-1">
+                                        <div class="grid grid-cols-[minmax(150px,1fr)_120px_85px_95px] gap-x-2 text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-2 min-w-[450px]">
+                                            <span></span>
+                                            <span>Realizado / Meta</span>
+                                            <span class="text-right">Conversão</span>
+                                            <span class="text-right">Perda</span>
+                                        </div>
+                                        <div id="funnelTableBodyDoc" class="min-w-[450px]"></div>
                                     </div>
                                 </div>
 
@@ -415,18 +411,14 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <div class="overflow-x-auto -mx-1">
-                                        <table class="w-full text-left border-collapse min-w-[380px]">
-                                            <thead>
-                                                <tr class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">
-                                                    <th class="pb-1.5 px-1">Etapa</th>
-                                                    <th class="pb-1.5 px-1">Realizado / Meta</th>
-                                                    <th class="pb-1.5 px-1 text-right">Conversão</th>
-                                                    <th class="pb-1.5 px-1 text-right">Perda</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="funnelTableBodyAg"></tbody>
-                                        </table>
+                                    <div class="overflow-x-auto -mx-1 px-1">
+                                        <div class="grid grid-cols-[minmax(150px,1fr)_120px_85px_95px] gap-x-2 text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-2 min-w-[450px]">
+                                            <span></span>
+                                            <span>Realizado / Meta</span>
+                                            <span class="text-right">Conversão</span>
+                                            <span class="text-right">Perda</span>
+                                        </div>
+                                        <div id="funnelTableBodyAg" class="min-w-[450px]"></div>
                                     </div>
                                 </div>
                             </div>
@@ -5389,6 +5381,7 @@
             const conv2 = approvals > 0 ? ((sales / approvals) * 100).toFixed(1) : 0;
             const taxaFinal = analyses > 0 ? ((sales / analyses) * 100).toFixed(1) : 0;
             const prospToAnalise = prospeccao > 0 ? ((analyses / prospeccao) * 100) : 0;
+            const prospToVenda = prospeccao > 0 ? ((sales / prospeccao) * 100) : 0;
             const compareceuToVenda = compareceu > 0 ? ((sales / compareceu) * 100) : 0;
             document.getElementById('funnelTaxaFinal').textContent = `${taxaFinal}%`;
 
@@ -5397,56 +5390,70 @@
             // a conversão REAL contra o que as metas já cadastradas implicam.
             const metaConv = (metaAtual, metaSeguinte) => metaAtual > 0 ? (metaSeguinte / metaAtual) * 100 : 0;
 
-            // Monta as linhas de 1 funil: Etapa | Realizado/Meta (+ideal hoje) | Conversão real vs
-            // meta (com seta) | Perda absoluta pra próxima etapa. Última etapa (Vendas) não tem
-            // conversão/perda de saída. Clique na linha abre o mesmo modal de sempre (openFunnelDetail).
+            // Monta as bandas de 1 funil no estilo do mockup (banner trapezoidal, numerado, com
+            // subtítulo) + as 3 colunas de dados (Realizado/Meta, Conversão, Perda) ao lado — cada
+            // banda um pouco mais estreita que a anterior, com uma seta entre elas, pra reforçar o
+            // formato de funil visualmente. Clique na banda ou na linha abre o mesmo modal de sempre.
+            // Na última etapa (Vendas), em vez de "—", a Conversão/Perda mostram o fechamento GERAL
+            // do funil (Prospecção → Venda), já que não há uma "próxima etapa" pra comparar.
             const buildFunilTabela = (bodyId, etapas) => {
                 const body = document.getElementById(bodyId);
                 if (!body) return;
-                body.innerHTML = etapas.map(e => {
+                body.innerHTML = etapas.map((e, idx) => {
                     const pctMeta = e.meta > 0 ? Math.min(999, (e.realizado / e.meta) * 100) : 0;
-                    const dotColor = pctMeta >= 100 ? 'bg-emerald-400' : pctMeta >= 70 ? 'bg-amber-400' : 'bg-rose-500';
+                    const bannerPct = Math.max(60, 100 - idx * 9);
                     let convCell = '<span class="text-slate-600 text-xs">—</span>';
                     let perdaCell = '<span class="text-slate-600 text-xs">—</span>';
                     if (e.convReal !== null) {
                         const delta = e.convReal - e.convMeta;
                         const up = delta >= 0;
-                        convCell = `<div class="font-extrabold ${up ? 'text-emerald-400' : 'text-rose-400'} text-[13px] leading-tight">${e.convReal.toFixed(1)}%</div>
+                        const tag = e.geral ? '<div class="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Geral</div>' : '';
+                        convCell = `${tag}<div class="font-extrabold ${up ? 'text-emerald-400' : 'text-rose-400'} text-[13px] leading-tight">${e.convReal.toFixed(1)}%</div>
                             <div class="text-[9px] text-slate-500 leading-tight">Meta ${e.convMeta.toFixed(0)}% <span class="${up ? 'text-emerald-400' : 'text-rose-400'}">${up ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}%</span></div>`;
                         perdaCell = `<div class="font-bold text-rose-300 text-[12px] leading-tight">${e.perda}</div>
                             <div class="text-[9px] text-slate-500 leading-tight">${e.perdaLabel}</div>`;
                     }
                     return `
-                        <tr onclick="openFunnelDetail('${e.metrica}')" class="border-b border-slate-800/50 last:border-0 cursor-pointer hover:bg-slate-900/40 transition">
-                            <td class="py-2.5 px-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="h-2 w-2 rounded-full ${dotColor} shrink-0"></span>
-                                    <i class="fa-solid ${e.icon} text-${e.color}-400" style="font-size:10px"></i>
-                                    <span class="font-bold text-slate-200 text-[11px]">${e.label}</span>
+                        <div>
+                            ${idx > 0 ? `<div class="flex justify-center py-0.5"><i class="fa-solid fa-chevron-down text-slate-700" style="font-size:9px"></i></div>` : ''}
+                            <div onclick="openFunnelDetail('${e.metrica}')" class="grid grid-cols-[minmax(150px,1fr)_120px_85px_95px] gap-x-2 items-center cursor-pointer group py-0.5">
+                                <div class="mx-auto" style="width:${bannerPct}%">
+                                    <div class="relative overflow-hidden bg-gradient-to-br from-${e.color}-600 to-${e.color}-400 group-hover:brightness-110 transition shadow-md" style="clip-path:polygon(5% 0,95% 0,100% 100%,0% 100%)">
+                                        <div class="flex items-center gap-2 px-3 py-2">
+                                            <div class="h-7 w-7 rounded-full bg-black/25 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon} text-white" style="font-size:11px"></i></div>
+                                            <div class="min-w-0">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="text-[9px] font-black text-white/60">0${idx + 1}</span>
+                                                    <span class="font-extrabold text-white text-[11px] uppercase tracking-wide truncate">${e.label}</span>
+                                                </div>
+                                                <div class="text-[9px] text-white/80 truncate">${e.subtitle}</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </td>
-                            <td class="py-2.5 px-1 min-w-[110px]">
-                                <div class="flex items-baseline gap-1"><span class="font-extrabold text-slate-100 text-[13px]">${e.realizado}</span><span class="text-slate-500 text-[10px]">/ ${e.meta}</span></div>
-                                <div class="h-1 bg-slate-800 rounded-full overflow-hidden mt-1 mb-0.5 w-16"><div class="h-full bg-${e.color}-500 rounded-full" style="width:${Math.min(100, pctMeta)}%"></div></div>
-                                <div class="text-[9px] text-slate-500">Ideal hoje: ${e.ideal}</div>
-                            </td>
-                            <td class="py-2.5 px-1 text-right">${convCell}</td>
-                            <td class="py-2.5 px-1 text-right">${perdaCell}</td>
-                        </tr>`;
+                                <div>
+                                    <div class="flex items-baseline gap-1"><span class="font-extrabold text-slate-100 text-[13px]">${e.realizado}</span><span class="text-slate-500 text-[10px]">/ ${e.meta}</span></div>
+                                    <div class="h-1 bg-slate-800 rounded-full overflow-hidden mt-1 mb-0.5"><div class="h-full bg-${e.color}-500 rounded-full" style="width:${Math.min(100, pctMeta)}%"></div></div>
+                                    <div class="text-[9px] text-slate-500">Ideal hoje: ${e.ideal}</div>
+                                </div>
+                                <div class="text-right">${convCell}</div>
+                                <div class="text-right">${perdaCell}</div>
+                            </div>
+                        </div>`;
                 }).join('');
             };
 
             buildFunilTabela('funnelTableBodyDoc', [
-                { metrica: 'prospeccao', label: 'Prospecção', icon: 'fa-bullhorn', color: 'pink', realizado: prospeccao, meta: Math.round(metaProspeccao), ideal: Math.round(idealProspeccao), convReal: prospToAnalise, convMeta: metaConv(metaProspeccao, metaAnalises), perda: Math.max(0, prospeccao - analyses), perdaLabel: 'não viraram análise' },
-                { metrica: 'analises', label: 'Análises', icon: 'fa-people-group', color: 'blue', realizado: analyses, meta: Math.round(metaAnalises), ideal: Math.round(idealAnalises), convReal: parseFloat(conv1), convMeta: metaConv(metaAnalises, metaAprovacoes), perda: Math.max(0, analyses - approvals), perdaLabel: 'não foram aprovados' },
-                { metrica: 'aprovacoes', label: 'Aprovações', icon: 'fa-circle-check', color: 'amber', realizado: approvals, meta: Math.round(metaAprovacoes), ideal: Math.round(idealAprovacoes), convReal: parseFloat(conv2), convMeta: metaConv(metaAprovacoes, metaVendas), perda: Math.max(0, approvals - sales), perdaLabel: 'não viraram vendas' },
-                { metrica: 'vendas', label: 'Vendas', icon: 'fa-house-circle-check', color: 'emerald', realizado: sales, meta: Math.round(metaVendas), ideal: Math.round(idealVendas), convReal: null, convMeta: null, perda: null, perdaLabel: null }
+                { metrica: 'prospeccao', label: 'Prospecção', subtitle: 'Leads captados', icon: 'fa-bullhorn', color: 'pink', realizado: prospeccao, meta: Math.round(metaProspeccao), ideal: Math.round(idealProspeccao), convReal: prospToAnalise, convMeta: metaConv(metaProspeccao, metaAnalises), perda: Math.max(0, prospeccao - analyses), perdaLabel: 'não viraram análise' },
+                { metrica: 'analises', label: 'Análises', subtitle: 'Documentações recebidas', icon: 'fa-people-group', color: 'blue', realizado: analyses, meta: Math.round(metaAnalises), ideal: Math.round(idealAnalises), convReal: parseFloat(conv1), convMeta: metaConv(metaAnalises, metaAprovacoes), perda: Math.max(0, analyses - approvals), perdaLabel: 'não foram aprovados' },
+                { metrica: 'aprovacoes', label: 'Aprovações', subtitle: 'Créditos aprovados', icon: 'fa-circle-check', color: 'amber', realizado: approvals, meta: Math.round(metaAprovacoes), ideal: Math.round(idealAprovacoes), convReal: parseFloat(conv2), convMeta: metaConv(metaAprovacoes, metaVendas), perda: Math.max(0, approvals - sales), perdaLabel: 'não viraram vendas' },
+                { metrica: 'vendas', label: 'Vendas', subtitle: 'Negócios fechados', icon: 'fa-house-circle-check', color: 'emerald', realizado: sales, meta: Math.round(metaVendas), ideal: Math.round(idealVendas), convReal: prospToVenda, convMeta: metaConv(metaProspeccao, metaVendas), perda: Math.max(0, prospeccao - sales), perdaLabel: 'não converteram (geral)', geral: true }
             ]);
             buildFunilTabela('funnelTableBodyAg', [
-                { metrica: 'prospeccao', label: 'Prospecção', icon: 'fa-bullhorn', color: 'pink', realizado: prospeccao, meta: Math.round(metaProspeccao), ideal: Math.round(idealProspeccao), convReal: parseFloat(convMinus1), convMeta: metaConv(metaProspeccao, metaAgendamentos), perda: Math.max(0, prospeccao - agendamentos), perdaLabel: 'não foram agendados' },
-                { metrica: 'agendamentos', label: 'Agendamento', icon: 'fa-calendar-check', color: 'violet', realizado: agendamentos, meta: Math.round(metaAgendamentos), ideal: Math.round(idealAgendamentos), convReal: parseFloat(conv0), convMeta: metaConv(metaAgendamentos, metaCompareceu), perda: Math.max(0, agendamentos - compareceu), perdaLabel: 'não viraram visita' },
-                { metrica: 'compareceu', label: 'Visita', icon: 'fa-door-open', color: 'cyan', realizado: compareceu, meta: Math.round(metaCompareceu), ideal: Math.round(idealCompareceu), convReal: compareceuToVenda, convMeta: metaConv(metaCompareceu, metaVendas), perda: Math.max(0, compareceu - sales), perdaLabel: 'não viraram venda' },
-                { metrica: 'vendas', label: 'Vendas', icon: 'fa-house-circle-check', color: 'emerald', realizado: sales, meta: Math.round(metaVendas), ideal: Math.round(idealVendas), convReal: null, convMeta: null, perda: null, perdaLabel: null }
+                { metrica: 'prospeccao', label: 'Prospecção', subtitle: 'Leads captados', icon: 'fa-bullhorn', color: 'pink', realizado: prospeccao, meta: Math.round(metaProspeccao), ideal: Math.round(idealProspeccao), convReal: parseFloat(convMinus1), convMeta: metaConv(metaProspeccao, metaAgendamentos), perda: Math.max(0, prospeccao - agendamentos), perdaLabel: 'não foram agendados' },
+                { metrica: 'agendamentos', label: 'Agendamento', subtitle: 'Reuniões agendadas', icon: 'fa-calendar-check', color: 'violet', realizado: agendamentos, meta: Math.round(metaAgendamentos), ideal: Math.round(idealAgendamentos), convReal: parseFloat(conv0), convMeta: metaConv(metaAgendamentos, metaCompareceu), perda: Math.max(0, agendamentos - compareceu), perdaLabel: 'não viraram visita' },
+                { metrica: 'compareceu', label: 'Visita', subtitle: 'Visitas realizadas', icon: 'fa-door-open', color: 'cyan', realizado: compareceu, meta: Math.round(metaCompareceu), ideal: Math.round(idealCompareceu), convReal: compareceuToVenda, convMeta: metaConv(metaCompareceu, metaVendas), perda: Math.max(0, compareceu - sales), perdaLabel: 'não viraram venda' },
+                { metrica: 'vendas', label: 'Vendas', subtitle: 'Negócios fechados', icon: 'fa-house-circle-check', color: 'emerald', realizado: sales, meta: Math.round(metaVendas), ideal: Math.round(idealVendas), convReal: prospToVenda, convMeta: metaConv(metaProspeccao, metaVendas), perda: Math.max(0, prospeccao - sales), perdaLabel: 'não converteram (geral)', geral: true }
             ]);
 
             // Ticket / VGV / Comissão estimada (base geral, igual aos KPIs e ao funil)
