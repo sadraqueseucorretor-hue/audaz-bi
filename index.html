@@ -390,7 +390,7 @@
                                         </span>
                                     </div>
                                     <svg id="funnelSvgDoc" viewBox="0 0 510 188" class="w-full block mb-2"></svg>
-                                    <div id="funnelMetaPanelDoc" class="space-y-1.5 mb-2"></div>
+                                    <div class="overflow-x-auto mb-2"><div id="funnelMetaPanelDoc" class="space-y-1.5"></div></div>
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-lg px-3 py-1.5 text-center">
                                             <p class="text-[8px] font-bold text-brand-300 uppercase tracking-wider">Geral · Lead → Venda</p>
@@ -415,7 +415,7 @@
                                         </span>
                                     </div>
                                     <svg id="funnelSvgAg" viewBox="0 0 510 188" class="w-full block mb-2"></svg>
-                                    <div id="funnelMetaPanelAg" class="space-y-1.5"></div>
+                                    <div class="overflow-x-auto"><div id="funnelMetaPanelAg" class="space-y-1.5"></div></div>
                                 </div>
                             </div>
                             <p class="text-[9px] text-slate-500 flex items-center gap-3 mt-2">
@@ -5400,23 +5400,25 @@
                 if (ritmoPct >= 100) { ritmoColor = 'text-emerald-400'; ritmoBg = 'bg-emerald-500/15 border-emerald-500/40'; ritmoLabel = 'No ritmo'; }
                 else if (ritmoPct >= 80) { ritmoColor = 'text-amber-400'; ritmoBg = 'bg-amber-500/15 border-amber-500/40'; ritmoLabel = 'Perto'; }
                 else { ritmoColor = 'text-rose-400'; ritmoBg = 'bg-rose-500/15 border-rose-500/40'; ritmoLabel = 'Abaixo'; }
-                // Linha única e compacta por etapa (não mais card empilhado de 5 linhas): nome,
-                // realizado/meta, barra com marca do ideal hoje (mesmo padrão de antes, só mais
-                // enxuto), % da meta, faltam e badge de ritmo — tudo cabe numa linha só, pra "Funil
-                // de Vendas" caber na tela sem descer, mesmo mantendo tudo legível.
+                // Linha única e compacta por etapa: nome, realizado/meta, barra com o "Ideal hoje"
+                // flutuando bem em cima da marca branca (não mais um badge solto à parte — o
+                // usuário pediu que o número ficasse junto da própria marca/linha de tendência na
+                // barra), % da meta, faltam e badge de ritmo. `min-w` garante que nada corta em
+                // telas estreitas — o painel inteiro rola horizontalmente nesse caso.
                 return `
-                    <div onclick="openFunnelDetail('${e.metrica}')" class="flex items-center gap-2.5 bg-slate-950/50 border border-slate-800/70 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-slate-900/60 transition">
-                        <span class="text-[10px] font-bold text-${e.color}-400 uppercase tracking-wide w-[70px] shrink-0 flex items-center gap-1 truncate"><i class="fa-solid ${e.icon}" style="font-size:9px"></i>${e.label}</span>
-                        <span class="text-sm font-black text-slate-100 shrink-0 w-[64px]">${e.realizado}<span class="text-slate-500 text-[10px] font-semibold">/${e.meta}</span></span>
-                        <div class="relative h-2 flex-1 min-w-[40px]">
-                            <div class="absolute inset-0 bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-${e.color}-500 rounded-full transition-all" style="width:${pctMeta}%"></div></div>
-                            <div class="absolute top-1/2 w-[2px] h-[10px] -mt-[5px] bg-white rounded-full ring-1 ring-slate-950" style="left:calc(${idealPct}% - 1px)" title="Ideal hoje: ${e.ideal}"></div>
+                    <div onclick="openFunnelDetail('${e.metrica}')" class="flex items-center gap-2 bg-slate-950/50 border border-slate-800/70 rounded-lg px-2.5 py-2 cursor-pointer hover:bg-slate-900/60 transition min-w-[430px]">
+                        <span class="text-[10px] font-bold text-${e.color}-400 uppercase w-[92px] shrink-0 flex items-center gap-1"><i class="fa-solid ${e.icon}" style="font-size:9px"></i>${e.label}</span>
+                        <span class="text-sm font-black text-slate-100 shrink-0 w-[62px]">${e.realizado}<span class="text-slate-500 text-[10px] font-semibold">/${e.meta}</span></span>
+                        <div class="relative flex-1 min-w-[70px] pt-3">
+                            <div class="absolute top-0 -translate-x-1/2 flex flex-col items-center" style="left:${idealPct}%">
+                                <span class="text-[7px] font-bold text-slate-200 bg-slate-800 border border-slate-600 rounded px-1 leading-tight whitespace-nowrap">Ideal ${e.ideal}</span>
+                            </div>
+                            <div class="relative h-2">
+                                <div class="absolute inset-0 bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-${e.color}-500 rounded-full transition-all" style="width:${pctMeta}%"></div></div>
+                                <div class="absolute top-1/2 w-[2px] h-[10px] -mt-[5px] bg-white rounded-full ring-1 ring-slate-950" style="left:calc(${idealPct}% - 1px)"></div>
+                            </div>
                         </div>
                         <span class="text-[10px] font-bold text-${e.color}-300 w-8 text-right shrink-0">${pctMeta.toFixed(0)}%</span>
-                        <span class="flex items-center gap-1 bg-slate-800/70 border border-slate-600/60 rounded-md px-2 py-0.5 shrink-0" title="Ideal para hoje, no ritmo da meta">
-                            <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Ideal hj</span>
-                            <span class="text-xs font-black text-slate-100">${e.ideal}</span>
-                        </span>
                         <span class="flex items-center gap-1 bg-amber-500/15 border border-amber-500/40 rounded-md px-2 py-0.5 shrink-0" title="Falta pra bater a meta do mês">
                             <span class="text-[8px] text-amber-400 font-bold uppercase tracking-wide">Faltam</span>
                             <span class="text-xs font-black text-amber-300">${faltam}</span>
