@@ -5371,12 +5371,12 @@
                     const bandMidY = (yTop + yBot) / 2;
                     const nextLabel = (bands[i + 1] && bands[i + 1].label) || '';
                     body += `
-                        <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 16).toFixed(1)}" width="${FUNIL_PILL_W}" height="32">
-                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%;gap:1px;">
+                        <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 22).toFixed(1)}" width="${FUNIL_PILL_W}" height="48">
+                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%;gap:3px;">
                                 <div style="background:${pillColor};border-radius:9999px;padding:2px 9px;box-shadow:0 2px 6px rgba(0,0,0,.4);">
-                                    <span style="color:#fff;font-size:11px;font-weight:800;white-space:nowrap;">${e.convReal.toFixed(1)}%</span>
+                                    <span style="color:#fff;font-size:11px;font-weight:800;white-space:nowrap;line-height:1.4;">${e.convReal.toFixed(1)}%</span>
                                 </div>
-                                <span style="font-size:8px;font-weight:700;color:#94a3b8;white-space:nowrap;padding-left:1px;">${e.label} → ${nextLabel}</span>
+                                <span style="font-size:8px;font-weight:700;color:#94a3b8;white-space:nowrap;padding-left:1px;line-height:1.5;">${e.label} → ${nextLabel}</span>
                             </div>
                         </foreignObject>`;
                 }
