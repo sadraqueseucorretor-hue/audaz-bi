@@ -379,7 +379,7 @@
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
                                 <!-- ===== FUNIL 1: DOCUMENTAÇÃO ===== -->
-                                <div class="bg-slate-950/40 rounded-xl border border-slate-800/70 p-3">
+                                <div class="bg-slate-950/40 rounded-xl border border-pink-500/30 p-3">
                                     <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
                                         <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                                             <i class="fa-solid fa-file-signature text-blue-400"></i> Documentação
@@ -389,7 +389,13 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgDoc" viewBox="0 0 510 240" class="w-full block mb-2"></svg>
+                                    <div class="flex flex-col md:flex-row gap-3 mb-2">
+                                        <svg id="funnelSvgDoc" viewBox="0 0 400 208" class="w-full md:w-[62%] block shrink-0"></svg>
+                                        <div class="border border-slate-700 rounded-xl p-3 flex-1 flex flex-col justify-center min-w-0">
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conversões</p>
+                                            <div id="funnelConvPanelDoc"></div>
+                                        </div>
+                                    </div>
                                     <div class="overflow-x-auto mb-2"><div id="funnelMetaPanelDoc" class="space-y-1.5"></div></div>
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-lg px-3 py-1.5 text-center">
@@ -404,7 +410,7 @@
                                 </div>
 
                                 <!-- ===== FUNIL 2: AGENDAMENTO & VISITA ===== -->
-                                <div class="bg-slate-950/40 rounded-xl border border-slate-800/70 p-3">
+                                <div class="bg-slate-950/40 rounded-xl border border-violet-500/30 p-3">
                                     <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
                                         <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                                             <i class="fa-solid fa-calendar-check text-violet-400"></i> Agendamento &amp; Visita
@@ -414,7 +420,13 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgAg" viewBox="0 0 510 240" class="w-full block mb-2"></svg>
+                                    <div class="flex flex-col md:flex-row gap-3 mb-2">
+                                        <svg id="funnelSvgAg" viewBox="0 0 400 208" class="w-full md:w-[62%] block shrink-0"></svg>
+                                        <div class="border border-slate-700 rounded-xl p-3 flex-1 flex flex-col justify-center min-w-0">
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conversões</p>
+                                            <div id="funnelConvPanelAg"></div>
+                                        </div>
+                                    </div>
                                     <div class="overflow-x-auto"><div id="funnelMetaPanelAg" class="space-y-1.5"></div></div>
                                 </div>
                             </div>
@@ -5321,15 +5333,13 @@
         // cantos EXTERNOS arredondam (topo da 1ª banda, base da última) — as divisas internas entre
         // bandas ficam retas, com um traço escuro fino separando (stroke no path).
         const FUNIL_BOUNDARIES = [320, 270, 215, 155, 110];
-        const FUNIL_BAND_H = 58, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 4, FUNIL_CX = 175, FUNIL_CORNER_R = 10;
-        const FUNIL_PILL_X = 355, FUNIL_PILL_W = 145; // corredor fixo do badge de conversão, à direita das bandas — largo o bastante pra legenda "Etapa → Etapa" não cortar
+        const FUNIL_BAND_H = 50, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 4, FUNIL_CX = 200, FUNIL_CORNER_R = 10;
         const FUNIL_GRADIENTS = {
             pink: ['#be185d', '#f472b6'], violet: ['#6d28d9', '#8b5cf6'], cyan: ['#0e7490', '#22d3ee'],
             blue: ['#2563eb', '#3b82f6'], amber: ['#d97706', '#f59e0b'], emerald: ['#059669', '#10b981']
         };
-        // Desenha o funil inteiro (4 bandas coladas + badge de conversão num corredor fixo à
-        // direita, na mesma altura de cada banda) num único <svg>. `bands[i].convReal/convMeta` =
-        // conversão de SAÍDA dessa banda pra próxima (null na última, que não converte mais aqui).
+        // Desenha o funil inteiro (4 bandas coladas, só rótulo + número) num único <svg>. As
+        // conversões saíram de dentro do SVG e viraram um painel próprio (buildConvPanel), ao lado.
         function buildFunilSVG(svgId, bands) {
             const svg = document.getElementById(svgId);
             if (!svg) return;
@@ -5365,25 +5375,27 @@
                             </div>
                         </foreignObject>
                     </g>`;
-                if (e.convReal !== null && e.convReal !== undefined) {
-                    const up = (e.convReal - e.convMeta) >= 0;
-                    const pillColor = up ? '#10b981' : '#f43f5e';
-                    const bandMidY = (yTop + yBot) / 2;
-                    const nextLabel = (bands[i + 1] && bands[i + 1].label) || '';
-                    body += `
-                        <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 30).toFixed(1)}" width="${FUNIL_PILL_W}" height="60">
-                            <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%;gap:3px;">
-                                <div style="background:${pillColor};border-radius:9999px;padding:2px 9px;box-shadow:0 2px 6px rgba(0,0,0,.4);">
-                                    <span style="color:#fff;font-size:11px;font-weight:800;white-space:nowrap;line-height:1.4;">${e.convReal.toFixed(1)}%</span>
-                                </div>
-                                <span style="font-size:8px;font-weight:700;color:#94a3b8;white-space:nowrap;padding-left:1px;line-height:1.5;">${e.label} → ${nextLabel}</span>
-                                <span style="font-size:8px;font-weight:700;color:${up ? '#6ee7b7' : '#fca5a5'};white-space:nowrap;padding-left:1px;line-height:1.4;">Meta ${e.convMeta.toFixed(0)}% ${up ? '▲' : '▼'}</span>
-                            </div>
-                        </foreignObject>`;
-                }
             });
             defs += '</defs>';
             svg.innerHTML = defs + body;
+        }
+        // Painel "Conversões" ao lado do funil: 1 linha grande por transição (Etapa → Etapa),
+        // separadas por divisórias — reaproveita os mesmos convReal/convMeta que antes alimentavam
+        // os badges dentro do SVG. Clique na linha abre o mesmo modal (etapa de ORIGEM da conversão).
+        function buildConvPanel(elId, bands) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            const rows = bands.filter(e => e.convReal !== null && e.convReal !== undefined);
+            el.innerHTML = rows.map((e, idx) => {
+                const nextLabel = (bands[bands.indexOf(e) + 1] || {}).label || '';
+                const up = (e.convReal - e.convMeta) >= 0;
+                const colorClass = up ? 'text-emerald-400' : 'text-rose-400';
+                return `
+                    <div onclick="openFunnelDetail('${e.metrica}')" class="cursor-pointer hover:bg-slate-900/40 transition rounded-lg px-2 -mx-2 py-2.5 ${idx > 0 ? 'border-t border-slate-800' : ''}">
+                        <p class="text-xl font-black ${colorClass}">${e.convReal.toFixed(1)}%</p>
+                        <p class="text-[11px] text-slate-400">${e.label} → ${nextLabel}</p>
+                    </div>`;
+            }).join('');
         }
         // Painel "Meta / Ideal Hoje" claro: por etapa, Realizado/Meta grande + Faltam + barra +
         // Ideal Hoje + diferença vs ideal, com badge de ritmo colorido (verde/amarelo/vermelho)
@@ -5546,6 +5558,8 @@
             ];
             buildFunilSVG('funnelSvgDoc', etapasDoc);
             buildFunilSVG('funnelSvgAg', etapasAg);
+            buildConvPanel('funnelConvPanelDoc', etapasDoc);
+            buildConvPanel('funnelConvPanelAg', etapasAg);
             buildMetaPanel('funnelMetaPanelDoc', etapasDoc);
             buildMetaPanel('funnelMetaPanelAg', etapasAg);
 
