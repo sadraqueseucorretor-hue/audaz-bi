@@ -389,7 +389,7 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgDoc" viewBox="0 0 400 366" class="w-full block mb-3"></svg>
+                                    <svg id="funnelSvgDoc" viewBox="0 0 480 268" class="w-full block mb-3"></svg>
                                     <div id="funnelMetaPanelDoc" class="space-y-2 mb-3"></div>
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-xl p-3 text-center">
@@ -414,7 +414,7 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgAg" viewBox="0 0 400 366" class="w-full block mb-3"></svg>
+                                    <svg id="funnelSvgAg" viewBox="0 0 480 268" class="w-full block mb-3"></svg>
                                     <div id="funnelMetaPanelAg" class="space-y-2"></div>
                                 </div>
                             </div>
@@ -5311,15 +5311,20 @@
             d.push('Z');
             return d.join(' ');
         }
-        const FUNIL_BOUNDARIES = [380, 320, 255, 185, 130]; // largura no topo de cada banda + base da última
-        const FUNIL_BAND_H = 60, FUNIL_GAP_H = 34, FUNIL_TOP_PAD = 10, FUNIL_CX = 200, FUNIL_CORNER_R = 12;
+        // Largura no topo de cada banda + base da última — funil mais baixo e mais largo (viewBox
+        // 480x268, não mais 400x366) porque o badge de conversão saiu de baixo/entre as bandas e
+        // foi pra um corredor fixo à direita, ao lado de cada etapa (pedido do usuário: "as
+        // conversões preciso que fique ao lado, não abaixo de cada etapa" + "reduzir o funil").
+        const FUNIL_BOUNDARIES = [320, 270, 215, 155, 110];
+        const FUNIL_BAND_H = 56, FUNIL_GAP_H = 8, FUNIL_TOP_PAD = 6, FUNIL_CX = 175, FUNIL_CORNER_R = 12;
+        const FUNIL_PILL_X = 360, FUNIL_PILL_W = 110; // corredor fixo do badge de conversão, à direita das bandas
         const FUNIL_GRADIENTS = {
             pink: ['#be185d', '#f472b6'], violet: ['#6d28d9', '#8b5cf6'], cyan: ['#0e7490', '#22d3ee'],
             blue: ['#2563eb', '#3b82f6'], amber: ['#d97706', '#f59e0b'], emerald: ['#059669', '#10b981']
         };
-        // Desenha o funil inteiro (4 bandas + badge de conversão na "cintura" entre bandas
-        // adjacentes) num único <svg>. `bands[i].convReal/convMeta` = conversão pra PRÓXIMA banda
-        // (null na última, que não tem pra onde converter dentro deste funil).
+        // Desenha o funil inteiro (4 bandas + badge de conversão num corredor fixo à direita, na
+        // mesma altura de cada banda) num único <svg>. `bands[i].convReal/convMeta` = conversão de
+        // SAÍDA dessa banda pra próxima (null na última, que não converte pra mais nada aqui).
         function buildFunilSVG(svgId, bands) {
             const svg = document.getElementById(svgId);
             if (!svg) return;
@@ -5341,26 +5346,27 @@
                         <title>Ver clientes desta etapa</title>
                         <path d="${path}" fill="url(#${gradId})"/>
                         <foreignObject x="${(FUNIL_CX - textW / 2).toFixed(1)}" y="${yTop}" width="${textW.toFixed(1)}" height="${FUNIL_BAND_H}">
-                            <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;justify-content:center;gap:8px;height:100%;">
-                                <div style="height:30px;width:30px;border-radius:9999px;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                    <i class="fa-solid ${e.icon}" style="color:#fff;font-size:13px"></i>
+                            <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;justify-content:center;gap:6px;height:100%;">
+                                <div style="height:26px;width:26px;border-radius:9999px;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                    <i class="fa-solid ${e.icon}" style="color:#fff;font-size:11px"></i>
                                 </div>
                                 <div style="min-width:0;text-align:left;">
-                                    <div style="font-size:22px;font-weight:800;color:#fff;line-height:1.05;">${e.realizado}</div>
-                                    <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.label}</div>
+                                    <div style="font-size:19px;font-weight:800;color:#fff;line-height:1.05;">${e.realizado}</div>
+                                    <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.label}</div>
                                 </div>
                             </div>
                         </foreignObject>
                     </g>`;
                 if (e.convReal !== null && e.convReal !== undefined) {
-                    const pillY = yBot + FUNIL_GAP_H / 2;
                     const up = (e.convReal - e.convMeta) >= 0;
                     const pillColor = up ? '#10b981' : '#f43f5e';
+                    const bandMidY = (yTop + yBot) / 2;
                     body += `
-                        <foreignObject x="${FUNIL_CX - 58}" y="${(pillY - 14).toFixed(1)}" width="116" height="28">
-                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;align-items:center;justify-content:center;height:100%;">
-                                <div style="background:${pillColor};border-radius:9999px;padding:3px 12px;box-shadow:0 2px 8px rgba(0,0,0,.4);">
-                                    <span style="color:#fff;font-size:12px;font-weight:800;white-space:nowrap;">▼ ${e.convReal.toFixed(1)}%</span>
+                        <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 15).toFixed(1)}" width="${FUNIL_PILL_W}" height="30">
+                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;align-items:center;height:100%;gap:4px;">
+                                <i class="fa-solid fa-arrow-right" style="color:#475569;font-size:9px;flex-shrink:0;"></i>
+                                <div style="background:${pillColor};border-radius:9999px;padding:3px 10px;box-shadow:0 2px 8px rgba(0,0,0,.4);">
+                                    <span style="color:#fff;font-size:12px;font-weight:800;white-space:nowrap;">${e.convReal.toFixed(1)}%</span>
                                 </div>
                             </div>
                         </foreignObject>`;
