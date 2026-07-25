@@ -389,7 +389,7 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgDoc" viewBox="0 0 480 268" class="w-full block mb-3"></svg>
+                                    <svg id="funnelSvgDoc" viewBox="0 0 480 292" class="w-full block mb-3"></svg>
                                     <div id="funnelMetaPanelDoc" class="space-y-2 mb-3"></div>
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-xl p-3 text-center">
@@ -414,7 +414,7 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgAg" viewBox="0 0 480 268" class="w-full block mb-3"></svg>
+                                    <svg id="funnelSvgAg" viewBox="0 0 480 292" class="w-full block mb-3"></svg>
                                     <div id="funnelMetaPanelAg" class="space-y-2"></div>
                                 </div>
                             </div>
@@ -5291,8 +5291,9 @@
         // como <path> com curvas Q em cada vértice (raio r), calculadas por roundedPolygonPath().
         // Larguras (boundaries) definem um afunilamento contínuo e forte: a base de cada banda é o
         // topo da próxima, sem degraus — bem mais óbvio que o clip-path sutil da versão anterior.
-        function roundedPolygonPath(points, r) {
+        function roundedPolygonPath(points, radii) {
             const n = points.length;
+            const rArr = Array.isArray(radii) ? radii : new Array(n).fill(radii);
             const d = [];
             for (let i = 0; i < n; i++) {
                 const prev = points[(i - 1 + n) % n];
@@ -5302,7 +5303,11 @@
                 const toNext = [next[0] - curr[0], next[1] - curr[1]];
                 const lenPrev = Math.hypot(toPrev[0], toPrev[1]) || 1;
                 const lenNext = Math.hypot(toNext[0], toNext[1]) || 1;
-                const rr = Math.min(r, lenPrev / 2, lenNext / 2);
+                const rr = Math.min(rArr[i], lenPrev / 2, lenNext / 2);
+                if (rr <= 0.01) {
+                    d.push(i === 0 ? `M ${curr[0].toFixed(2)},${curr[1].toFixed(2)}` : `L ${curr[0].toFixed(2)},${curr[1].toFixed(2)}`);
+                    continue;
+                }
                 const A = [curr[0] + (toPrev[0] / lenPrev) * rr, curr[1] + (toPrev[1] / lenPrev) * rr];
                 const B = [curr[0] + (toNext[0] / lenNext) * rr, curr[1] + (toNext[1] / lenNext) * rr];
                 d.push(i === 0 ? `M ${A[0].toFixed(2)},${A[1].toFixed(2)}` : `L ${A[0].toFixed(2)},${A[1].toFixed(2)}`);
@@ -5311,25 +5316,26 @@
             d.push('Z');
             return d.join(' ');
         }
-        // Largura no topo de cada banda + base da última — funil mais baixo e mais largo (viewBox
-        // 480x268, não mais 400x366) porque o badge de conversão saiu de baixo/entre as bandas e
-        // foi pra um corredor fixo à direita, ao lado de cada etapa (pedido do usuário: "as
-        // conversões preciso que fique ao lado, não abaixo de cada etapa" + "reduzir o funil").
+        // Largura no topo de cada banda + base da última. Bandas COLADAS (sem gap entre elas —
+        // pedido do usuário, formato de referência) formando 1 silhueta de funil contínua; só os
+        // cantos EXTERNOS arredondam (topo da 1ª banda, base da última) — as divisas internas entre
+        // bandas ficam retas, com um traço escuro fino separando (stroke no path).
         const FUNIL_BOUNDARIES = [320, 270, 215, 155, 110];
-        const FUNIL_BAND_H = 56, FUNIL_GAP_H = 8, FUNIL_TOP_PAD = 6, FUNIL_CX = 175, FUNIL_CORNER_R = 12;
+        const FUNIL_BAND_H = 70, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 6, FUNIL_CX = 175, FUNIL_CORNER_R = 14;
         const FUNIL_PILL_X = 360, FUNIL_PILL_W = 110; // corredor fixo do badge de conversão, à direita das bandas
         const FUNIL_GRADIENTS = {
             pink: ['#be185d', '#f472b6'], violet: ['#6d28d9', '#8b5cf6'], cyan: ['#0e7490', '#22d3ee'],
             blue: ['#2563eb', '#3b82f6'], amber: ['#d97706', '#f59e0b'], emerald: ['#059669', '#10b981']
         };
-        // Desenha o funil inteiro (4 bandas + badge de conversão num corredor fixo à direita, na
-        // mesma altura de cada banda) num único <svg>. `bands[i].convReal/convMeta` = conversão de
-        // SAÍDA dessa banda pra próxima (null na última, que não converte pra mais nada aqui).
+        // Desenha o funil inteiro (4 bandas coladas + badge de conversão num corredor fixo à
+        // direita, na mesma altura de cada banda) num único <svg>. `bands[i].convReal/convMeta` =
+        // conversão de SAÍDA dessa banda pra próxima (null na última, que não converte mais aqui).
         function buildFunilSVG(svgId, bands) {
             const svg = document.getElementById(svgId);
             if (!svg) return;
             let defs = '<defs>';
             let body = '';
+            const last = bands.length - 1;
             bands.forEach((e, i) => {
                 const yTop = FUNIL_TOP_PAD + i * (FUNIL_BAND_H + FUNIL_GAP_H);
                 const yBot = yTop + FUNIL_BAND_H;
@@ -5339,21 +5345,24 @@
                 const gradId = `funilGrad_${svgId}_${i}`;
                 const [c1, c2] = FUNIL_GRADIENTS[e.color] || FUNIL_GRADIENTS.blue;
                 defs += `<linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>`;
-                const path = roundedPolygonPath([[xTL, yTop], [xTR, yTop], [xBR, yBot], [xBL, yBot]], FUNIL_CORNER_R);
-                const textW = Math.max(70, Math.min(topW, botW) - 16);
+                // Ordem dos pontos: TL, TR, BR, BL — só arredonda os 2 de cima na 1ª banda e os 2 de baixo na última.
+                const radii = [
+                    i === 0 ? FUNIL_CORNER_R : 0,
+                    i === 0 ? FUNIL_CORNER_R : 0,
+                    i === last ? FUNIL_CORNER_R : 0,
+                    i === last ? FUNIL_CORNER_R : 0
+                ];
+                const path = roundedPolygonPath([[xTL, yTop], [xTR, yTop], [xBR, yBot], [xBL, yBot]], radii);
+                const textW = Math.max(80, Math.min(topW, botW) - 12);
                 body += `
                     <g onclick="openFunnelDetail('${e.metrica}')" style="cursor:pointer" class="hover:opacity-90">
                         <title>Ver clientes desta etapa</title>
-                        <path d="${path}" fill="url(#${gradId})"/>
+                        <path d="${path}" fill="url(#${gradId})" stroke="#020617" stroke-width="${i === 0 ? 0 : 2}"/>
                         <foreignObject x="${(FUNIL_CX - textW / 2).toFixed(1)}" y="${yTop}" width="${textW.toFixed(1)}" height="${FUNIL_BAND_H}">
-                            <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;align-items:center;justify-content:center;gap:6px;height:100%;">
-                                <div style="height:26px;width:26px;border-radius:9999px;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                    <i class="fa-solid ${e.icon}" style="color:#fff;font-size:11px"></i>
-                                </div>
-                                <div style="min-width:0;text-align:left;">
-                                    <div style="font-size:19px;font-weight:800;color:#fff;line-height:1.05;">${e.realizado}</div>
-                                    <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.label}</div>
-                                </div>
+                            <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:2px;">
+                                <i class="fa-solid ${e.icon}" style="color:#fff;font-size:16px;"></i>
+                                <div style="font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${e.label}</div>
+                                <div style="font-size:25px;font-weight:800;color:#fff;line-height:1;">${e.realizado}</div>
                             </div>
                         </foreignObject>
                     </g>`;
@@ -5363,8 +5372,7 @@
                     const bandMidY = (yTop + yBot) / 2;
                     body += `
                         <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 15).toFixed(1)}" width="${FUNIL_PILL_W}" height="30">
-                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;align-items:center;height:100%;gap:4px;">
-                                <i class="fa-solid fa-arrow-right" style="color:#475569;font-size:9px;flex-shrink:0;"></i>
+                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;align-items:center;height:100%;">
                                 <div style="background:${pillColor};border-radius:9999px;padding:3px 10px;box-shadow:0 2px 8px rgba(0,0,0,.4);">
                                     <span style="color:#fff;font-size:12px;font-weight:800;white-space:nowrap;">${e.convReal.toFixed(1)}%</span>
                                 </div>
