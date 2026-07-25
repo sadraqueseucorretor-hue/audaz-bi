@@ -389,77 +389,18 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <svg viewBox="0 0 420 250" class="w-full block mb-3" style="aspect-ratio: 420 / 250">
-                                        <defs>
-                                            <linearGradient id="fgPinkDoc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#be185d"/><stop offset="1" stop-color="#f472b6"/></linearGradient>
-                                            <linearGradient id="fgBlueDoc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
-                                            <linearGradient id="fgAmberDoc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d97706"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
-                                            <linearGradient id="fgGreenDoc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#059669"/><stop offset="1" stop-color="#10b981"/></linearGradient>
-                                        </defs>
-                                        <g onclick="openFunnelDetail('prospeccao')" style="cursor:pointer" class="hover:opacity-90">
-                                            <title>Ver clientes desta etapa</title>
-                                            <polygon points="20,8 400,8 374,60 46,60" fill="url(#fgPinkDoc)"/>
-                                            <foreignObject x="58" y="13" width="22" height="22"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-bullhorn" style="color:#fce7f3;font-size:13px"></i></div></foreignObject>
-                                            <text x="210" y="23" text-anchor="middle" fill="#fce7f3" font-size="10" font-weight="700" letter-spacing="1">PROSPECÇÃO</text>
-                                            <text x="210" y="49" text-anchor="middle" fill="#ffffff" font-size="19" font-weight="800" id="funnelProspeccaoQtyDoc">0</text>
-                                        </g>
-                                        <g onclick="openFunnelDetail('analises')" style="cursor:pointer" class="hover:opacity-90">
-                                            <title>Ver clientes desta etapa</title>
-                                            <polygon points="46,66 374,66 349,118 71,118" fill="url(#fgBlueDoc)"/>
-                                            <foreignObject x="84" y="71" width="20" height="20"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-people-group" style="color:#dbeafe;font-size:12px"></i></div></foreignObject>
-                                            <text x="210" y="81" text-anchor="middle" fill="#dbeafe" font-size="9" font-weight="700" letter-spacing="1">ANÁLISES</text>
-                                            <text x="210" y="107" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="800" id="funnelAnalisesQtyDoc">0</text>
-                                        </g>
-                                        <g onclick="openFunnelDetail('aprovacoes')" style="cursor:pointer" class="hover:opacity-90">
-                                            <title>Ver clientes desta etapa</title>
-                                            <polygon points="71,124 349,124 323,176 97,176" fill="url(#fgAmberDoc)"/>
-                                            <foreignObject x="109" y="129" width="20" height="20"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-circle-check" style="color:#fef3c7;font-size:12px"></i></div></foreignObject>
-                                            <text x="210" y="139" text-anchor="middle" fill="#fef3c7" font-size="9" font-weight="700" letter-spacing="1">APROVAÇÕES</text>
-                                            <text x="210" y="165" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="800" id="funnelAprovacoesQtyDoc">0</text>
-                                        </g>
-                                        <g onclick="openFunnelDetail('vendas')" style="cursor:pointer" class="hover:opacity-90">
-                                            <title>Ver clientes desta etapa</title>
-                                            <polygon points="97,182 323,182 297,234 123,234" fill="url(#fgGreenDoc)"/>
-                                            <foreignObject x="135" y="187" width="18" height="18"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-house-circle-check" style="color:#d1fae5;font-size:11px"></i></div></foreignObject>
-                                            <text x="210" y="197" text-anchor="middle" fill="#d1fae5" font-size="9" font-weight="700" letter-spacing="1">VENDAS</text>
-                                            <text x="210" y="223" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="800" id="funnelVendasQtyDoc">0</text>
-                                        </g>
-                                        <rect x="336" y="54" width="68" height="19" rx="9.5" fill="#dc2626"/>
-                                        <text x="370" y="67" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" id="convDocProspAnalise">0%</text>
-                                        <rect x="336" y="112" width="68" height="19" rx="9.5" fill="#dc2626"/>
-                                        <text x="370" y="125" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" id="convDocAnaliseAprov">0%</text>
-                                        <rect x="336" y="170" width="68" height="19" rx="9.5" fill="#dc2626"/>
-                                        <text x="370" y="183" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" id="convDocAprovVenda">0%</text>
-                                    </svg>
-                                    <div class="grid grid-cols-2 gap-2 mb-3">
-                                        <div class="bg-pink-500/5 border border-pink-500/20 rounded-lg p-2.5">
-                                            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-bold text-pink-400 uppercase tracking-wider">Prospecção</span><span class="text-[11px] font-extrabold text-pink-300" id="funnelPctProspeccaoDoc">0%</span></div>
-                                            <p class="text-sm font-extrabold text-slate-100 mb-1"><span id="funnelProspeccaoQtyLadoDoc">0</span><span class="text-slate-500 text-[10px] font-semibold"> / </span><span id="funnelMetaProspeccaoDoc" class="text-slate-400 text-xs font-semibold">0</span></p>
-                                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-pink-500 rounded-full transition-all" id="funnelBarProspeccaoDoc" style="width:0%"></div></div>
-                                            <div class="bg-pink-500/15 border border-pink-500/40 rounded-md px-1.5 py-1 text-center"><span class="text-[9px] text-pink-200 font-bold uppercase">Ideal hoje </span><span id="funnelIdealProspeccaoDoc" class="text-xs font-extrabold text-white">0</span></div>
-                                        </div>
-                                        <div class="bg-blue-500/5 border border-blue-500/20 rounded-lg p-2.5">
-                                            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Análises</span><span class="text-[11px] font-extrabold text-blue-300" id="funnelPctAnalisesDoc">0%</span></div>
-                                            <p class="text-sm font-extrabold text-slate-100 mb-1"><span id="funnelAnalisesQtyLadoDoc">0</span><span class="text-slate-500 text-[10px] font-semibold"> / </span><span id="funnelMetaAnalisesDoc" class="text-slate-400 text-xs font-semibold">0</span></p>
-                                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-blue-500 rounded-full transition-all" id="funnelBarAnalisesDoc" style="width:0%"></div></div>
-                                            <div class="bg-blue-500/15 border border-blue-500/40 rounded-md px-1.5 py-1 text-center"><span class="text-[9px] text-blue-200 font-bold uppercase">Ideal hoje </span><span id="funnelIdealAnalisesDoc" class="text-xs font-extrabold text-white">0</span></div>
-                                        </div>
-                                        <div class="bg-amber-500/5 border border-amber-500/20 rounded-lg p-2.5">
-                                            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-bold text-amber-400 uppercase tracking-wider">Aprovações</span><span class="text-[11px] font-extrabold text-amber-300" id="funnelPctAprovacoesDoc">0%</span></div>
-                                            <p class="text-sm font-extrabold text-slate-100 mb-1"><span id="funnelAprovacoesQtyLadoDoc">0</span><span class="text-slate-500 text-[10px] font-semibold"> / </span><span id="funnelMetaAprovacoesDoc" class="text-slate-400 text-xs font-semibold">0</span></p>
-                                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-amber-500 rounded-full transition-all" id="funnelBarAprovacoesDoc" style="width:0%"></div></div>
-                                            <div class="bg-amber-500/15 border border-amber-500/40 rounded-md px-1.5 py-1 text-center"><span class="text-[9px] text-amber-200 font-bold uppercase">Ideal hoje </span><span id="funnelIdealAprovacoesDoc" class="text-xs font-extrabold text-white">0</span></div>
-                                        </div>
-                                        <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2.5">
-                                            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Vendas</span><span class="text-[11px] font-extrabold text-emerald-300" id="funnelPctVendasDoc">0%</span></div>
-                                            <p class="text-sm font-extrabold text-slate-100 mb-1"><span id="funnelVendasQtyLadoDoc">0</span><span class="text-slate-500 text-[10px] font-semibold"> / </span><span id="funnelMetaVendasDoc" class="text-slate-400 text-xs font-semibold">0</span></p>
-                                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-emerald-500 rounded-full transition-all" id="funnelBarVendasDoc" style="width:0%"></div></div>
-                                            <div class="bg-emerald-500/15 border border-emerald-500/40 rounded-md px-1.5 py-1 text-center"><span class="text-[9px] text-emerald-200 font-bold uppercase">Ideal hoje </span><span id="funnelIdealVendasDoc" class="text-xs font-extrabold text-white">0</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="bg-slate-950/50 rounded-lg border border-slate-800/70 p-3">
-                                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fa-solid fa-diagram-project text-slate-400"></i> Conversões</p>
-                                        <div class="divide-y divide-slate-800/60" id="funnelConversoesListDoc"></div>
+                                    <div class="overflow-x-auto -mx-1">
+                                        <table class="w-full text-left border-collapse min-w-[380px]">
+                                            <thead>
+                                                <tr class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">
+                                                    <th class="pb-1.5 px-1">Etapa</th>
+                                                    <th class="pb-1.5 px-1">Realizado / Meta</th>
+                                                    <th class="pb-1.5 px-1 text-right">Conversão</th>
+                                                    <th class="pb-1.5 px-1 text-right">Perda</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="funnelTableBodyDoc"></tbody>
+                                        </table>
                                     </div>
                                 </div>
 
@@ -474,80 +415,26 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <svg viewBox="0 0 420 250" class="w-full block mb-3" style="aspect-ratio: 420 / 250">
-                                        <defs>
-                                            <linearGradient id="fgPinkAg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#be185d"/><stop offset="1" stop-color="#f472b6"/></linearGradient>
-                                            <linearGradient id="fgVioletAg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6d28d9"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
-                                            <linearGradient id="fgCyanAg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e7490"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
-                                            <linearGradient id="fgGreenAg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#059669"/><stop offset="1" stop-color="#10b981"/></linearGradient>
-                                        </defs>
-                                        <g onclick="openFunnelDetail('prospeccao')" style="cursor:pointer" class="hover:opacity-90">
-                                            <title>Ver clientes desta etapa</title>
-                                            <polygon points="20,8 400,8 374,60 46,60" fill="url(#fgPinkAg)"/>
-                                            <foreignObject x="58" y="13" width="22" height="22"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-bullhorn" style="color:#fce7f3;font-size:13px"></i></div></foreignObject>
-                                            <text x="210" y="23" text-anchor="middle" fill="#fce7f3" font-size="10" font-weight="700" letter-spacing="1">PROSPECÇÃO</text>
-                                            <text x="210" y="49" text-anchor="middle" fill="#ffffff" font-size="19" font-weight="800" id="funnelProspeccaoQtyAg">0</text>
-                                        </g>
-                                        <g onclick="openFunnelDetail('agendamentos')" style="cursor:pointer" class="hover:opacity-90">
-                                            <title>Ver clientes desta etapa</title>
-                                            <polygon points="46,66 374,66 349,118 71,118" fill="url(#fgVioletAg)"/>
-                                            <foreignObject x="84" y="71" width="20" height="20"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-calendar-check" style="color:#ede9fe;font-size:12px"></i></div></foreignObject>
-                                            <text x="210" y="81" text-anchor="middle" fill="#ede9fe" font-size="9" font-weight="700" letter-spacing="1">AGENDAMENTO</text>
-                                            <text x="210" y="107" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="800" id="funnelAgendamentosQtyAg">0</text>
-                                        </g>
-                                        <g onclick="openFunnelDetail('compareceu')" style="cursor:pointer" class="hover:opacity-90">
-                                            <title>Ver clientes desta etapa</title>
-                                            <polygon points="71,124 349,124 323,176 97,176" fill="url(#fgCyanAg)"/>
-                                            <foreignObject x="109" y="129" width="20" height="20"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-door-open" style="color:#cffafe;font-size:12px"></i></div></foreignObject>
-                                            <text x="210" y="139" text-anchor="middle" fill="#cffafe" font-size="9" font-weight="700" letter-spacing="1">VISITA</text>
-                                            <text x="210" y="165" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="800" id="funnelCompareceuQtyAg">0</text>
-                                        </g>
-                                        <g onclick="openFunnelDetail('vendas')" style="cursor:pointer" class="hover:opacity-90">
-                                            <title>Ver clientes desta etapa</title>
-                                            <polygon points="97,182 323,182 297,234 123,234" fill="url(#fgGreenAg)"/>
-                                            <foreignObject x="135" y="187" width="18" height="18"><div xmlns="http://www.w3.org/1999/xhtml"><i class="fa-solid fa-house-circle-check" style="color:#d1fae5;font-size:11px"></i></div></foreignObject>
-                                            <text x="210" y="197" text-anchor="middle" fill="#d1fae5" font-size="9" font-weight="700" letter-spacing="1">VENDAS</text>
-                                            <text x="210" y="223" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="800" id="funnelVendasQtyAg">0</text>
-                                        </g>
-                                        <rect x="336" y="54" width="68" height="19" rx="9.5" fill="#dc2626"/>
-                                        <text x="370" y="67" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" id="convAgProspAgendamento">0%</text>
-                                        <rect x="336" y="112" width="68" height="19" rx="9.5" fill="#dc2626"/>
-                                        <text x="370" y="125" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" id="convAgAgendamentoCompareceu">0%</text>
-                                        <rect x="336" y="170" width="68" height="19" rx="9.5" fill="#dc2626"/>
-                                        <text x="370" y="183" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" id="convAgCompareceuVenda">0%</text>
-                                    </svg>
-                                    <div class="grid grid-cols-2 gap-2 mb-3">
-                                        <div class="bg-pink-500/5 border border-pink-500/20 rounded-lg p-2.5">
-                                            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-bold text-pink-400 uppercase tracking-wider">Prospecção</span><span class="text-[11px] font-extrabold text-pink-300" id="funnelPctProspeccaoAg">0%</span></div>
-                                            <p class="text-sm font-extrabold text-slate-100 mb-1"><span id="funnelProspeccaoQtyLadoAg">0</span><span class="text-slate-500 text-[10px] font-semibold"> / </span><span id="funnelMetaProspeccaoAg" class="text-slate-400 text-xs font-semibold">0</span></p>
-                                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-pink-500 rounded-full transition-all" id="funnelBarProspeccaoAg" style="width:0%"></div></div>
-                                            <div class="bg-pink-500/15 border border-pink-500/40 rounded-md px-1.5 py-1 text-center"><span class="text-[9px] text-pink-200 font-bold uppercase">Ideal hoje </span><span id="funnelIdealProspeccaoAg" class="text-xs font-extrabold text-white">0</span></div>
-                                        </div>
-                                        <div class="bg-violet-500/5 border border-violet-500/20 rounded-lg p-2.5">
-                                            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-bold text-violet-400 uppercase tracking-wider">Agendamento</span><span class="text-[11px] font-extrabold text-violet-300" id="funnelPctAgendamentosAg">0%</span></div>
-                                            <p class="text-sm font-extrabold text-slate-100 mb-1"><span id="funnelAgendamentosQtyLadoAg">0</span><span class="text-slate-500 text-[10px] font-semibold"> / </span><span id="funnelMetaAgendamentosAg" class="text-slate-400 text-xs font-semibold">0</span></p>
-                                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-violet-500 rounded-full transition-all" id="funnelBarAgendamentosAg" style="width:0%"></div></div>
-                                            <div class="bg-violet-500/15 border border-violet-500/40 rounded-md px-1.5 py-1 text-center"><span class="text-[9px] text-violet-200 font-bold uppercase">Ideal hoje </span><span id="funnelIdealAgendamentosAg" class="text-xs font-extrabold text-white">0</span></div>
-                                        </div>
-                                        <div class="bg-cyan-500/5 border border-cyan-500/20 rounded-lg p-2.5">
-                                            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-bold text-cyan-400 uppercase tracking-wider">Visita</span><span class="text-[11px] font-extrabold text-cyan-300" id="funnelPctCompareceuAg">0%</span></div>
-                                            <p class="text-sm font-extrabold text-slate-100 mb-1"><span id="funnelCompareceuQtyLadoAg">0</span><span class="text-slate-500 text-[10px] font-semibold"> / </span><span id="funnelMetaCompareceuAg" class="text-slate-400 text-xs font-semibold">0</span></p>
-                                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-cyan-500 rounded-full transition-all" id="funnelBarCompareceuAg" style="width:0%"></div></div>
-                                            <div class="bg-cyan-500/15 border border-cyan-500/40 rounded-md px-1.5 py-1 text-center"><span class="text-[9px] text-cyan-200 font-bold uppercase">Ideal hoje </span><span id="funnelIdealCompareceuAg" class="text-xs font-extrabold text-white">0</span></div>
-                                        </div>
-                                        <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2.5">
-                                            <div class="flex items-center justify-between mb-1"><span class="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Vendas</span><span class="text-[11px] font-extrabold text-emerald-300" id="funnelPctVendasAg">0%</span></div>
-                                            <p class="text-sm font-extrabold text-slate-100 mb-1"><span id="funnelVendasQtyLadoAg">0</span><span class="text-slate-500 text-[10px] font-semibold"> / </span><span id="funnelMetaVendasAg" class="text-slate-400 text-xs font-semibold">0</span></p>
-                                            <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-emerald-500 rounded-full transition-all" id="funnelBarVendasAg" style="width:0%"></div></div>
-                                            <div class="bg-emerald-500/15 border border-emerald-500/40 rounded-md px-1.5 py-1 text-center"><span class="text-[9px] text-emerald-200 font-bold uppercase">Ideal hoje </span><span id="funnelIdealVendasAg" class="text-xs font-extrabold text-white">0</span></div>
-                                        </div>
-                                    </div>
-                                    <div class="bg-slate-950/50 rounded-lg border border-slate-800/70 p-3">
-                                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fa-solid fa-diagram-project text-slate-400"></i> Conversões</p>
-                                        <div class="divide-y divide-slate-800/60" id="funnelConversoesListAg"></div>
+                                    <div class="overflow-x-auto -mx-1">
+                                        <table class="w-full text-left border-collapse min-w-[380px]">
+                                            <thead>
+                                                <tr class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">
+                                                    <th class="pb-1.5 px-1">Etapa</th>
+                                                    <th class="pb-1.5 px-1">Realizado / Meta</th>
+                                                    <th class="pb-1.5 px-1 text-right">Conversão</th>
+                                                    <th class="pb-1.5 px-1 text-right">Perda</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="funnelTableBodyAg"></tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
+                            <p class="text-[9px] text-slate-500 flex items-center gap-3 mt-2">
+                                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-rose-500"></span> Abaixo da meta</span>
+                                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-400"></span> Atenção</span>
+                                <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-400"></span> Acima da meta</span>
+                            </p>
                         </div>
 
                         <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-5">
@@ -5420,24 +5307,6 @@
             const approvals = kpiValues.approvals;
             const sales = kpiValues.sales;
 
-            // Funil "Documentação" (Prospecção→Análises→Aprovações→Vendas) e funil "Agendamento &
-            // Visita" (Prospecção→Agendamento→Compareceu→Vendas) — 2 caminhos paralelos do mesmo
-            // lead, não mais uma sequência única de 6 bandas. Prospecção e Vendas aparecem nos 2.
-            ['Doc', 'Ag'].forEach(suf => {
-                document.getElementById('funnelProspeccaoQty' + suf).textContent = prospeccao;
-                document.getElementById('funnelVendasQty' + suf).textContent = sales;
-                document.getElementById('funnelProspeccaoQtyLado' + suf).textContent = prospeccao;
-                document.getElementById('funnelVendasQtyLado' + suf).textContent = sales;
-            });
-            document.getElementById('funnelAnalisesQtyDoc').textContent = analyses;
-            document.getElementById('funnelAprovacoesQtyDoc').textContent = approvals;
-            document.getElementById('funnelAnalisesQtyLadoDoc').textContent = analyses;
-            document.getElementById('funnelAprovacoesQtyLadoDoc').textContent = approvals;
-            document.getElementById('funnelAgendamentosQtyAg').textContent = agendamentos;
-            document.getElementById('funnelCompareceuQtyAg').textContent = compareceu;
-            document.getElementById('funnelAgendamentosQtyLadoAg').textContent = agendamentos;
-            document.getElementById('funnelCompareceuQtyLadoAg').textContent = compareceu;
-
             // Meta, % da meta e "ideal hoje" ao lado de cada etapa — mesma janela (início/fim/dia
             // de hoje) que desenha a linha de tendência do "Ritmo do Mês", uma por métrica (a
             // Agenda de Visitas e a Prospecção seguem a MESMA lógica de janela deslizante/config
@@ -5468,25 +5337,6 @@
             const idealAnalises = metaAnalises * janelaAnalises.diaHoje / janelaAnalises.diasNoMes;
             const idealAprovacoes = metaAprovacoes * janelaAprovacoes.diaHoje / janelaAprovacoes.diasNoMes;
             const idealVendas = metaVendas * janelaVendas.diaHoje / janelaVendas.diasNoMes;
-
-            // Preenche meta/ideal-hoje/%/barra de uma etapa nos 2 funis (quando aplicável) — evita
-            // repetir 6x o mesmo bloco de 4 linhas; `sufixos` é 1 ou 2 elementos ('Doc'/'Ag').
-            const setEtapaMeta = (chave, meta, ideal, real, sufixos) => {
-                const pct = meta > 0 ? Math.min(100, (real / meta) * 100) : 0;
-                sufixos.forEach(suf => {
-                    document.getElementById(`funnelMeta${chave}${suf}`).textContent = Math.round(meta);
-                    document.getElementById(`funnelIdeal${chave}${suf}`).textContent = Math.round(ideal);
-                    document.getElementById(`funnelPct${chave}${suf}`).textContent = `${pct.toFixed(0)}%`;
-                    document.getElementById(`funnelBar${chave}${suf}`).style.width = `${pct}%`;
-                });
-                return pct;
-            };
-            setEtapaMeta('Prospeccao', metaProspeccao, idealProspeccao, prospeccao, ['Doc', 'Ag']);
-            setEtapaMeta('Vendas', metaVendas, idealVendas, sales, ['Doc', 'Ag']);
-            setEtapaMeta('Analises', metaAnalises, idealAnalises, analyses, ['Doc']);
-            setEtapaMeta('Aprovacoes', metaAprovacoes, idealAprovacoes, approvals, ['Doc']);
-            setEtapaMeta('Agendamentos', metaAgendamentos, idealAgendamentos, agendamentos, ['Ag']);
-            setEtapaMeta('Compareceu', metaCompareceu, idealCompareceu, compareceu, ['Ag']);
 
             // Progresso do mês comercial (usa a janela de Análises como referência de dias) +
             // status geral: média de real÷ideal das 6 etapas, "No Ritmo" se >= 100%. Mostra o
@@ -5538,43 +5388,66 @@
             const conv1 = analyses > 0 ? ((approvals / analyses) * 100).toFixed(1) : 0;
             const conv2 = approvals > 0 ? ((sales / approvals) * 100).toFixed(1) : 0;
             const taxaFinal = analyses > 0 ? ((sales / analyses) * 100).toFixed(1) : 0;
-            const prospToAnalise = prospeccao > 0 ? ((analyses / prospeccao) * 100).toFixed(1) : '0.0';
-            const prospToVenda = prospeccao > 0 ? ((sales / prospeccao) * 100).toFixed(1) : '0.0';
-            const compareceuToVenda = compareceu > 0 ? ((sales / compareceu) * 100).toFixed(1) : '0.0';
-
-            document.getElementById('convDocProspAnalise').textContent = `${prospToAnalise}%`;
-            document.getElementById('convDocAnaliseAprov').textContent = `${conv1}%`;
-            document.getElementById('convDocAprovVenda').textContent = `${conv2}%`;
-            document.getElementById('convAgProspAgendamento').textContent = `${convMinus1}%`;
-            document.getElementById('convAgAgendamentoCompareceu').textContent = `${conv0}%`;
-            document.getElementById('convAgCompareceuVenda').textContent = `${compareceuToVenda}%`;
+            const prospToAnalise = prospeccao > 0 ? ((analyses / prospeccao) * 100) : 0;
+            const compareceuToVenda = compareceu > 0 ? ((sales / compareceu) * 100) : 0;
             document.getElementById('funnelTaxaFinal').textContent = `${taxaFinal}%`;
 
-            // Conversões de cada funil (adjacentes já aparecem nos badges vermelhos do SVG; aqui
-            // fecha com o "fim a fim" Prospecção→Venda daquele caminho, destacado).
-            const convRow = (deLabel, deCor, paraLabel, paraCor, pct, destaque) => `
-                <div class="flex items-center justify-between py-1.5 gap-2">
-                    <span class="text-[11px] text-slate-500 flex items-center gap-1 min-w-0">
-                        <span class="font-bold text-${deCor}-400">${deLabel}</span>
-                        <i class="fa-solid fa-arrow-right text-slate-600" style="font-size:8px"></i>
-                        <span class="font-bold text-${paraCor}-400">${paraLabel}</span>
-                    </span>
-                    <span class="font-extrabold shrink-0 ${destaque ? 'text-brand-400 text-sm' : 'text-slate-200 text-xs'}">${pct}%</span>
-                </div>`;
-            const convListDoc = document.getElementById('funnelConversoesListDoc');
-            if (convListDoc) convListDoc.innerHTML = [
-                convRow('Prospecção', 'pink', 'Análise', 'blue', prospToAnalise),
-                convRow('Análise', 'blue', 'Aprovado', 'amber', conv1),
-                convRow('Aprovado', 'amber', 'Venda', 'emerald', conv2),
-                convRow('Prospecção', 'pink', 'Venda', 'emerald', prospToVenda, true)
-            ].join('');
-            const convListAg = document.getElementById('funnelConversoesListAg');
-            if (convListAg) convListAg.innerHTML = [
-                convRow('Prospecção', 'pink', 'Agendamento', 'violet', convMinus1),
-                convRow('Agendamento', 'violet', 'Visita', 'cyan', conv0),
-                convRow('Visita', 'cyan', 'Venda', 'emerald', compareceuToVenda),
-                convRow('Prospecção', 'pink', 'Venda', 'emerald', prospToVenda, true)
-            ].join('');
+            // Meta de conversão entre 2 etapas = meta da etapa seguinte ÷ meta da etapa atual — não
+            // exige cadastro novo, só deriva das metas de volume que já existem. Usado pra comparar
+            // a conversão REAL contra o que as metas já cadastradas implicam.
+            const metaConv = (metaAtual, metaSeguinte) => metaAtual > 0 ? (metaSeguinte / metaAtual) * 100 : 0;
+
+            // Monta as linhas de 1 funil: Etapa | Realizado/Meta (+ideal hoje) | Conversão real vs
+            // meta (com seta) | Perda absoluta pra próxima etapa. Última etapa (Vendas) não tem
+            // conversão/perda de saída. Clique na linha abre o mesmo modal de sempre (openFunnelDetail).
+            const buildFunilTabela = (bodyId, etapas) => {
+                const body = document.getElementById(bodyId);
+                if (!body) return;
+                body.innerHTML = etapas.map(e => {
+                    const pctMeta = e.meta > 0 ? Math.min(999, (e.realizado / e.meta) * 100) : 0;
+                    const dotColor = pctMeta >= 100 ? 'bg-emerald-400' : pctMeta >= 70 ? 'bg-amber-400' : 'bg-rose-500';
+                    let convCell = '<span class="text-slate-600 text-xs">—</span>';
+                    let perdaCell = '<span class="text-slate-600 text-xs">—</span>';
+                    if (e.convReal !== null) {
+                        const delta = e.convReal - e.convMeta;
+                        const up = delta >= 0;
+                        convCell = `<div class="font-extrabold ${up ? 'text-emerald-400' : 'text-rose-400'} text-[13px] leading-tight">${e.convReal.toFixed(1)}%</div>
+                            <div class="text-[9px] text-slate-500 leading-tight">Meta ${e.convMeta.toFixed(0)}% <span class="${up ? 'text-emerald-400' : 'text-rose-400'}">${up ? '▲' : '▼'}${Math.abs(delta).toFixed(1)}%</span></div>`;
+                        perdaCell = `<div class="font-bold text-rose-300 text-[12px] leading-tight">${e.perda}</div>
+                            <div class="text-[9px] text-slate-500 leading-tight">${e.perdaLabel}</div>`;
+                    }
+                    return `
+                        <tr onclick="openFunnelDetail('${e.metrica}')" class="border-b border-slate-800/50 last:border-0 cursor-pointer hover:bg-slate-900/40 transition">
+                            <td class="py-2.5 px-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="h-2 w-2 rounded-full ${dotColor} shrink-0"></span>
+                                    <i class="fa-solid ${e.icon} text-${e.color}-400" style="font-size:10px"></i>
+                                    <span class="font-bold text-slate-200 text-[11px]">${e.label}</span>
+                                </div>
+                            </td>
+                            <td class="py-2.5 px-1 min-w-[110px]">
+                                <div class="flex items-baseline gap-1"><span class="font-extrabold text-slate-100 text-[13px]">${e.realizado}</span><span class="text-slate-500 text-[10px]">/ ${e.meta}</span></div>
+                                <div class="h-1 bg-slate-800 rounded-full overflow-hidden mt-1 mb-0.5 w-16"><div class="h-full bg-${e.color}-500 rounded-full" style="width:${Math.min(100, pctMeta)}%"></div></div>
+                                <div class="text-[9px] text-slate-500">Ideal hoje: ${e.ideal}</div>
+                            </td>
+                            <td class="py-2.5 px-1 text-right">${convCell}</td>
+                            <td class="py-2.5 px-1 text-right">${perdaCell}</td>
+                        </tr>`;
+                }).join('');
+            };
+
+            buildFunilTabela('funnelTableBodyDoc', [
+                { metrica: 'prospeccao', label: 'Prospecção', icon: 'fa-bullhorn', color: 'pink', realizado: prospeccao, meta: Math.round(metaProspeccao), ideal: Math.round(idealProspeccao), convReal: prospToAnalise, convMeta: metaConv(metaProspeccao, metaAnalises), perda: Math.max(0, prospeccao - analyses), perdaLabel: 'não viraram análise' },
+                { metrica: 'analises', label: 'Análises', icon: 'fa-people-group', color: 'blue', realizado: analyses, meta: Math.round(metaAnalises), ideal: Math.round(idealAnalises), convReal: parseFloat(conv1), convMeta: metaConv(metaAnalises, metaAprovacoes), perda: Math.max(0, analyses - approvals), perdaLabel: 'não foram aprovados' },
+                { metrica: 'aprovacoes', label: 'Aprovações', icon: 'fa-circle-check', color: 'amber', realizado: approvals, meta: Math.round(metaAprovacoes), ideal: Math.round(idealAprovacoes), convReal: parseFloat(conv2), convMeta: metaConv(metaAprovacoes, metaVendas), perda: Math.max(0, approvals - sales), perdaLabel: 'não viraram vendas' },
+                { metrica: 'vendas', label: 'Vendas', icon: 'fa-house-circle-check', color: 'emerald', realizado: sales, meta: Math.round(metaVendas), ideal: Math.round(idealVendas), convReal: null, convMeta: null, perda: null, perdaLabel: null }
+            ]);
+            buildFunilTabela('funnelTableBodyAg', [
+                { metrica: 'prospeccao', label: 'Prospecção', icon: 'fa-bullhorn', color: 'pink', realizado: prospeccao, meta: Math.round(metaProspeccao), ideal: Math.round(idealProspeccao), convReal: parseFloat(convMinus1), convMeta: metaConv(metaProspeccao, metaAgendamentos), perda: Math.max(0, prospeccao - agendamentos), perdaLabel: 'não foram agendados' },
+                { metrica: 'agendamentos', label: 'Agendamento', icon: 'fa-calendar-check', color: 'violet', realizado: agendamentos, meta: Math.round(metaAgendamentos), ideal: Math.round(idealAgendamentos), convReal: parseFloat(conv0), convMeta: metaConv(metaAgendamentos, metaCompareceu), perda: Math.max(0, agendamentos - compareceu), perdaLabel: 'não viraram visita' },
+                { metrica: 'compareceu', label: 'Visita', icon: 'fa-door-open', color: 'cyan', realizado: compareceu, meta: Math.round(metaCompareceu), ideal: Math.round(idealCompareceu), convReal: compareceuToVenda, convMeta: metaConv(metaCompareceu, metaVendas), perda: Math.max(0, compareceu - sales), perdaLabel: 'não viraram venda' },
+                { metrica: 'vendas', label: 'Vendas', icon: 'fa-house-circle-check', color: 'emerald', realizado: sales, meta: Math.round(metaVendas), ideal: Math.round(idealVendas), convReal: null, convMeta: null, perda: null, perdaLabel: null }
+            ]);
 
             // Ticket / VGV / Comissão estimada (base geral, igual aos KPIs e ao funil)
             const ticket = sales > 0 ? (kpiValues.vgv / sales) : 0;
