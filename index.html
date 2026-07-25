@@ -5384,6 +5384,7 @@
             if (!el) return;
             el.innerHTML = etapas.map(e => {
                 const pctMeta = e.meta > 0 ? Math.min(100, (e.realizado / e.meta) * 100) : 0;
+                const idealPct = e.meta > 0 ? Math.min(100, (e.ideal / e.meta) * 100) : 0;
                 const faltam = Math.max(0, e.meta - e.realizado);
                 const ritmoPct = e.ideal > 0 ? (e.realizado / e.ideal) * 100 : (e.realizado > 0 ? 100 : 0);
                 let ritmoColor, ritmoBg, ritmoLabel;
@@ -5397,13 +5398,20 @@
                             <span class="text-[10px] font-bold text-${e.color}-400 uppercase tracking-wider flex items-center gap-1.5 truncate"><i class="fa-solid ${e.icon}"></i>${e.label}</span>
                             <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${ritmoBg} ${ritmoColor}">${ritmoLabel}</span>
                         </div>
-                        <div class="flex items-end justify-between mb-1 gap-2">
+                        <div class="flex items-end justify-between mb-1.5 gap-2">
                             <div><span class="text-xl font-black text-slate-100">${e.realizado}</span><span class="text-slate-500 text-xs font-semibold"> / ${e.meta}</span></div>
                             <span class="text-[10px] text-slate-400 shrink-0">Faltam <b class="text-slate-200">${faltam}</b></span>
                         </div>
-                        <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-1.5"><div class="h-full bg-${e.color}-500 rounded-full" style="width:${pctMeta}%"></div></div>
+                        <div class="flex items-center justify-between mb-1 text-[9px] text-slate-500 uppercase font-bold tracking-wide">
+                            <span>Progresso da meta</span>
+                            <span class="text-${e.color}-300 text-[11px]">${pctMeta.toFixed(0)}%</span>
+                        </div>
+                        <div class="relative h-2.5 mb-1.5">
+                            <div class="absolute inset-0 bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-${e.color}-500 rounded-full transition-all" style="width:${pctMeta}%"></div></div>
+                            <div class="absolute top-1/2 w-[3px] h-[14px] -mt-[7px] bg-white rounded-full ring-2 ring-slate-950" style="left:calc(${idealPct}% - 1.5px)" title="Ideal hoje: ${e.ideal}"></div>
+                        </div>
                         <div class="flex items-center justify-between text-[10px] gap-2">
-                            <span class="text-slate-500">Ideal hoje: <b class="text-slate-300">${e.ideal}</b></span>
+                            <span class="text-slate-500">◆ Ideal hoje: <b class="text-slate-300">${e.ideal}</b></span>
                             <span class="${ritmoColor} font-bold">${diff >= 0 ? '+' : ''}${diff} vs ideal</span>
                         </div>
                     </div>`;
