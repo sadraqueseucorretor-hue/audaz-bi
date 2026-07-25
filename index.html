@@ -389,7 +389,7 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgDoc" viewBox="0 0 480 192" class="w-full block mb-2"></svg>
+                                    <svg id="funnelSvgDoc" viewBox="0 0 510 192" class="w-full block mb-2"></svg>
                                     <div id="funnelMetaPanelDoc" class="space-y-1.5 mb-2"></div>
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-lg px-3 py-1.5 text-center">
@@ -414,7 +414,7 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgAg" viewBox="0 0 480 192" class="w-full block mb-2"></svg>
+                                    <svg id="funnelSvgAg" viewBox="0 0 510 192" class="w-full block mb-2"></svg>
                                     <div id="funnelMetaPanelAg" class="space-y-1.5"></div>
                                 </div>
                             </div>
@@ -5322,7 +5322,7 @@
         // bandas ficam retas, com um traço escuro fino separando (stroke no path).
         const FUNIL_BOUNDARIES = [320, 270, 215, 155, 110];
         const FUNIL_BAND_H = 46, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 4, FUNIL_CX = 175, FUNIL_CORNER_R = 10;
-        const FUNIL_PILL_X = 360, FUNIL_PILL_W = 110; // corredor fixo do badge de conversão, à direita das bandas
+        const FUNIL_PILL_X = 355, FUNIL_PILL_W = 145; // corredor fixo do badge de conversão, à direita das bandas — largo o bastante pra legenda "Etapa → Etapa" não cortar
         const FUNIL_GRADIENTS = {
             pink: ['#be185d', '#f472b6'], violet: ['#6d28d9', '#8b5cf6'], cyan: ['#0e7490', '#22d3ee'],
             blue: ['#2563eb', '#3b82f6'], amber: ['#d97706', '#f59e0b'], emerald: ['#059669', '#10b981']
@@ -5370,12 +5370,14 @@
                     const up = (e.convReal - e.convMeta) >= 0;
                     const pillColor = up ? '#10b981' : '#f43f5e';
                     const bandMidY = (yTop + yBot) / 2;
+                    const nextLabel = (bands[i + 1] && bands[i + 1].label) || '';
                     body += `
-                        <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 15).toFixed(1)}" width="${FUNIL_PILL_W}" height="30">
-                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;align-items:center;height:100%;">
+                        <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 19).toFixed(1)}" width="${FUNIL_PILL_W}" height="38">
+                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%;gap:2px;">
                                 <div style="background:${pillColor};border-radius:9999px;padding:3px 10px;box-shadow:0 2px 8px rgba(0,0,0,.4);">
                                     <span style="color:#fff;font-size:12px;font-weight:800;white-space:nowrap;">${e.convReal.toFixed(1)}%</span>
                                 </div>
+                                <span style="font-size:9px;font-weight:700;color:#94a3b8;white-space:nowrap;padding-left:2px;">${e.label} → ${nextLabel}</span>
                             </div>
                         </foreignObject>`;
                 }
@@ -5412,7 +5414,10 @@
                             <div class="absolute top-1/2 w-[2px] h-[10px] -mt-[5px] bg-white rounded-full ring-1 ring-slate-950" style="left:calc(${idealPct}% - 1px)" title="Ideal hoje: ${e.ideal}"></div>
                         </div>
                         <span class="text-[10px] font-bold text-${e.color}-300 w-8 text-right shrink-0">${pctMeta.toFixed(0)}%</span>
-                        <span class="text-[9px] text-slate-500 shrink-0 w-16 text-right hidden sm:inline">Faltam <b class="text-slate-300">${faltam}</b></span>
+                        <span class="flex items-center gap-1 bg-amber-500/15 border border-amber-500/40 rounded-md px-2 py-0.5 shrink-0" title="Falta pra bater a meta do mês">
+                            <span class="text-[8px] text-amber-400 font-bold uppercase tracking-wide">Faltam</span>
+                            <span class="text-xs font-black text-amber-300">${faltam}</span>
+                        </span>
                         <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${ritmoBg} ${ritmoColor}">${ritmoLabel}</span>
                     </div>`;
             }).join('');
