@@ -389,7 +389,7 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgDoc" viewBox="0 0 510 188" class="w-full block mb-2"></svg>
+                                    <svg id="funnelSvgDoc" viewBox="0 0 510 240" class="w-full block mb-2"></svg>
                                     <div class="overflow-x-auto mb-2"><div id="funnelMetaPanelDoc" class="space-y-1.5"></div></div>
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-lg px-3 py-1.5 text-center">
@@ -414,7 +414,7 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgAg" viewBox="0 0 510 188" class="w-full block mb-2"></svg>
+                                    <svg id="funnelSvgAg" viewBox="0 0 510 240" class="w-full block mb-2"></svg>
                                     <div class="overflow-x-auto"><div id="funnelMetaPanelAg" class="space-y-1.5"></div></div>
                                 </div>
                             </div>
@@ -5321,7 +5321,7 @@
         // cantos EXTERNOS arredondam (topo da 1ª banda, base da última) — as divisas internas entre
         // bandas ficam retas, com um traço escuro fino separando (stroke no path).
         const FUNIL_BOUNDARIES = [320, 270, 215, 155, 110];
-        const FUNIL_BAND_H = 44, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 4, FUNIL_CX = 175, FUNIL_CORNER_R = 10;
+        const FUNIL_BAND_H = 58, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 4, FUNIL_CX = 175, FUNIL_CORNER_R = 10;
         const FUNIL_PILL_X = 355, FUNIL_PILL_W = 145; // corredor fixo do badge de conversão, à direita das bandas — largo o bastante pra legenda "Etapa → Etapa" não cortar
         const FUNIL_GRADIENTS = {
             pink: ['#be185d', '#f472b6'], violet: ['#6d28d9', '#8b5cf6'], cyan: ['#0e7490', '#22d3ee'],
@@ -5371,12 +5371,13 @@
                     const bandMidY = (yTop + yBot) / 2;
                     const nextLabel = (bands[i + 1] && bands[i + 1].label) || '';
                     body += `
-                        <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 22).toFixed(1)}" width="${FUNIL_PILL_W}" height="48">
-                            <div xmlns="http://www.w3.org/1999/xhtml" title="Meta de conversão: ${e.convMeta.toFixed(0)}%" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%;gap:3px;">
+                        <foreignObject x="${FUNIL_PILL_X}" y="${(bandMidY - 30).toFixed(1)}" width="${FUNIL_PILL_W}" height="60">
+                            <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;height:100%;gap:3px;">
                                 <div style="background:${pillColor};border-radius:9999px;padding:2px 9px;box-shadow:0 2px 6px rgba(0,0,0,.4);">
                                     <span style="color:#fff;font-size:11px;font-weight:800;white-space:nowrap;line-height:1.4;">${e.convReal.toFixed(1)}%</span>
                                 </div>
                                 <span style="font-size:8px;font-weight:700;color:#94a3b8;white-space:nowrap;padding-left:1px;line-height:1.5;">${e.label} → ${nextLabel}</span>
+                                <span style="font-size:8px;font-weight:700;color:${up ? '#6ee7b7' : '#fca5a5'};white-space:nowrap;padding-left:1px;line-height:1.4;">Meta ${e.convMeta.toFixed(0)}% ${up ? '▲' : '▼'}</span>
                             </div>
                         </foreignObject>`;
                 }
