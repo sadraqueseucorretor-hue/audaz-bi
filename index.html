@@ -389,7 +389,7 @@
                                             <span id="funnelStatusTextDoc">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgDoc" viewBox="0 0 510 240" class="w-full block mb-2"></svg>
+                                    <svg id="funnelSvgDoc" viewBox="0 0 510 188" class="w-full block mb-2"></svg>
                                     <div id="funnelMetaPanelDoc" class="space-y-1.5 mb-2"></div>
                                     <div class="grid grid-cols-2 gap-2">
                                         <div class="bg-gradient-to-br from-brand-500/15 to-brand-500/5 border border-brand-500/30 rounded-lg px-3 py-1.5 text-center">
@@ -414,7 +414,7 @@
                                             <span id="funnelStatusTextAg">—</span>
                                         </span>
                                     </div>
-                                    <svg id="funnelSvgAg" viewBox="0 0 510 240" class="w-full block mb-2"></svg>
+                                    <svg id="funnelSvgAg" viewBox="0 0 510 188" class="w-full block mb-2"></svg>
                                     <div id="funnelMetaPanelAg" class="space-y-1.5"></div>
                                 </div>
                             </div>
@@ -5321,7 +5321,7 @@
         // cantos EXTERNOS arredondam (topo da 1ª banda, base da última) — as divisas internas entre
         // bandas ficam retas, com um traço escuro fino separando (stroke no path).
         const FUNIL_BOUNDARIES = [320, 270, 215, 155, 110];
-        const FUNIL_BAND_H = 58, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 4, FUNIL_CX = 175, FUNIL_CORNER_R = 10;
+        const FUNIL_BAND_H = 44, FUNIL_GAP_H = 0, FUNIL_TOP_PAD = 4, FUNIL_CX = 175, FUNIL_CORNER_R = 10;
         const FUNIL_PILL_X = 355, FUNIL_PILL_W = 145; // corredor fixo do badge de conversão, à direita das bandas — largo o bastante pra legenda "Etapa → Etapa" não cortar
         const FUNIL_GRADIENTS = {
             pink: ['#be185d', '#f472b6'], violet: ['#6d28d9', '#8b5cf6'], cyan: ['#0e7490', '#22d3ee'],
@@ -5360,12 +5360,8 @@
                         <path d="${path}" fill="url(#${gradId})" stroke="#020617" stroke-width="${i === 0 ? 0 : 2}"/>
                         <foreignObject x="${(FUNIL_CX - textW / 2).toFixed(1)}" y="${yTop}" width="${textW.toFixed(1)}" height="${FUNIL_BAND_H}">
                             <div xmlns="http://www.w3.org/1999/xhtml" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1px;">
-                                <i class="fa-solid ${e.icon}" style="color:#fff;font-size:11px;line-height:1;"></i>
-                                <div style="font-size:8px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.2;">${e.label}</div>
-                                <div style="font-size:16px;font-weight:800;color:#fff;line-height:1.05;">${e.realizado}</div>
-                                <div style="background:rgba(0,0,0,.28);border-radius:5px;padding:1px 6px;margin-top:1px;white-space:nowrap;">
-                                    <span style="font-size:7px;font-weight:700;color:rgba(255,255,255,.75);text-transform:uppercase;">Ideal hoje </span><span style="font-size:9px;font-weight:800;color:#fff;">${e.ideal}</span>
-                                </div>
+                                <div style="font-size:9px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.2;">${e.label}</div>
+                                <div style="font-size:20px;font-weight:800;color:#fff;line-height:1.05;">${e.realizado}</div>
                             </div>
                         </foreignObject>
                     </g>`;
@@ -5417,6 +5413,10 @@
                             <div class="absolute top-1/2 w-[2px] h-[10px] -mt-[5px] bg-white rounded-full ring-1 ring-slate-950" style="left:calc(${idealPct}% - 1px)" title="Ideal hoje: ${e.ideal}"></div>
                         </div>
                         <span class="text-[10px] font-bold text-${e.color}-300 w-8 text-right shrink-0">${pctMeta.toFixed(0)}%</span>
+                        <span class="flex items-center gap-1 bg-slate-800/70 border border-slate-600/60 rounded-md px-2 py-0.5 shrink-0" title="Ideal para hoje, no ritmo da meta">
+                            <span class="text-[8px] text-slate-400 font-bold uppercase tracking-wide">Ideal hj</span>
+                            <span class="text-xs font-black text-slate-100">${e.ideal}</span>
+                        </span>
                         <span class="flex items-center gap-1 bg-amber-500/15 border border-amber-500/40 rounded-md px-2 py-0.5 shrink-0" title="Falta pra bater a meta do mês">
                             <span class="text-[8px] text-amber-400 font-bold uppercase tracking-wide">Faltam</span>
                             <span class="text-xs font-black text-amber-300">${faltam}</span>
