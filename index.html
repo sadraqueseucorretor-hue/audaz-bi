@@ -2759,7 +2759,10 @@
 
         function addCorretor() {
             const input = document.getElementById('newCorretorInput');
-            const nome = (input.value || '').trim();
+            // .replace(/\s+/g,' ') colapsa espaço duplo (ex.: copy-paste da planilha) — sem isso,
+            // um typo de digitação já entra no roster oficial como um "corretor" diferente, e
+            // qualquer nome parecido vindo de outra fonte (Prospecção etc.) não casa com ele.
+            const nome = (input.value || '').trim().replace(/\s+/g, ' ');
             if (!nome) return;
             const jaExiste = getAllKnownCorretores().some(n => n.toLowerCase() === nome.toLowerCase());
             if (jaExiste) {
@@ -3271,9 +3274,12 @@
         // "de verdade" e outra em caixa alta/sem acento/sem cargo) no roster, fotos e rankings.
         function normalizeProspeccaoCorretor(nomeRaw) {
             if (!nomeRaw) return nomeRaw;
-            const trimmed = String(nomeRaw).trim();
+            // .replace(/\s+/g,' ') colapsa espaço duplo/invisível (ex.: "Thales  Araujo" vindo de
+            // um copy-paste da planilha) — sem isso, 2 grafias que só diferem no espaçamento
+            // escapavam do .trim() e viravam 2 corretores "diferentes" no ranking.
+            const trimmed = String(nomeRaw).trim().replace(/\s+/g, ' ');
             const known = getAllKnownCorretores();
-            const chave = n => stripDiacritics(parseNomeCargo(n).nome).toLowerCase();
+            const chave = n => stripDiacritics(parseNomeCargo(n).nome.replace(/\s+/g, ' ')).toLowerCase();
             const trimmedKey = chave(trimmed);
             const match = known.find(n => chave(n) === trimmedKey);
             if (match) return match;
@@ -3290,8 +3296,22 @@
         // (não só no upload) pra "curar" duplicatas de nome que já tenham sido salvas antes da
         // comparação de nomes considerar acentos (ex.: "Eduardo Prudencio" x "Eduardo Prudêncio").
         function rebuildProspeccaoDataset() {
+            // normalizeProspeccaoCorretor só consegue canonizar nomes que já existem no roster
+            // oficial (dataset principal + corretores cadastrados). Um corretor que só aparece na
+            // Prospecção (nunca lançou análise nem foi cadastrado manualmente) não tem com o que
+            // casar ali — por isso, aqui embaixo, a 1ª grafia encontrada de cada nome (por
+            // acento/maiúscula/cargo) vira o padrão pras próximas linhas com a mesma chave, mesmo
+            // sem estar no roster oficial. Sem isso, "Thales Araujo" e uma 2ª grafia ligeiramente
+            // diferente (espaço, acento) apareciam como 2 corretores distintos nos rankings.
+            const chave = n => stripDiacritics(parseNomeCargo(n).nome.replace(/\s+/g, ' ')).toLowerCase();
+            const canonicalPorChave = {};
             prospeccaoDataset = Object.values(prospeccaoPorMes).flatMap(m => m.rows).map(row => {
-                const norm = normalizeProspeccaoCorretor(row.Corretor);
+                let norm = normalizeProspeccaoCorretor(row.Corretor);
+                if (norm) {
+                    const key = chave(norm);
+                    if (canonicalPorChave[key]) norm = canonicalPorChave[key];
+                    else canonicalPorChave[key] = norm;
+                }
                 return norm === row.Corretor ? row : Object.assign({}, row, { Corretor: norm });
             });
         }
