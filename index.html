@@ -6275,9 +6275,16 @@
                 fimEstimado.setDate(fimEstimado.getDate() + diasNoMes - 1);
             }
 
-            const mesEhAtual = (monthIdx === hoje.getMonth() && ano === hoje.getFullYear());
+            // "É o mês atual?" precisa comparar a DATA de hoje contra a janela real
+            // [inicioReal, fimEstimado] do mês comercial — não o mês do calendário. O mês
+            // comercial quase sempre atravessa a virada do mês (ex.: "Julho" configurado até
+            // 07/08) — comparando só monthIdx/ano, no dia 1º de agosto o app já achava que
+            // "Julho" tinha "encerrado hoje" (100%, sem ritmo), mesmo a janela real ainda tendo
+            // dias até 07/08. Bug reportado pelo usuário, corrigido aqui.
+            const hojeZerado = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+            const mesEhAtual = hojeZerado >= inicioReal && hojeZerado <= fimEstimado;
             const diaHoje = mesEhAtual
-                ? Math.min(diasNoMes, Math.max(1, Math.floor((hoje - inicioReal) / 86400000) + 1))
+                ? Math.min(diasNoMes, Math.max(1, Math.floor((hojeZerado - inicioReal) / 86400000) + 1))
                 : diasNoMes;
 
             return { mesNome, ano, monthIdx, inicioReal, fimEstimado, diasNoMes, diaHoje, mesEhAtual, configMes, pertenceAoMes, linhaDoRow };
