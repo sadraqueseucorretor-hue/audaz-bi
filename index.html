@@ -1826,12 +1826,14 @@
             const lc = (!quickRef && !isMockDataActive) ? getLatestCommercialMonth() : null;
             const mesAtual = lc ? lc.nome : getMesName(refSM.getMonth() + 1);
             const anoAtual = lc ? lc.ano : refSM.getFullYear();
-            // Mesma ideia, só que o "mês corrente" da Agenda vem dela mesma (não do Mês Cadastro
-            // da outra planilha) — evita o card "Agendamentos/Compareceu · Mês" ficar num mês
-            // diferente do que o Funil mostra quando as duas planilhas estão dessincronizadas.
-            const lcAgenda = (!quickRef && !isMockDataActive) ? getLatestAgendaCommercialMonth() : null;
-            const mesAtualAgenda = lcAgenda ? lcAgenda.nome : mesAtual;
-            const anoAtualAgenda = lcAgenda ? lcAgenda.ano : anoAtual;
+            // Agendamentos/Compareceu seguem o MESMO mês comercial corrente da planilha principal
+            // (o mesmo que o Ritmo do Mês usa) — antes a Agenda detectava seu próprio "mês atual"
+            // a partir da Data mais recente lançada NELA, o que a fazia pular pro mês seguinte
+            // (ex.: Agosto) antes da planilha principal (ainda em Julho) assim que alguém marcasse
+            // uma visita futura — dessincronizando o card daqui do resto do painel. Corrigido a
+            // pedido do usuário: usar sempre a mesma referência de mês em tudo.
+            const mesAtualAgenda = mesAtual;
+            const anoAtualAgenda = anoAtual;
             const lcProspeccao = (!quickRef && !isMockDataActive) ? getLatestProspeccaoCommercialMonth() : null;
             const mesAtualProspeccao = lcProspeccao ? lcProspeccao.nome : mesAtual;
             const anoAtualProspeccao = lcProspeccao ? lcProspeccao.ano : anoAtual;
@@ -4606,13 +4608,13 @@
             // Guarda globalmente para drawTables() (chamado também pela busca) usar a mesma referência
             currentRefDate = referenceDate;
 
-            // A Agenda de Visitas não tem coluna de texto "Mês X" — sem mês manual selecionado nos
-            // pills, o mês corrente dela vem do último Data da PRÓPRIA agenda (getLatestAgendaCommercialMonth),
-            // não do "Mês Cadastro" da planilha principal (que pode estar em outro mês).
-            let referenceDateAgenda = referenceDate;
-            if (!refMes && !isMockDataActive && (currentPeriod === 'mes' || currentPeriod === 'ano')) {
-                referenceDateAgenda = commercialRefDateAgenda(isMockDataActive ? new Date(2026, 5, 9) : new Date());
-            }
+            // Agendamentos/Compareceu seguem a MESMA referência de mês da planilha principal (a
+            // mesma que o Ritmo do Mês usa) — antes a Agenda detectava seu próprio mês a partir da
+            // Data mais recente lançada NELA, o que a fazia "pular" pro mês seguinte antes da
+            // planilha principal assim que alguém marcasse uma visita futura, desalinhando o
+            // Realizado e o Ideal hoje do funil Agendamento & Visita entre si e com o resto do
+            // painel. Corrigido a pedido do usuário: sempre a mesma referência em tudo.
+            const referenceDateAgenda = referenceDate;
             currentRefDateAgenda = referenceDateAgenda;
 
             // Mesma ideia pra Prospecção — mês corrente vem dela mesma (getLatestProspeccaoCommercialMonth).
@@ -6195,10 +6197,12 @@
             const refMes = getReferenceMesComercial();
             // Agendamentos/Compareceu vêm da Agenda de Visitas (2ª planilha, filteredAgendaDataset)
             // em vez de filteredDataset — mesma "janela deslizante" (início real/config manual de
-            // Meses Comerciais), só que sobre a coluna Data da agenda. Como a Agenda não tem coluna
-            // de texto "Mês X", o "mês corrente" (quando não há mês manual selecionado nos pills)
-            // é derivado do último Data da PRÓPRIA Agenda — não do "Mês Cadastro" da outra planilha,
-            // que pode estar em um mês diferente.
+            // Meses Comerciais), só que sobre a coluna Data da agenda. O "mês corrente" (quando não
+            // há mês manual selecionado nos pills) segue a MESMA referência da planilha principal
+            // (getLatestCommercialMonth, a mesma que o Ritmo do Mês usa) — antes a Agenda detectava
+            // seu próprio mês a partir da Data mais recente lançada NELA, o que a fazia pular pro
+            // mês seguinte antes da planilha principal, dessincronizando o "Ideal hoje" do funil
+            // Agendamento & Visita do resto do painel. Corrigido a pedido do usuário.
             const isAgendaMetrica = metrica === 'agendamentos' || metrica === 'compareceu';
             const isProspeccaoMetrica = metrica === 'prospeccao';
             const sourceDataset = isAgendaMetrica ? filteredAgendaDataset : (isProspeccaoMetrica ? filteredProspeccaoDataset : filteredDataset);
@@ -6207,7 +6211,7 @@
                 mesNome = refMes.nome; ano = refMes.ano; monthIdx = refMes.idx;
             } else {
                 const lc = !isMockDataActive
-                    ? (isAgendaMetrica ? getLatestAgendaCommercialMonth() : (isProspeccaoMetrica ? getLatestProspeccaoCommercialMonth() : getLatestCommercialMonth()))
+                    ? (isProspeccaoMetrica ? getLatestProspeccaoCommercialMonth() : getLatestCommercialMonth())
                     : null;
                 if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
                 else { mesNome = getMesName(hoje.getMonth() + 1); ano = hoje.getFullYear(); monthIdx = hoje.getMonth(); }
