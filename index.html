@@ -1971,10 +1971,17 @@
                 btnAtual.className = baseB + (quickRef ? ' bg-brand-500 text-white border-brand-500' : ' text-slate-500 border-slate-800');
             }
 
-            // Rótulo do período (data/intervalo) mostrado no cabeçalho de cada card, conforme a cadência.
+            // Rótulo do período (data/intervalo) mostrado no cabeçalho de cada card, conforme a
+            // cadência. Pra "Mês", usa a mesma janela REAL do mês comercial (registrada em "Meses
+            // Comerciais", a mesma que o Ritmo do Mês/Funil usam) em vez do dia 1 ao último dia do
+            // calendário — sem isso, o card mostrava "01/07 a 31/07" mesmo quando o mês comercial
+            // registrado vai de 06/07 a 07/08, incompatível com o resto do painel.
             const mesIdxAtual = MESES_IDX[mesAtual];
-            const primeiroDiaMes = (mesIdxAtual !== undefined) ? new Date(anoAtual, mesIdxAtual, 1) : null;
-            const ultimoDiaMes = (mesIdxAtual !== undefined) ? new Date(anoAtual, mesIdxAtual + 1, 0) : null;
+            const configMesAtual = (mesIdxAtual !== undefined) ? getMesComercialConfig(mesAtual, anoAtual) : null;
+            const primeiroDiaMes = configMesAtual ? new Date(configMesAtual.inicio + 'T00:00:00')
+                : (mesIdxAtual !== undefined) ? new Date(anoAtual, mesIdxAtual, 1) : null;
+            const ultimoDiaMes = configMesAtual ? new Date(configMesAtual.fim + 'T00:00:00')
+                : (mesIdxAtual !== undefined) ? new Date(anoAtual, mesIdxAtual + 1, 0) : null;
             const periodoPorCadencia = {
                 'Hoje':   fmtDDMM(hojeReal),
                 'Semana': `${fmtDDMM(segAtual)} a ${fmtDDMM(domAtual)}`,
