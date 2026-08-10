@@ -1605,6 +1605,25 @@
         function getMesComercialConfig(nome, ano) {
             return mesesComerciais.find(m => m.nome === nome && m.ano === ano) || null;
         }
+
+        // Se existe um mês comercial CONFIGURADO (painel "Meses Comerciais") cujo período cobre a
+        // data de HOJE, ele é o mês corrente — mesmo que a planilha ainda não tenha nenhuma linha
+        // lançada nele (comum: o mês comercial virou, mas ninguém lançou análise/aprovação/venda
+        // ainda). Sem isso, o painel inteiro (Metas do Mês, Funil, Ritmo do Mês, Rankings Rápidos)
+        // ficava "preso" mostrando os números do mês anterior até a 1ª linha do mês novo chegar na
+        // planilha — confuso pro usuário, que já sabe que o mês comercial mudou. Retorna null quando
+        // NENHUM mês configurado cobre hoje (aí quem chamar cai no fallback antigo: último mês com
+        // dados lançados, via getLatestCommercialMonth/getLatestProspeccaoCommercialMonth).
+        function getMesComercialAtualPorData() {
+            const hoje = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            const hojeZerado = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+            const match = mesesComerciais.find(m => {
+                const ini = new Date(m.inicio + 'T00:00:00');
+                const fim = new Date(m.fim + 'T00:00:00');
+                return hojeZerado >= ini && hojeZerado <= fim;
+            });
+            return match ? { nome: match.nome, ano: match.ano, idx: MESES_IDX[normalizeMes(match.nome)] } : null;
+        }
         function setMetaMensal(campo, val) {
             const n = parseFloat(String(val).replace(/\./g, '').replace(',', '.')) || 0;
             metasMensais[campo] = n;
@@ -1643,7 +1662,7 @@
                 mesNome = refMes.nome; ano = refMes.ano; monthIdx = refMes.idx;
                 mesEhAtual = (monthIdx === refDate.getMonth() && ano === refDate.getFullYear());
             } else if (!isMockDataActive) {
-                const lc = getLatestCommercialMonth();
+                const lc = getMesComercialAtualPorData() || getLatestCommercialMonth();
                 if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
             }
             const diasNoMes = new Date(ano, monthIdx + 1, 0).getDate();
@@ -1879,7 +1898,7 @@
             const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date(); // cards "Hoje" = sempre hoje
             const refSM = quickRef || hojeReal;                                    // "Semana" e "Mês" = referência escolhida
             // Sem referência manual: mês comercial corrente (último dos dados). Com referência: mês da data escolhida.
-            const lc = (!quickRef && !isMockDataActive) ? getLatestCommercialMonth() : null;
+            const lc = (!quickRef && !isMockDataActive) ? (getMesComercialAtualPorData() || getLatestCommercialMonth()) : null;
             const mesAtual = lc ? lc.nome : getMesName(refSM.getMonth() + 1);
             const anoAtual = lc ? lc.ano : refSM.getFullYear();
             // Agendamentos/Compareceu seguem o MESMO mês comercial corrente da planilha principal
@@ -1890,7 +1909,7 @@
             // pedido do usuário: usar sempre a mesma referência de mês em tudo.
             const mesAtualAgenda = mesAtual;
             const anoAtualAgenda = anoAtual;
-            const lcProspeccao = (!quickRef && !isMockDataActive) ? getLatestProspeccaoCommercialMonth() : null;
+            const lcProspeccao = (!quickRef && !isMockDataActive) ? (getMesComercialAtualPorData() || getLatestProspeccaoCommercialMonth()) : null;
             const mesAtualProspeccao = lcProspeccao ? lcProspeccao.nome : mesAtual;
             const anoAtualProspeccao = lcProspeccao ? lcProspeccao.ano : anoAtual;
 
@@ -6344,8 +6363,14 @@
             if (refMes) {
                 mesNome = refMes.nome; ano = refMes.ano; monthIdx = refMes.idx;
             } else {
+                // Se um mês comercial CONFIGURADO (painel "Meses Comerciais") já cobre hoje, ele é o
+                // mês corrente — mesmo que essa fonte ainda não tenha nenhuma linha lançada nele
+                // (ex.: virou Agosto, mas nenhuma análise/aprovação/venda/lead de Agosto entrou
+                // ainda). Sem isso, o Funil/Ritmo do Mês ficavam mostrando os números do mês
+                // anterior até a 1ª linha do mês novo chegar. Só cai no fallback antigo (último mês
+                // com dados) quando NENHUM mês configurado cobre hoje.
                 const lc = !isMockDataActive
-                    ? (isProspeccaoMetrica ? getLatestProspeccaoCommercialMonth() : getLatestCommercialMonth())
+                    ? (getMesComercialAtualPorData() || (isProspeccaoMetrica ? getLatestProspeccaoCommercialMonth() : getLatestCommercialMonth()))
                     : null;
                 if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
                 else { mesNome = getMesName(hoje.getMonth() + 1); ano = hoje.getFullYear(); monthIdx = hoje.getMonth(); }
