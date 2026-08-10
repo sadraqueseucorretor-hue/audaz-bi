@@ -367,6 +367,18 @@
                                 </div>
                             </div>
 
+                            <!-- Aviso: aparece só quando a Prospecção já avançou pra um mês comercial
+                                 diferente do resto do funil (Análises/Aprovações/Vendas) — cada fonte
+                                 detecta seu próprio "mês corrente" de forma independente (ver
+                                 getLatestProspeccaoCommercialMonth vs getLatestCommercialMonth), então
+                                 é esperado que a Prospecção comece um mês novo antes de qualquer venda
+                                 ser lançada nele. Sem esse aviso, o cabeçalho acima (que reflete só a
+                                 janela de Análises) parecia "travado" mesmo com leads novos já contados. -->
+                            <div id="funnelMesDivergenciaAviso" class="hidden items-start gap-2 mb-2 pb-2 border-b border-slate-800/60 text-[11px] text-amber-300">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-400 mt-0.5 shrink-0"></i>
+                                <span id="funnelMesDivergenciaTexto"></span>
+                            </div>
+
                             <!-- Produtividade de Hoje: contagem do dia atual em cada etapa (diferente
                                  do resto do funil, que é sempre acumulado do mês comercial) -->
                             <div class="flex flex-wrap items-center gap-2 mb-2 pb-2 border-b border-slate-800/60" id="funnelHojeStrip"></div>
@@ -603,6 +615,50 @@
                             <div class="flex items-start gap-3 overflow-x-auto pb-1 mt-3" id="ritmoMesDiasStrip"></div>
                         </div>
                         <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-4" id="ritmoMesResumo"></div>
+                    </div>
+                </div>
+
+                <!-- Ritmo da Semana: mesmo raciocínio do Ritmo do Mês, só que dia a dia dentro da
+                     semana corrente (segunda a domingo) — usa o MESMO toggle de métrica (Análises/
+                     Aprovações/Vendas) ali de cima, pra não duplicar controle, e a meta SEMANAL já
+                     cadastrada (não a mensal dividida por 7). -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                    <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-11 w-11 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-calendar-week text-sky-400 text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-extrabold tracking-wide text-slate-100 uppercase leading-tight">Ritmo da Semana</h3>
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Real vs Meta · <span id="ritmoSemanaMetricLabel">Análises</span></p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <i class="fa-regular fa-calendar text-sky-400 mt-1"></i>
+                            <div>
+                                <p class="text-sm font-bold text-slate-100" id="ritmoSemanaTitulo">—</p>
+                                <p class="text-[10px] text-slate-500" id="ritmoSemanaPeriodoLabel">—</p>
+                                <p class="text-[10px] text-slate-500" id="ritmoSemanaHojeLabel">—</p>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/70 border border-amber-500/30 rounded-xl px-4 py-2 text-center" id="ritmoSemanaFechamentoBox">
+                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-center gap-1"><i class="fa-regular fa-clock text-amber-400"></i> Faltam para o fim da semana</p>
+                            <p class="text-2xl font-extrabold text-amber-400 leading-tight" id="ritmoSemanaDiasFaltam">—</p>
+                            <p class="text-[10px] text-slate-500" id="ritmoSemanaEncerramento">—</p>
+                        </div>
+                        <p class="text-[10px] text-slate-500" id="ritmoSemanaMetaFonteLabel"></p>
+                    </div>
+
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="ritmoSemanaStats"></div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                        <div class="lg:col-span-3">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Segunda a Domingo — Real vs Ritmo Ideal</p>
+                            <div class="h-56 relative">
+                                <canvas id="chartRitmoSemana"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-4" id="ritmoSemanaResumo"></div>
                     </div>
                 </div>
 
@@ -3231,7 +3287,10 @@
             if (!checkPeriodMatch(row['Data'], currentPeriod, refDate)) return false;
             const selSemana = document.getElementById('filterSemana').value;
             if (selSemana) {
-                if (Math.ceil(d.getDate() / 7).toString() !== selSemana.toString()) return false;
+                // Semana real (segunda-domingo) dentro da janela da Agenda, não mais dia-do-mês÷7 —
+                // ver getSemanaRangeParaMetrica/getSemanasMesComercial.
+                const semanaObj = getSemanaRangeParaMetrica('agendamentos', selSemana);
+                if (!semanaObj || d < semanaObj.inicio || d > semanaObj.fim) return false;
             }
             return true;
         }
@@ -3335,6 +3394,24 @@
         // PRÓPRIO "Mês Comercial" de cada uma — cada mês encontrado substitui só aquele slot em
         // prospeccaoPorMes (um upload novo de "Julho" atualiza só Julho, sem apagar Agosto já
         // carregado antes). Linhas sem mês reconhecível são descartadas (não têm onde entrar).
+        // Regra de negócio: a operação não trabalha domingo, então um lead cuja data de Cadastro
+        // caiu num domingo (ex.: formulário automático do site, fora do expediente) conta como se
+        // tivesse entrado na segunda-feira seguinte — em TUDO que usa essa data (Hoje/Semana,
+        // sequência de dias ativos, régua de dias, Ritmo da Semana). Ajustado uma única vez aqui, na
+        // ingestão do CSV (upload manual, sync da nuvem e boot do localStorage passam TODOS por
+        // applyProspeccaoCsvText), pra todo o resto do app herdar o ajuste automaticamente sem
+        // precisar saber que ele existe. Guarda a data original em _CadastroOriginal (auditoria).
+        function ajustarCadastroDomingoParaSegunda(row) {
+            const d = parseDate(row['Cadastro']);
+            if (d && d.getDay() === 0) {
+                const seg = new Date(d);
+                seg.setDate(seg.getDate() + 1);
+                row['_CadastroOriginal'] = row['Cadastro'];
+                row['Cadastro'] = `${String(seg.getDate()).padStart(2, '0')}/${String(seg.getMonth() + 1).padStart(2, '0')}/${seg.getFullYear()}`;
+            }
+            return row;
+        }
+
         function applyProspeccaoCsvText(csvText, opts) {
             const silent = opts && opts.silent;
             const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
@@ -3352,6 +3429,7 @@
                 // diferente do resto do app ("Edson Luis") — sem isso, cada lead viraria um
                 // corretor "novo" e duplicado nos rankings/roster em vez de somar no mesmo.
                 row.Corretor = normalizeProspeccaoCorretor(row.Corretor);
+                ajustarCadastroDomingoParaSegunda(row);
                 if (!norm) { semMes++; return; }
                 if (!porMes[norm]) porMes[norm] = [];
                 porMes[norm].push(row);
@@ -3364,7 +3442,7 @@
             mesesEncontrados.forEach(mes => {
                 const rowsDoMes = porMes[mes];
                 prospeccaoPorMes[mes] = {
-                    csvText: Papa.unparse(rowsDoMes.map(r => { const c = Object.assign({}, r); delete c._MesComercialNorm; return c; })),
+                    csvText: Papa.unparse(rowsDoMes.map(r => { const c = Object.assign({}, r); delete c._MesComercialNorm; delete c._CadastroOriginal; return c; })),
                     rows: rowsDoMes,
                     uploadedAt: Date.now()
                 };
@@ -4413,30 +4491,31 @@
             renderSemanaPills();
         }
 
+        // Semanas do filtro "Semana" (pills): antes era Math.ceil(dia-do-mês-do-CALENDÁRIO / 7) —
+        // dia 1-7 = semana 1, 8-14 = semana 2 etc. — o que ignorava a janela deslizante do mês
+        // comercial (que quase nunca começa no dia 1) e não alinhava com semanas reais de segunda a
+        // domingo. Corrigido pra usar getSemanasMesComercial sobre a janela real do mês comercial de
+        // referência (a mesma que Ritmo do Mês/Funil mostram), com rótulo mostrando o intervalo real
+        // de datas de cada semana — igual ao padrão já usado na Evolução Semanal do Mês.
         function renderSemanaPills() {
             const container = document.getElementById('semanaPills');
             if (!container) return;
             const select = document.getElementById('filterSemana');
             const selSemana = select.value;
-            const selMeses = getSelectedMeses();
 
-            // Semana = ceil(dia-do-mês / 7); calcula o máximo real no recorte atual (mínimo 5).
-            let maxSemana = 5;
-            (Array.isArray(dataset) ? dataset : []).forEach(row => {
-                if (selMeses.length > 0 && !selMeses.includes(row['Mês Cadastro'])) return;
-                const d = parseDate(row['Data Cadastro']);
-                if (d) maxSemana = Math.max(maxSemana, Math.ceil(d.getDate() / 7));
-            });
+            const janelaRef = getJanelaMesComercial('analises');
+            const semanas = getSemanasMesComercial(janelaRef.inicioReal, janelaRef.diasNoMes);
+            const fmtDDMM = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 
             // Garante que o select oculto tem uma <option> para cada semana (senão select.value não "gruda").
             select.innerHTML = '<option value="">Todas</option>';
-            for (let i = 1; i <= maxSemana; i++) {
+            semanas.forEach(s => {
                 const opt = document.createElement('option');
-                opt.value = String(i);
-                opt.textContent = `Semana ${i}`;
+                opt.value = String(s.idx);
+                opt.textContent = `Semana ${s.idx} (${fmtDDMM(s.inicio)}-${fmtDDMM(s.fim)})`;
                 select.appendChild(opt);
-            }
-            select.value = (selSemana && Number(selSemana) <= maxSemana) ? selSemana : '';
+            });
+            select.value = (selSemana && Number(selSemana) <= semanas.length) ? selSemana : '';
 
             container.innerHTML = '';
             const allBtn = document.createElement('button');
@@ -4446,14 +4525,14 @@
             allBtn.onclick = () => selectSemana('');
             container.appendChild(allBtn);
 
-            for (let i = 1; i <= maxSemana; i++) {
+            semanas.forEach(s => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.textContent = `${i}ª SEM`;
-                btn.className = pillClass(select.value === String(i), 'semana');
-                btn.onclick = () => selectSemana(String(i));
+                btn.textContent = `${s.idx}ª SEM (${fmtDDMM(s.inicio)}-${fmtDDMM(s.fim)})`;
+                btn.className = pillClass(select.value === String(s.idx), 'semana');
+                btn.onclick = () => selectSemana(String(s.idx));
                 container.appendChild(btn);
-            }
+            });
         }
 
         function selectSemana(value) {
@@ -4541,7 +4620,8 @@
                 if (selMeses.length > 0 && !selMeses.includes(row['Mês Cadastro'])) return;
                 if (selSemana) {
                     const d = parseDate(row['Data Cadastro']);
-                    if (!d || String(Math.ceil(d.getDate() / 7)) !== selSemana) return;
+                    const semanaObj = getSemanaRangeParaMetrica('analises', selSemana);
+                    if (!d || !semanaObj || d < semanaObj.inicio || d > semanaObj.fim) return;
                 }
                 count++;
             });
@@ -4596,6 +4676,7 @@
         }
 
         function applyFilters() {
+            _semanasPorMetricaCache = {}; // um cache novo por render — ver getSemanaRangeParaMetrica
             const selCorretor = document.getElementById('filterCorretor').value;
             const selEquipe = document.getElementById('filterEquipe').value;
             const selConstrutora = document.getElementById('filterConstrutora').value;
@@ -4711,10 +4792,30 @@
         let currentRefDateAgenda = new Date(); // mesma ideia, só que derivada da Agenda de Visitas
         let currentRefDateProspeccao = new Date(); // mesma ideia, só que derivada da Prospecção
 
+        // Qual "mês corrente" (getJanelaMesComercial) cada coluna de mês representa — usado só pra
+        // resolver a semana REAL (segunda-domingo) da janela certa quando o filtro "Semana" está
+        // ativo (Prospecção pode estar num mês comercial diferente do resto, ver aviso no Funil).
+        const MES_FIELD_PARA_METRICA = { 'Mês Cadastro': 'analises', 'Mês Aprovação': 'aprovacoes', 'Mês Ganho': 'vendas', '_MesComercialNorm': 'prospeccao' };
+
+        // Cache das semanas reais por métrica, válido só durante o render atual — evita recalcular
+        // getJanelaMesComercial (que percorre o dataset inteiro pra achar o início real) uma vez por
+        // LINHA filtrada; limpo no início de applyFilters().
+        let _semanasPorMetricaCache = {};
+        function getSemanaRangeParaMetrica(metrica, selSemana) {
+            const key = metrica + '|' + selSemana;
+            if (key in _semanasPorMetricaCache) return _semanasPorMetricaCache[key];
+            const janela = getJanelaMesComercial(metrica);
+            const semanas = getSemanasMesComercial(janela.inicioReal, janela.diasNoMes);
+            const semanaObj = semanas[Number(selSemana) - 1] || null;
+            _semanasPorMetricaCache[key] = semanaObj;
+            return semanaObj;
+        }
+
         // Verifica se a coluna de mês/data de UMA métrica específica (ex.: Mês/Data Aprovação, para
         // aprovações; Mês/Data Ganho, para vendas) bate com o período de referência — e, se houver
-        // filtro de "Semana" (do mês) ativo, também com essa semana, usando a MESMA data da métrica.
-        // Assim cada métrica confere a SUA própria coluna, não fica presa à de Cadastro.
+        // filtro de "Semana" (do mês) ativo, também com essa semana REAL (segunda a domingo, dentro
+        // da janela do mês comercial da PRÓPRIA métrica), usando a MESMA data da métrica. Assim cada
+        // métrica confere a SUA própria coluna, não fica presa à de Cadastro.
         function metricMatchesRef(row, mesField, dateField, refDate) {
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
             const periodOk = useMesRef
@@ -4725,7 +4826,8 @@
             const selSemana = document.getElementById('filterSemana').value;
             if (selSemana) {
                 const d = parseDate(row[dateField]);
-                if (!d || Math.ceil(d.getDate() / 7).toString() !== selSemana.toString()) return false;
+                const semanaObj = getSemanaRangeParaMetrica(MES_FIELD_PARA_METRICA[mesField] || 'analises', selSemana);
+                if (!d || !semanaObj || d < semanaObj.inicio || d > semanaObj.fim) return false;
             }
             return true;
         }
@@ -5522,6 +5624,26 @@
             const mesBar = document.getElementById('funnelMesBar'); if (mesBar) mesBar.style.width = `${pctMes}%`;
             const mesPct = document.getElementById('funnelMesPct'); if (mesPct) mesPct.textContent = `${pctMes}%`;
 
+            // Aviso de fontes em meses comerciais diferentes: Prospecção detecta seu próprio "mês
+            // corrente" (getLatestProspeccaoCommercialMonth) independente do resto do funil
+            // (Análises/Aprovações/Vendas/Agenda, todos amarrados a getLatestCommercialMonth). Isso é
+            // esperado — leads de um mês novo costumam chegar antes de qualquer análise/venda dele —
+            // mas sem aviso parecia bug ("atualizei os leads de Agosto e o painel continua em
+            // Julho"). Só mostra quando NÃO há mês manual selecionado nos pills (aí sim tudo fica
+            // travado de propósito num único mês) e quando as duas janelas realmente divergem.
+            const avisoEl = document.getElementById('funnelMesDivergenciaAviso');
+            const avisoTextoEl = document.getElementById('funnelMesDivergenciaTexto');
+            if (avisoEl && avisoTextoEl) {
+                const divergiu = !getReferenceMesComercial()
+                    && (janelaProspeccao.mesNome !== janelaAnalises.mesNome || janelaProspeccao.ano !== janelaAnalises.ano);
+                if (divergiu) {
+                    avisoTextoEl.textContent = `Prospecção já está em ${janelaProspeccao.mesNome}/${janelaProspeccao.ano} (leads novos contam aí), mas Análises/Aprovações/Vendas ainda estão em ${janelaAnalises.mesNome}/${janelaAnalises.ano} — nenhuma linha da planilha mestra foi lançada no mês novo ainda. Assim que a 1ª análise/aprovação/venda de ${janelaProspeccao.mesNome} entrar, o resto do funil acompanha.`;
+                    avisoEl.classList.remove('hidden'); avisoEl.classList.add('flex');
+                } else {
+                    avisoEl.classList.add('hidden'); avisoEl.classList.remove('flex');
+                }
+            }
+
             // Usa os MESMOS valores arredondados que aparecem nos cards (não a fração bruta) — pra
             // quem conferir "Real ÷ Ideal hoje" na calculadora bater exatamente com o % mostrado.
             // Etapas sem meta configurada (ideal=0) ficam fora da média, pra não puxar "No Ritmo"
@@ -6080,6 +6202,11 @@
                 btn.className = 'ritmo-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (k === m ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-slate-200');
             });
             renderRitmoMesChart();
+            // Ritmo da Semana reaproveita o MESMO toggle de métrica do Ritmo do Mês (não duplica
+            // controle) — só troca a label do subtítulo.
+            const lblEl = document.getElementById('ritmoSemanaMetricLabel');
+            if (lblEl) lblEl.textContent = m.charAt(0).toUpperCase() + m.slice(1);
+            if (typeof renderRitmoSemanaChart === 'function') renderRitmoSemanaChart();
         }
 
         const RITMO_METRIC_LABELS = { analises: 'análises', aprovacoes: 'aprovações', vendas: 'vendas' };
@@ -6305,33 +6432,49 @@
         // do Ritmo do Mês, pra ficarem sempre consistentes entre si.
         const DOW_PT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
-        // Régua de dias do mês comercial abaixo do gráfico do Ritmo do Mês: uma coluna por dia
-        // (dd + dia da semana abreviado), agrupadas por semana — semana nova sempre numa
-        // segunda-feira (exceto o 1º dia do mês comercial, que pode cair em qualquer dia), com
-        // separador tracejado entre grupos e o rótulo "Nª SEM" centralizado embaixo de cada um.
-        function renderRitmoMesDiasStrip(inicioReal, diasNoMes, diaHoje) {
-            const el = document.getElementById('ritmoMesDiasStrip');
-            if (!el) return;
-            const DOW = DOW_PT;
+        // Divide os dias de um mês comercial (a partir de inicioReal, por diasNoMes dias) em
+        // semanas REAIS de segunda a domingo — nova semana sempre numa segunda-feira, exceto a 1ª,
+        // que abre no 1º dia do mês comercial mesmo que não caia numa segunda (o mês comercial quase
+        // nunca começa no dia 1 do calendário). Função única compartilhada por TUDO que precisa
+        // concordar em que dias formam "a semana 2" (régua de dias do Ritmo do Mês, Evolução Semanal
+        // do Mês, o filtro de pills "Semana" e o Ritmo da Semana) — antes o filtro de "Semana"
+        // calculava por conta própria via Math.ceil(dia-do-mês-do-CALENDÁRIO / 7), o que ignorava a
+        // janela deslizante e não alinhava com semanas reais de segunda a domingo (bug real,
+        // reportado pelo usuário).
+        function getSemanasMesComercial(inicioReal, diasNoMes) {
             const semanas = [];
             let semanaAtual = null;
             for (let d = 1; d <= diasNoMes; d++) {
                 const data = new Date(inicioReal);
                 data.setDate(data.getDate() + (d - 1));
-                const dow = data.getDay();
-                if (!semanaAtual || dow === 1) { semanaAtual = []; semanas.push(semanaAtual); }
-                semanaAtual.push({ d, data, dow });
+                if (!semanaAtual || data.getDay() === 1) { semanaAtual = []; semanas.push(semanaAtual); }
+                semanaAtual.push({ d, data, dow: data.getDay() });
             }
-            el.innerHTML = semanas.map((dias, wi) => `
+            return semanas.map((dias, wi) => ({
+                idx: wi + 1,
+                dias,
+                inicio: dias[0].data,
+                fim: dias[dias.length - 1].data
+            }));
+        }
+
+        // Régua de dias do mês comercial abaixo do gráfico do Ritmo do Mês: uma coluna por dia
+        // (dd + dia da semana abreviado), agrupadas por semana (getSemanasMesComercial), com
+        // separador tracejado entre grupos e o rótulo "Nª SEM" centralizado embaixo de cada um.
+        function renderRitmoMesDiasStrip(inicioReal, diasNoMes, diaHoje) {
+            const el = document.getElementById('ritmoMesDiasStrip');
+            if (!el) return;
+            const semanas = getSemanasMesComercial(inicioReal, diasNoMes);
+            el.innerHTML = semanas.map((s, wi) => `
                 <div class="flex flex-col items-center shrink-0 ${wi > 0 ? 'border-l border-dashed border-slate-700 pl-3' : ''}">
                     <div class="flex gap-1.5">
-                        ${dias.map(x => `
+                        ${s.dias.map(x => `
                             <div class="flex flex-col items-center w-7 shrink-0">
                                 <span class="text-[11px] font-extrabold rounded px-1 ${x.d === diaHoje ? 'bg-brand-500 text-white' : 'text-slate-300'}">${String(x.data.getDate()).padStart(2, '0')}</span>
-                                <span class="text-[8px] font-bold text-slate-500 uppercase mt-0.5">${DOW[x.dow]}</span>
+                                <span class="text-[8px] font-bold text-slate-500 uppercase mt-0.5">${DOW_PT[x.dow]}</span>
                             </div>`).join('')}
                     </div>
-                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-1.5">${wi + 1}ª SEM</span>
+                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-1.5">${s.idx}ª SEM</span>
                 </div>`).join('');
         }
 
@@ -6554,6 +6697,204 @@
             });
         }
 
+        // ===== RITMO DA SEMANA: real acumulado dia a dia (segunda a domingo) vs a linha ideal =====
+        // Mesma ideia do Ritmo do Mês, só que zerado toda segunda-feira e com a meta SEMANAL já
+        // cadastrada (rankingsMetas.*Sem / metasPorCorretor.*Sem — mesma fonte que a Evolução
+        // Semanal do Mês usa), não a meta mensal dividida por 7. Reaproveita o toggle de métrica
+        // (ritmoMetric) do Ritmo do Mês, pra não duplicar controle na tela. A semana usada é SEMPRE
+        // a semana real corrente (hoje), independente de qual mês comercial ela pertence — não faz
+        // sentido "fechar" a semana antes da hora só porque o mês comercial mudou no meio dela.
+        const RITMO_SEMANA_METAS_KEYS = { analises: 'anSem', aprovacoes: 'apSem', vendas: 'vdSem' };
+        function renderRitmoSemanaChart() {
+            const canvas = document.getElementById('chartRitmoSemana');
+            if (!canvas) return;
+            if (charts.ritmoSemana) charts.ritmoSemana.destroy();
+
+            const hoje = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const dow = hoje.getDay();
+            const desdeSegunda = (dow === 0) ? 6 : (dow - 1);
+            const segunda = new Date(hoje); segunda.setDate(hoje.getDate() - desdeSegunda);
+            const domingo = new Date(segunda); domingo.setDate(segunda.getDate() + 6);
+            const diaHoje = desdeSegunda + 1; // 1..7, segunda = 1
+
+            const tituloEl = document.getElementById('ritmoSemanaTitulo');
+            if (tituloEl) tituloEl.textContent = `${formatDate(segunda)} a ${formatDate(domingo)}`;
+            const periodoEl = document.getElementById('ritmoSemanaPeriodoLabel');
+            if (periodoEl) periodoEl.textContent = 'Semana atual (segunda a domingo)';
+            const hojeLbl = document.getElementById('ritmoSemanaHojeLabel');
+            if (hojeLbl) hojeLbl.textContent = `Hoje: ${DOW_PT[dow]}, dia ${diaHoje} de 7`;
+
+            const diasRestantes = Math.max(0, 7 - diaHoje);
+            const diasFaltamEl = document.getElementById('ritmoSemanaDiasFaltam');
+            if (diasFaltamEl) diasFaltamEl.textContent = `${diasRestantes} dias`;
+            const encerramentoEl = document.getElementById('ritmoSemanaEncerramento');
+            if (encerramentoEl) encerramentoEl.textContent = `Encerramento: ${formatDate(domingo)}`;
+
+            // Meta semanal já cadastrada (não a mensal ÷ 7) — mesma convenção da Evolução Semanal do
+            // Mês: meta individual do corretor filtrado sobrepõe a meta da equipe.
+            const selCorretorFiltroRitmoSem = document.getElementById('filterCorretor').value;
+            const metasCorretorRitmoSem = (selCorretorFiltroRitmoSem && metasPorCorretor[selCorretorFiltroRitmoSem]) ? metasPorCorretor[selCorretorFiltroRitmoSem] : null;
+            const meta = metasCorretorRitmoSem
+                ? (metasCorretorRitmoSem[RITMO_SEMANA_METAS_KEYS[ritmoMetric]] || 0)
+                : (rankingsMetas[RITMO_SEMANA_METAS_KEYS[ritmoMetric]] || 0);
+            const metaFonteEl = document.getElementById('ritmoSemanaMetaFonteLabel');
+            if (metaFonteEl) metaFonteEl.textContent = metasCorretorRitmoSem ? `Meta semanal de ${selCorretorFiltroRitmoSem}` : 'Meta semanal da equipe';
+
+            // Mesma extração de "a linha pertence a essa métrica" já usada no Ritmo do Mês (Análises:
+            // Data Cadastro; Aprovações: data efetiva de aprovação; Vendas: Data Ganho) — só que aqui
+            // sem filtrar por mês comercial, direto pela data cair (ou não) dentro da semana real
+            // corrente.
+            const { linhaDoRow } = getJanelaMesComercial(ritmoMetric);
+            const porDia = new Array(8).fill(0); // índice 1..7, 1 = segunda
+            filteredDataset.forEach(row => {
+                const l = linhaDoRow(row);
+                if (!l.ok) return;
+                const d = parseDate(l.dataRef);
+                if (!d || d < segunda || d > domingo) return;
+                const dia = Math.floor((d - segunda) / 86400000) + 1;
+                if (dia >= 1 && dia <= 7) porDia[dia]++;
+            });
+
+            const labels = [];
+            const realAcumulado = [];
+            const ritmoIdeal = [];
+            let acumulado = 0;
+            for (let d = 1; d <= 7; d++) {
+                const dataDoDia = new Date(segunda);
+                dataDoDia.setDate(dataDoDia.getDate() + (d - 1));
+                labels.push(`${DOW_PT[dataDoDia.getDay()]} ${String(dataDoDia.getDate()).padStart(2, '0')}/${String(dataDoDia.getMonth() + 1).padStart(2, '0')}`);
+                acumulado += porDia[d];
+                realAcumulado.push(d <= diaHoje ? acumulado : null);
+                ritmoIdeal.push((meta * d) / 7);
+            }
+
+            renderRitmoSemanaStats(realAcumulado, diaHoje, meta);
+            renderRitmoSemanaResumo(realAcumulado, diaHoje, meta);
+
+            const ctx = canvas.getContext('2d');
+            charts.ritmoSemana = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Real (acumulado)',
+                            data: realAcumulado,
+                            borderColor: '#38bdf8',
+                            backgroundColor: 'rgba(56, 189, 248, 0.10)',
+                            borderWidth: 3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#38bdf8',
+                            pointHoverRadius: 5,
+                            tension: 0.2,
+                            fill: true,
+                            spanGaps: false
+                        },
+                        {
+                            label: `Ritmo Ideal (meta: ${Math.round(meta)})`,
+                            data: ritmoIdeal,
+                            borderColor: 'rgba(226, 232, 240, 0.55)',
+                            borderWidth: 2,
+                            borderDash: [6, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            tension: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12 } },
+                        tooltip: { callbacks: { title: (items) => items[0].label } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.08)' }, ticks: { color: '#cbd5e1', font: { size: 11 } }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // 4 indicadores resumindo o Ritmo da Semana — mesmo layout do Ritmo do Mês (renderRitmoMesStats), escala de 7 dias em vez do mês inteiro.
+        function renderRitmoSemanaStats(realAcumulado, diaHoje, meta) {
+            const el = document.getElementById('ritmoSemanaStats');
+            if (!el) return;
+            const metricLabel = RITMO_METRIC_LABELS[ritmoMetric] || 'itens';
+            const realHoje = diaHoje > 0 ? (realAcumulado[diaHoje - 1] || 0) : 0;
+            const idealHoje = (meta * diaHoje) / 7;
+            const gap = realHoje - idealHoje;
+            const gapPositivo = gap >= 0;
+            const pctRitmo = idealHoje > 0 ? (realHoje / idealHoje) * 100 : (realHoje > 0 ? 100 : 0);
+            const projecao = diaHoje > 0 ? Math.round((realHoje / diaHoje) * 7) : 0;
+            const pctMeta = meta > 0 ? (projecao / meta) * 100 : 0;
+            const projecaoBate = pctMeta >= 100;
+
+            el.innerHTML = `
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i class="fa-solid fa-bullseye text-slate-500"></i> Ideal até hoje</p>
+                    <p class="text-2xl font-extrabold text-slate-100 mt-1.5">${Math.round(idealHoje)}</p>
+                    <p class="text-[10px] text-slate-500">acumulado na semana</p>
+                </div>
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i class="fa-solid fa-chart-line text-sky-400"></i> Real acumulado</p>
+                    <p class="text-2xl font-extrabold text-sky-400 mt-1.5">${Math.round(realHoje)}</p>
+                    <p class="text-[10px] text-sky-400 mt-2 pt-2 border-t border-slate-800/70">${pctRitmo.toFixed(0)}% do ritmo ideal</p>
+                </div>
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i class="fa-solid ${gapPositivo ? 'fa-arrow-up' : 'fa-arrow-down'} ${gapPositivo ? 'text-brand-500' : 'text-rose-500'}"></i> ${gapPositivo ? 'Adiantamento' : 'Atraso'}</p>
+                    <p class="text-2xl font-extrabold ${gapPositivo ? 'text-brand-400' : 'text-rose-400'} mt-1.5">${gapPositivo ? '+' : ''}${Math.round(gap)}</p>
+                    <p class="text-[10px] text-slate-500">${metricLabel} ${gapPositivo ? 'acima' : 'abaixo'} do ideal</p>
+                </div>
+                <div class="bg-slate-950/50 rounded-xl border border-slate-800/70 p-3.5">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1"><i class="fa-solid fa-flag-checkered text-sky-500"></i> Projeção da semana</p>
+                    <p class="text-2xl font-extrabold text-sky-400 mt-1.5">${Math.round(projecao)}</p>
+                    <p class="text-[10px] ${projecaoBate ? 'text-brand-400' : 'text-amber-400'} mt-2 pt-2 border-t border-slate-800/70">${pctMeta.toFixed(0)}% da meta (${Math.round(meta)})</p>
+                </div>
+            `;
+        }
+
+        // Card lateral "Resumo da Semana" — mesmo padrão do renderRitmoMesResumo, escala de 7 dias.
+        function renderRitmoSemanaResumo(realAcumulado, diaHoje, meta) {
+            const el = document.getElementById('ritmoSemanaResumo');
+            if (!el) return;
+            const metricLabel = RITMO_METRIC_LABELS[ritmoMetric] || 'itens';
+            const realHoje = diaHoje > 0 ? (realAcumulado[diaHoje - 1] || 0) : 0;
+            const diasRestantes = Math.max(0, 7 - diaHoje);
+            const necessarioPorDia = diasRestantes > 0 ? Math.max(0, meta - realHoje) / diasRestantes : 0;
+            const mediaPorDia = diaHoje > 0 ? realHoje / diaHoje : 0;
+
+            el.innerHTML = `
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Resumo da Semana</p>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-regular fa-calendar text-sky-400"></i> Dias da semana</span>
+                            <span class="font-bold text-slate-200">${diaHoje} de 7</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                            <div class="h-full bg-sky-500 rounded-full" style="width:${Math.min(100, (diaHoje / 7) * 100).toFixed(0)}%"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800/70">
+                        <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-bullseye text-slate-500"></i> Meta da semana</span>
+                        <span class="font-bold text-slate-200">${Math.round(meta)} <span class="text-slate-500 font-normal">${metricLabel}</span></span>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800/70">
+                        <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Necessário/dia</span>
+                        <span class="font-bold text-rose-400">${necessarioPorDia.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400 flex items-center gap-1.5"><i class="fa-solid fa-chart-simple text-slate-500"></i> Média atual/dia</span>
+                        <span class="font-bold text-slate-200">${mediaPorDia.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                </div>
+            `;
+        }
+
         // "Evolução Semanal do Mês": mesmo raciocínio de mês comercial do "Ritmo do Mês" (janela
         // REAL, não o calendário — pode começar/acabar fora do dia 1/último dia), mas agrupado por
         // SEMANA em vez de por dia, e com o funil completo (Prospecção→Vendas) em vez de uma
@@ -6647,25 +6988,15 @@
             const periodoEl = document.getElementById('evolucaoSemanalPeriodoLabel');
             if (periodoEl) periodoEl.textContent = `Mês comercial: ${formatDate(inicioReal)} a ${formatDate(fimEstimado)}`;
 
-            // Grupos de semana — mesma regra do renderRitmoMesDiasStrip (nova semana toda
-            // segunda-feira, exceto o dia 1 do mês comercial, que sempre abre a semana 1).
-            const semanas = [];
-            let semanaAtual = null;
-            for (let d = 1; d <= diasNoMes; d++) {
-                const data = new Date(inicioReal);
-                data.setDate(data.getDate() + (d - 1));
-                if (!semanaAtual || data.getDay() === 1) { semanaAtual = []; semanas.push(semanaAtual); }
-                semanaAtual.push(d);
-            }
+            // Grupos de semana — getSemanasMesComercial (mesma função compartilhada usada pela
+            // régua de dias do Ritmo do Mês, pelo Ritmo da Semana e pelo filtro de pills "Semana").
+            const semanasComerciais = getSemanasMesComercial(inicioReal, diasNoMes);
             const diaParaSemanaIdx = new Array(diasNoMes + 1).fill(0);
-            semanas.forEach((dias, wi) => dias.forEach(d => { diaParaSemanaIdx[d] = wi; }));
-            const labelsSemana = semanas.map((dias, wi) => {
-                const primeiro = new Date(inicioReal); primeiro.setDate(primeiro.getDate() + (dias[0] - 1));
-                const ultimo = new Date(inicioReal); ultimo.setDate(ultimo.getDate() + (dias[dias.length - 1] - 1));
-                return `${wi + 1}ª SEM (${String(primeiro.getDate()).padStart(2, '0')}-${String(ultimo.getDate()).padStart(2, '0')})`;
-            });
-            const labelsSemanaCurtos = semanas.map((_, wi) => `${wi + 1}ª`);
-            const numSemanas = semanas.length;
+            semanasComerciais.forEach((s, wi) => s.dias.forEach(x => { diaParaSemanaIdx[x.d] = wi; }));
+            const labelsSemana = semanasComerciais.map(s =>
+                `${s.idx}ª SEM (${String(s.inicio.getDate()).padStart(2, '0')}-${String(s.fim.getDate()).padStart(2, '0')})`);
+            const labelsSemanaCurtos = semanasComerciais.map(s => `${s.idx}ª`);
+            const numSemanas = semanasComerciais.length;
 
             const contagens = {};
             FUNIL_ETAPAS.forEach(e => { contagens[e.key] = new Array(semanas.length).fill(0); });
@@ -6902,6 +7233,7 @@
             renderInsightMes(evolucaoJanela);
             renderAtividadesRecentes();
             renderRitmoMesChart();
+            if (typeof renderRitmoSemanaChart === 'function') renderRitmoSemanaChart();
             if (typeof renderEvolucaoSemanalChart === 'function') renderEvolucaoSemanalChart();
 
             // 1a. TOPO DO FUNIL (Prospecção/Agendamentos/Compareceu) e 1b. MEIO E FIM DO FUNIL
