@@ -6797,6 +6797,8 @@
             renderRitmoSemanaStats(realAcumulado, diaHoje, meta);
             renderRitmoSemanaResumo(realAcumulado, diaHoje, meta);
 
+            const metricLabel = RITMO_METRIC_LABELS[ritmoMetric] || 'itens';
+
             const ctx = canvas.getContext('2d');
             charts.ritmoSemana = new Chart(ctx, {
                 type: 'line',
@@ -6832,6 +6834,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: { padding: { top: 46, right: 70 } },
                     plugins: {
                         legend: { labels: { color: '#f1f5f9', font: { size: 11, weight: 'bold' }, padding: 12 } },
                         tooltip: { callbacks: { title: (items) => items[0].label } }
@@ -6840,7 +6843,100 @@
                         x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
                         y: { grid: { color: 'rgba(255, 255, 255, 0.08)' }, ticks: { color: '#cbd5e1', font: { size: 11 } }, beginAtZero: true }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'ritmoSemanaCallouts',
+                    // Mesmo balão "valor de hoje" (verde) + "meta final" (cinza) desenhados à mão no
+                    // Ritmo do Mês (ritmoCallouts) — replicado aqui pra escala de 7 dias, pra manter
+                    // os dois gráficos com a mesma linguagem visual.
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        const realMeta = chart.getDatasetMeta(0);
+                        const idealMeta = chart.getDatasetMeta(1);
+                        ctx.save();
+                        ctx.textBaseline = 'alphabetic';
+
+                        if (diaHoje >= 1 && diaHoje <= 7) {
+                            const point = realMeta.data[diaHoje - 1];
+                            if (point) {
+                                const valorHoje = Math.round(realAcumulado[diaHoje - 1] || 0);
+                                ctx.fillStyle = '#38bdf8';
+                                ctx.beginPath();
+                                ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+                                ctx.fill();
+                                ctx.strokeStyle = '#0b1220';
+                                ctx.lineWidth = 2;
+                                ctx.stroke();
+
+                                const linha1 = String(valorHoje);
+                                const linha2 = `${metricLabel} (semana)`;
+                                ctx.font = 'bold 13px "Plus Jakarta Sans", sans-serif';
+                                const w1 = ctx.measureText(linha1).width;
+                                ctx.font = '600 9px "Plus Jakarta Sans", sans-serif';
+                                const w2 = ctx.measureText(linha2).width;
+                                const boxW = Math.max(w1, w2) + 20;
+                                const boxH = 38;
+                                let boxX = point.x - boxW / 2;
+                                boxX = Math.max(2, Math.min(boxX, chart.width - boxW - 2));
+                                let boxY = point.y - boxH - 16;
+                                if (boxY < 2) boxY = point.y + 14;
+
+                                ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+                                ctx.strokeStyle = '#38bdf8';
+                                ctx.lineWidth = 1.5;
+                                ctx.beginPath();
+                                ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+                                ctx.fill();
+                                ctx.stroke();
+
+                                ctx.textAlign = 'center';
+                                ctx.fillStyle = '#7dd3fc';
+                                ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+                                ctx.fillText(linha1, boxX + boxW / 2, boxY + 17);
+                                ctx.fillStyle = '#bae6fd';
+                                ctx.font = '600 9px "Plus Jakarta Sans", sans-serif';
+                                ctx.fillText(linha2, boxX + boxW / 2, boxY + 30);
+                            }
+                        }
+
+                        const pontoFinal = idealMeta.data[idealMeta.data.length - 1];
+                        if (pontoFinal) {
+                            ctx.fillStyle = '#0b1220';
+                            ctx.beginPath();
+                            ctx.arc(pontoFinal.x, pontoFinal.y, 4, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.strokeStyle = 'rgba(226, 232, 240, 0.7)';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+
+                            const rotulo = String(Math.round(meta));
+                            ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
+                            const boxW = Math.max(ctx.measureText(rotulo).width, 55) + 16;
+                            const boxH = 32;
+                            let boxX = pontoFinal.x - boxW - 8;
+                            if (boxX < 2) boxX = pontoFinal.x + 8;
+                            let boxY = Math.max(2, Math.min(pontoFinal.y - boxH / 2, chart.height - boxH - 2));
+
+                            ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+                            ctx.strokeStyle = 'rgba(226, 232, 240, 0.4)';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.roundRect(boxX, boxY, boxW, boxH, 8);
+                            ctx.fill();
+                            ctx.stroke();
+
+                            ctx.textAlign = 'center';
+                            ctx.fillStyle = '#f1f5f9';
+                            ctx.font = 'bold 13px "Plus Jakarta Sans", sans-serif';
+                            ctx.fillText(rotulo, boxX + boxW / 2, boxY + 14);
+                            ctx.fillStyle = '#94a3b8';
+                            ctx.font = '600 8px "Plus Jakarta Sans", sans-serif';
+                            ctx.fillText('meta final', boxX + boxW / 2, boxY + 26);
+                        }
+
+                        ctx.restore();
+                    }
+                }]
             });
         }
 
