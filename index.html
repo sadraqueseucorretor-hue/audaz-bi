@@ -379,6 +379,18 @@
                                 <span id="funnelMesDivergenciaTexto"></span>
                             </div>
 
+                            <!-- Aviso: aparece só quando um corretor específico está filtrado (topo) E
+                                 ele tem ZERO produção em todas as 6 etapas no mês comercial atual — o
+                                 funil continua mostrando o mês corrente (consistente pra comparar a
+                                 equipe inteira), mas sem isso um corretor que só tem histórico em meses
+                                 anteriores parecia "zerado/quebrado" em vez de "ainda sem produção este
+                                 mês". Só aparece quando NENHUM mês manual está selecionado nas pills
+                                 (aí sim o usuário escolheu deliberadamente ver um mês vazio). -->
+                            <div id="funnelCorretorSemProducaoAviso" class="hidden items-start gap-2 mb-2 pb-2 border-b border-slate-800/60 text-[11px] text-sky-300">
+                                <i class="fa-regular fa-circle-info text-sky-400 mt-0.5 shrink-0"></i>
+                                <span id="funnelCorretorSemProducaoTexto"></span>
+                            </div>
+
                             <!-- Produtividade de Hoje: contagem do dia atual em cada etapa (diferente
                                  do resto do funil, que é sempre acumulado do mês comercial) -->
                             <div class="flex flex-wrap items-center gap-2 mb-2 pb-2 border-b border-slate-800/60" id="funnelHojeStrip"></div>
@@ -5660,6 +5672,26 @@
                     avisoEl.classList.remove('hidden'); avisoEl.classList.add('flex');
                 } else {
                     avisoEl.classList.add('hidden'); avisoEl.classList.remove('flex');
+                }
+            }
+
+            // Aviso de corretor sem produção no mês corrente: o funil sempre mostra o mês comercial
+            // ATUAL (consistente pra comparar a equipe inteira) — mas se um corretor específico está
+            // filtrado e ele simplesmente ainda não produziu nada esse mês (comum logo que o mês
+            // vira), o funil inteiro zerado parecia bug em vez de "ele só tem histórico em meses
+            // anteriores". Só aparece sem mês manual selecionado (mesma condição do aviso acima) e
+            // com as 6 etapas zeradas ao mesmo tempo.
+            const avisoCorretorEl = document.getElementById('funnelCorretorSemProducaoAviso');
+            const avisoCorretorTextoEl = document.getElementById('funnelCorretorSemProducaoTexto');
+            if (avisoCorretorEl && avisoCorretorTextoEl) {
+                const semProducao = selCorretorFiltroFunil && !getReferenceMesComercial()
+                    && prospeccao === 0 && agendamentos === 0 && compareceu === 0
+                    && analyses === 0 && approvals === 0 && sales === 0;
+                if (semProducao) {
+                    avisoCorretorTextoEl.textContent = `${selCorretorFiltroFunil} ainda não tem nenhuma produção lançada em ${janelaAnalises.mesNome}/${janelaAnalises.ano} (mês comercial atual). Selecione outro mês no filtro "Mês Comercial" acima pra ver o histórico dele.`;
+                    avisoCorretorEl.classList.remove('hidden'); avisoCorretorEl.classList.add('flex');
+                } else {
+                    avisoCorretorEl.classList.add('hidden'); avisoCorretorEl.classList.remove('flex');
                 }
             }
 
