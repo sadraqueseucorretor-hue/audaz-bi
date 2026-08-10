@@ -6999,7 +6999,7 @@
             const numSemanas = semanasComerciais.length;
 
             const contagens = {};
-            FUNIL_ETAPAS.forEach(e => { contagens[e.key] = new Array(semanas.length).fill(0); });
+            FUNIL_ETAPAS.forEach(e => { contagens[e.key] = new Array(semanasComerciais.length).fill(0); });
             const somarPorDia = (dataStr, key) => {
                 const d = parseDate(dataStr);
                 if (!d) return;
