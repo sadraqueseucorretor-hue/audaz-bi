@@ -184,6 +184,9 @@
                         <button onclick="switchView('corretor')" id="navLinkCorretor" title="Painel do Corretor" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-user text-sky-400"></i><span class="hidden lg:inline">Corretor</span>
                         </button>
+                        <button onclick="switchView('plantoes')" id="navLinkPlantoes" title="Plantões (Diamond / Roleta / Represados)" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-clipboard-list text-violet-400"></i><span class="hidden lg:inline">Plantões</span>
+                        </button>
                     </nav>
 
                     <!-- Dynamic Live-Sync Indicator -->
@@ -949,6 +952,38 @@
                     </div>
                 </div>
 
+                <!-- ABA PLANTÕES: organização/consulta de 3 escalas independentes (Diamond, Roleta,
+                     Represados), cada uma com uma fila ORDENADA de corretores por dia. Só
+                     organização/consulta por enquanto — não conta nada, não liga com Prospecção. -->
+                <div id="plantoesSection" class="hidden space-y-4">
+                    <div class="flex items-center justify-between flex-wrap gap-3">
+                        <div>
+                            <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-list text-violet-400"></i> Plantões
+                            </h2>
+                            <p class="text-xs text-slate-500">Escala de plantão por dia — cada dia tem uma fila ordenada de corretores (1º, 2º, 3º...).</p>
+                        </div>
+                        <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
+                            <button onclick="setEscalaAtiva('diamond')" id="escalaBtn-diamond" class="escala-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Diamond</button>
+                            <button onclick="setEscalaAtiva('roleta')" id="escalaBtn-roleta" class="escala-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Roleta</button>
+                            <button onclick="setEscalaAtiva('represados')" id="escalaBtn-represados" class="escala-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Represados</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+                            <div class="flex items-center gap-2">
+                                <button onclick="mudarMesPlantao(-1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                                <p class="text-sm font-bold text-slate-100 w-32 text-center" id="plantaoMesLabel">—</p>
+                                <button onclick="mudarMesPlantao(1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                                <button onclick="mudarMesPlantao(0)" class="text-[11px] font-bold text-brand-400 hover:text-brand-300 transition px-2">Hoje</button>
+                            </div>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest" id="escalaAtivaLabel">Escala Diamond</span>
+                        </div>
+                        <div class="space-y-1.5" id="plantoesLista"></div>
+                    </div>
+                </div>
+
                 <!-- CALENDÁRIO DE PRODUÇÃO / MAPA DE CALOR OPERACIONAL (inline no painel, sempre visível) -->
                 <div id="calendarView" class="space-y-6 pt-5 mt-2 border-t border-slate-800/60">
 
@@ -1616,6 +1651,23 @@
         }
         function getMesComercialConfig(nome, ano) {
             return mesesComerciais.find(m => m.nome === nome && m.ano === ano) || null;
+        }
+
+        // ====== PLANTÕES: 3 escalas independentes (Diamond / Roleta / Represados), cada uma com uma
+        // fila ORDENADA de corretores por dia (formato { 'YYYY-MM-DD': ['Nome 1º', 'Nome 2º', ...] }).
+        // Só organização/consulta por enquanto — não conta nada, não liga com Prospecção/Funil.
+        let escalasPlantao = { diamond: {}, roleta: {}, represados: {} };
+        function loadEscalasPlantao() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`${appId}-escalas-plantao`) || 'null');
+                if (saved && typeof saved === 'object') {
+                    escalasPlantao = Object.assign({ diamond: {}, roleta: {}, represados: {} }, saved);
+                }
+            } catch (e) {}
+        }
+        function saveEscalasPlantao() {
+            localStorage.setItem(`${appId}-escalas-plantao`, JSON.stringify(escalasPlantao));
+            pushCloudSettings();
         }
 
         // Se existe um mês comercial CONFIGURADO (painel "Meses Comerciais") cujo período cobre a
@@ -3631,28 +3683,34 @@
             const linkCalendar = document.getElementById('navLinkCalendar');
             const linkRankings = document.getElementById('navLinkRankings');
             const linkCorretor = document.getElementById('navLinkCorretor');
+            const linkPlantoes = document.getElementById('navLinkPlantoes');
             if (linkDashboard) linkDashboard.className = viewName === 'dashboard' ? onCls : offCls;
             if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
             if (linkRankings) linkRankings.className = viewName === 'rankings' ? onCls : offCls;
             if (linkCorretor) linkCorretor.className = viewName === 'corretor' ? onCls : offCls;
+            if (linkPlantoes) linkPlantoes.className = viewName === 'plantoes' ? onCls : offCls;
 
-            // "Rankings" e "Corretor" são telas dedicadas (escondem todo o resto do Painel — Hero,
-            // KPIs, Funil, Calendário — que hoje é inline aqui dentro — e mostram só a própria
-            // seção). Nas outras views (dashboard/calendar) as duas somem, pra não duplicar
+            // "Rankings", "Corretor" e "Plantões" são telas dedicadas (escondem todo o resto do
+            // Painel — Hero, KPIs, Funil, Calendário — que hoje é inline aqui dentro — e mostram só a
+            // própria seção). Nas outras views (dashboard/calendar) as três somem, pra não duplicar
             // conteúdo — Calendário só rola até #calendarView, mantendo o resto visível.
             const dashboardViewEl = document.getElementById('dashboardView');
             const quickSection = document.getElementById('quickRankingsSection');
             const corretorSection = document.getElementById('corretorSection');
+            const plantoesSection = document.getElementById('plantoesSection');
+            const secoesDedicadas = ['rankings', 'corretor', 'plantoes'];
             if (dashboardViewEl) {
                 Array.from(dashboardViewEl.children).forEach(child => {
                     if (child === quickSection) { child.classList.toggle('hidden', viewName !== 'rankings'); return; }
                     if (child === corretorSection) { child.classList.toggle('hidden', viewName !== 'corretor'); return; }
-                    child.classList.toggle('hidden', viewName === 'rankings' || viewName === 'corretor');
+                    if (child === plantoesSection) { child.classList.toggle('hidden', viewName !== 'plantoes'); return; }
+                    child.classList.toggle('hidden', secoesDedicadas.includes(viewName));
                 });
             }
             const filtersBar = document.getElementById('filtersBar');
             if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings');
             if (viewName === 'corretor') renderCorretorCards();
+            if (viewName === 'plantoes') setEscalaAtiva(escalaAtiva);
 
             const sb = document.getElementById('sidebar');
             if (sb) {
@@ -3665,9 +3723,139 @@
                 }
             }
 
-            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : (viewName === 'corretor' ? 'corretorSection' : 'dashboardView'));
+            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : (viewName === 'corretor' ? 'corretorSection' : (viewName === 'plantoes' ? 'plantoesSection' : 'dashboardView')));
             const target = document.getElementById(targetId);
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ====== PLANTÕES: renderização e edição das 3 escalas (Diamond/Roleta/Represados) ======
+        let escalaAtiva = 'diamond';
+        let plantaoMesRef = new Date();
+        let expandedDiaPlantao = null; // 'YYYY-MM-DD' do dia com o editor aberto, ou null
+
+        function setEscalaAtiva(key) {
+            escalaAtiva = key;
+            expandedDiaPlantao = null;
+            const NOMES = { diamond: 'Diamond', roleta: 'Roleta', represados: 'Represados' };
+            ['diamond', 'roleta', 'represados'].forEach(k => {
+                const btn = document.getElementById('escalaBtn-' + k);
+                if (!btn) return;
+                btn.className = 'escala-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (k === key ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-slate-200');
+            });
+            const labelEl = document.getElementById('escalaAtivaLabel');
+            if (labelEl) labelEl.textContent = `Escala ${NOMES[key]}`;
+            renderPlantoes();
+        }
+
+        function mudarMesPlantao(delta) {
+            plantaoMesRef = delta === 0
+                ? new Date()
+                : new Date(plantaoMesRef.getFullYear(), plantaoMesRef.getMonth() + delta, 1);
+            expandedDiaPlantao = null;
+            renderPlantoes();
+        }
+
+        function plantaoDataISO(ano, mesIdx, dia) {
+            return `${ano}-${String(mesIdx + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        }
+
+        function toggleEditarDiaPlantao(iso) {
+            expandedDiaPlantao = (expandedDiaPlantao === iso) ? null : iso;
+            renderPlantoes();
+        }
+
+        // Lista suspensa "+ Adicionar corretor" (só ativos, excluindo quem já está na fila desse
+        // dia) + a própria fila com setas ▲▼ pra reordenar e ✕ pra remover — sem drag-and-drop, mais
+        // simples de usar e de testar.
+        function renderEditorDiaPlantao(iso, fila) {
+            const disponiveis = getActiveCorretores().filter(n => !fila.includes(n));
+            return `
+                <div class="mt-2 pt-2 border-t border-slate-800/60 flex flex-col gap-1.5" onclick="event.stopPropagation()">
+                    ${fila.map((nome, idx) => `
+                        <div class="flex items-center gap-2 bg-slate-900/60 rounded-lg px-2 py-1">
+                            <span class="text-violet-400 font-extrabold text-xs w-6 shrink-0">${idx + 1}º</span>
+                            <span class="flex-1 min-w-0 truncate text-xs font-semibold text-slate-200">${nome}</span>
+                            <button onclick="moverPlantaoDia('${iso}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="h-6 w-6 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-up text-[10px]"></i></button>
+                            <button onclick="moverPlantaoDia('${iso}', ${idx}, 1)" ${idx === fila.length - 1 ? 'disabled' : ''} class="h-6 w-6 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-down text-[10px]"></i></button>
+                            <button onclick="removerPlantaoDia('${iso}', ${idx})" class="h-6 w-6 shrink-0 rounded text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                        </div>`).join('')}
+                    <div class="flex items-center gap-2 mt-1">
+                        <select id="plantaoAddSelect-${iso}" class="flex-1 bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
+                            <option value="">+ Adicionar corretor à fila...</option>
+                            ${disponiveis.map(n => `<option value="${n}">${n}</option>`).join('')}
+                        </select>
+                        <button onclick="adicionarPlantaoDia('${iso}')" class="text-xs font-bold text-brand-400 hover:text-brand-300 transition px-2 shrink-0">Add</button>
+                    </div>
+                </div>`;
+        }
+
+        function adicionarPlantaoDia(iso) {
+            const sel = document.getElementById(`plantaoAddSelect-${iso}`);
+            const nome = sel ? sel.value : '';
+            if (!nome) return;
+            if (!escalasPlantao[escalaAtiva][iso]) escalasPlantao[escalaAtiva][iso] = [];
+            if (!escalasPlantao[escalaAtiva][iso].includes(nome)) escalasPlantao[escalaAtiva][iso].push(nome);
+            saveEscalasPlantao();
+            renderPlantoes();
+        }
+
+        function removerPlantaoDia(iso, idx) {
+            const fila = escalasPlantao[escalaAtiva][iso];
+            if (!fila) return;
+            fila.splice(idx, 1);
+            if (fila.length === 0) delete escalasPlantao[escalaAtiva][iso];
+            saveEscalasPlantao();
+            renderPlantoes();
+        }
+
+        function moverPlantaoDia(iso, idx, direcao) {
+            const fila = escalasPlantao[escalaAtiva][iso];
+            if (!fila) return;
+            const novoIdx = idx + direcao;
+            if (novoIdx < 0 || novoIdx >= fila.length) return;
+            [fila[idx], fila[novoIdx]] = [fila[novoIdx], fila[idx]];
+            saveEscalasPlantao();
+            renderPlantoes();
+        }
+
+        // Lista vertical com 1 linha por dia do mês exibido: data + dia da semana, a fila ordenada
+        // (chips numerados) e um lápis pra abrir/fechar o editor daquele dia especificamente.
+        function renderPlantoes() {
+            const labelEl = document.getElementById('plantaoMesLabel');
+            const ano = plantaoMesRef.getFullYear(), mesIdx = plantaoMesRef.getMonth();
+            const nomeMes = getMesName(mesIdx + 1);
+            if (labelEl) labelEl.textContent = `${nomeMes.charAt(0).toUpperCase()}${nomeMes.slice(1)}/${ano}`;
+            const listaEl = document.getElementById('plantoesLista');
+            if (!listaEl) return;
+
+            const diasNoMes = new Date(ano, mesIdx + 1, 0).getDate();
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            const escala = escalasPlantao[escalaAtiva] || {};
+
+            listaEl.innerHTML = Array.from({ length: diasNoMes }, (_, i) => i + 1).map(d => {
+                const dataObj = new Date(ano, mesIdx, d);
+                const iso = plantaoDataISO(ano, mesIdx, d);
+                const fila = escala[iso] || [];
+                const ehHoje = dataObj.getTime() === hoje.getTime();
+                const expandido = expandedDiaPlantao === iso;
+                return `
+                    <div class="rounded-lg border ${ehHoje ? 'border-brand-500/50 bg-brand-500/5' : 'border-slate-800/70 bg-slate-950/40'} px-3 py-2">
+                        <div class="flex items-center gap-3 cursor-pointer" onclick="toggleEditarDiaPlantao('${iso}')">
+                            <div class="w-11 shrink-0 text-center">
+                                <p class="text-sm font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'}">${String(d).padStart(2, '0')}</p>
+                                <p class="text-[9px] font-bold text-slate-500 uppercase">${DOW_PT[dataObj.getDay()]}</p>
+                            </div>
+                            <div class="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
+                                ${fila.length ? fila.map((nome, idx) => `
+                                    <span class="inline-flex items-center gap-1 bg-slate-800/70 border border-slate-700 rounded-full px-2 py-0.5 text-[11px] font-semibold text-slate-200">
+                                        <span class="text-violet-400 font-extrabold">${idx + 1}º</span> ${nome}
+                                    </span>`).join('') : '<span class="text-[11px] text-slate-600 italic">Sem plantão definido</span>'}
+                            </div>
+                            <i class="fa-solid ${expandido ? 'fa-chevron-up' : 'fa-pen'} text-slate-500 text-xs shrink-0"></i>
+                        </div>
+                        ${expandido ? renderEditorDiaPlantao(iso, fila) : ''}
+                    </div>`;
+            }).join('');
         }
 
         // Oculta / mostra a barra lateral (mais espaço para o painel). Persiste no navegador.
@@ -3689,6 +3877,7 @@
             loadRankingsMetas();
             loadMetasPorCorretor();
             loadMesesComerciais();
+            loadEscalasPlantao();
             if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
                 const sb = document.getElementById('sidebar');
                 if (sb) sb.style.display = 'none';
@@ -3897,6 +4086,7 @@
                 if (typeof data.gsheetsUrl === 'string' && data.gsheetsUrl) { googleSheetsUrl = data.gsheetsUrl; localStorage.setItem(`${appId}-gsheets-url`, googleSheetsUrl); }
                 if (typeof data.agendaGsheetsUrl === 'string' && data.agendaGsheetsUrl) { agendaGsheetsUrl = data.agendaGsheetsUrl; localStorage.setItem(`${appId}-agenda-gsheets-url`, agendaGsheetsUrl); }
                 if (Array.isArray(data.mesesComerciais)) { mesesComerciais = data.mesesComerciais; localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais)); }
+                if (data.escalasPlantao && typeof data.escalasPlantao === 'object') { escalasPlantao = Object.assign({ diamond: {}, roleta: {}, represados: {} }, data.escalasPlantao); localStorage.setItem(`${appId}-escalas-plantao`, JSON.stringify(escalasPlantao)); }
                 if (data.prospeccaoPorMes && typeof data.prospeccaoPorMes === 'object') {
                     const cloudMeses = data.prospeccaoPorMes;
                     // Remove localmente os meses que não existem mais na nuvem (outro dispositivo
@@ -3969,6 +4159,7 @@
                     gsheetsUrl: googleSheetsUrl,
                     agendaGsheetsUrl: agendaGsheetsUrl,
                     mesesComerciais: mesesComerciais,
+                    escalasPlantao: escalasPlantao,
                     _updatedAt: Date.now()
                 };
                 // Prospecção (todos os meses juntos) só entra na sincronização se couber com
