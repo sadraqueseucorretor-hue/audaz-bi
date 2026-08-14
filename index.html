@@ -973,7 +973,7 @@
                     </div>
 
                     <div class="overflow-x-auto pb-2">
-                        <div class="grid grid-cols-7 gap-3 min-w-[1750px]" id="plantoesSemanaGrid"></div>
+                        <div class="grid grid-cols-7 gap-2 min-w-[1450px]" id="plantoesSemanaGrid"></div>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
@@ -3952,27 +3952,27 @@
             const vagas = vagasPorEscala[escalaDef.key];
             const fila = escalasPlantao[escalaDef.key][iso] || [];
             return `
-                <div class="px-4 py-3 cursor-pointer hover:bg-slate-800/30 transition" onclick="abrirPlantaoDiaModal('${escalaDef.key}', '${iso}')">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-extrabold uppercase tracking-wide ${escalaDef.text}">${escalaDef.label}</span>
-                        <span class="text-[10px] font-bold text-slate-500">${fila.length}/${vagas} vagas</span>
+                <div class="px-3 py-2.5 cursor-pointer hover:bg-slate-800/30 transition" onclick="abrirPlantaoDiaModal('${escalaDef.key}', '${iso}')">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-extrabold uppercase tracking-wide ${escalaDef.text}">${escalaDef.label}</span>
+                        <span class="text-[9px] font-bold text-slate-500">${fila.length}/${vagas} vagas</span>
                     </div>
                     ${fila.length ? `
-                    <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-2">
                         ${fila.map((pessoa, idx) => `
-                            <div class="flex items-start gap-2 min-w-0">
-                                <span class="text-xs font-extrabold ${escalaDef.text} w-5 shrink-0 pt-1.5">${idx + 1}º</span>
-                                ${corretorAvatarInner(pessoa.nome, 'h-8 w-8', 'text-[10px]', 'shrink-0 mt-0.5')}
+                            <div class="flex items-start gap-1.5 min-w-0">
+                                <span class="text-[11px] font-extrabold ${escalaDef.text} w-4 shrink-0 pt-1">${idx + 1}º</span>
+                                ${corretorAvatarInner(pessoa.nome, 'h-6 w-6', 'text-[9px]', 'shrink-0')}
                                 <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-semibold text-slate-100 leading-tight break-words">${pessoa.nome}</p>
-                                    <span class="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</span>
+                                    <p class="text-xs font-semibold text-slate-100 leading-tight break-words">${pessoa.nome}</p>
+                                    <span class="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</span>
                                 </div>
                             </div>`).join('')}
                     </div>` : `
-                    <div class="flex flex-col items-center justify-center gap-1 py-3 text-slate-700">
-                        <i class="fa-solid ${escalaDef.icon} text-xl opacity-40 ${escalaDef.text}"></i>
-                        <span class="text-[11px] font-semibold text-slate-600">Sem escala</span>
-                        <span class="text-slate-700">—</span>
+                    <div class="flex flex-col items-center justify-center gap-0.5 py-2 text-slate-700">
+                        <i class="fa-solid ${escalaDef.icon} text-base opacity-40 ${escalaDef.text}"></i>
+                        <span class="text-[10px] font-semibold text-slate-600">Sem escala</span>
+                        <span class="text-slate-700 text-xs">—</span>
                     </div>`}
                 </div>`;
         }
@@ -4001,12 +4001,12 @@
                 const ehFimDeSemana = i >= 5; // 5=sábado, 6=domingo
                 return `
                     <div class="bg-slate-900/40 rounded-2xl border-2 ${ehHoje ? 'border-brand-500' : 'border-slate-800'} flex flex-col overflow-hidden">
-                        <div class="px-4 py-3 border-b border-slate-800/70 flex items-center justify-between">
+                        <div class="px-3 py-2 border-b border-slate-800/70 flex items-center justify-between">
                             <div>
-                                <p class="text-sm font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'} uppercase tracking-wide">${DIAS_NOMES[i]}</p>
-                                <p class="text-xs text-slate-500">${String(dataObj.getDate()).padStart(2, '0')}/${String(dataObj.getMonth() + 1).padStart(2, '0')}</p>
+                                <p class="text-xs font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'} uppercase tracking-wide">${DIAS_NOMES[i]}</p>
+                                <p class="text-[10px] text-slate-500">${String(dataObj.getDate()).padStart(2, '0')}/${String(dataObj.getMonth() + 1).padStart(2, '0')}</p>
                             </div>
-                            <i class="fa-solid ${ehFimDeSemana ? 'fa-ban text-slate-700' : 'fa-crown text-amber-400'} text-base"></i>
+                            <i class="fa-solid ${ehFimDeSemana ? 'fa-ban text-slate-700' : 'fa-crown text-amber-400'} text-sm"></i>
                         </div>
                         <div class="flex-1 flex flex-col divide-y divide-slate-800/60">
                             ${ESCALAS_PLANTAO_DEF.map(e => plantaoEscalaBlocoHTML(e, iso)).join('')}
