@@ -968,9 +968,7 @@
                             <p class="text-sm font-bold text-slate-100 w-40 text-center" id="plantaoSemanaLabel">—</p>
                             <button onclick="mudarSemanaPlantao(1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-right text-xs"></i></button>
                             <button onclick="mudarSemanaPlantao(0)" class="text-[11px] font-bold text-brand-400 hover:text-brand-300 transition px-2">Hoje</button>
-                            <span id="plantaoHorarioWrap">
-                                <button onclick="toggleEditarHorarioPadrao()" title="Editar horário padrão dos dias úteis" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-regular fa-clock text-xs"></i></button>
-                            </span>
+                            <button onclick="abrirPlantaoVagasModal()" title="Editar capacidade máxima de cada escala" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-sliders text-xs"></i></button>
                         </div>
                     </div>
 
@@ -1414,6 +1412,39 @@
                 </div>
             </div>
             <div id="plantaoDiaModalConteudo"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: CAPACIDADE MÁXIMA DE CADA ESCALA (Diamond/Roleta/Represados) -->
+    <div id="plantaoVagasModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-6 relative shadow-2xl">
+            <button onclick="fecharPlantaoVagasModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-5">
+                <div class="h-10 w-10 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-center justify-center text-violet-400">
+                    <i class="fa-solid fa-sliders text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-slate-200">Capacidade das Escalas</h4>
+                    <p class="text-xs text-slate-500">Número máximo de vagas por dia em cada escala</p>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-violet-400 uppercase mb-1.5">Diamond</label>
+                    <input type="number" min="0" id="vagasInputDiamond" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500 transition">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-emerald-400 uppercase mb-1.5">Roleta</label>
+                    <input type="number" min="0" id="vagasInputRoleta" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500 transition">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-amber-400 uppercase mb-1.5">Represados</label>
+                    <input type="number" min="0" id="vagasInputRepresados" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500 transition">
+                </div>
+            </div>
+            <button onclick="salvarVagasPorEscala()" class="w-full mt-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-lg transition">Salvar</button>
         </div>
     </div>
 
@@ -3751,52 +3782,42 @@
             { key: 'roleta', label: 'Roleta', text: 'text-emerald-400' },
             { key: 'represados', label: 'Represados', text: 'text-amber-400' }
         ];
-        const VAGAS_POR_ESCALA = { diamond: 3, roleta: 2, represados: 1 };
+        // Capacidade máxima por escala — era fixa (Diamond=3/Roleta=2/Represados=1), agora
+        // editável pelo diretor no modal "Capacidade das Escalas". Reduzir a capacidade abaixo do
+        // que já está preenchido num dia NÃO remove ninguém da fila (evita perder dado real) — só
+        // trava novas adições e o contador mostra "4/3 vagas" até alguém tirar manualmente.
+        let vagasPorEscala = { diamond: 3, roleta: 2, represados: 1 };
+        function loadVagasPorEscala() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`${appId}-vagas-por-escala`) || 'null');
+                if (saved && typeof saved === 'object') vagasPorEscala = Object.assign({ diamond: 3, roleta: 2, represados: 1 }, saved);
+            } catch (e) {}
+        }
+        function abrirPlantaoVagasModal() {
+            document.getElementById('vagasInputDiamond').value = vagasPorEscala.diamond;
+            document.getElementById('vagasInputRoleta').value = vagasPorEscala.roleta;
+            document.getElementById('vagasInputRepresados').value = vagasPorEscala.represados;
+            document.getElementById('plantaoVagasModal').classList.remove('hidden');
+        }
+        function fecharPlantaoVagasModal() {
+            document.getElementById('plantaoVagasModal').classList.add('hidden');
+        }
+        function salvarVagasPorEscala() {
+            const lerNum = (id) => Math.max(0, parseInt(document.getElementById(id).value, 10) || 0);
+            vagasPorEscala = {
+                diamond: lerNum('vagasInputDiamond'),
+                roleta: lerNum('vagasInputRoleta'),
+                represados: lerNum('vagasInputRepresados')
+            };
+            localStorage.setItem(`${appId}-vagas-por-escala`, JSON.stringify(vagasPorEscala));
+            pushCloudSettings();
+            fecharPlantaoVagasModal();
+            renderPlantoes();
+        }
 
         let plantaoSemanaRef = new Date();
         let plantaoModalEscala = null; // chave da escala aberta no modal, ou null
         let plantaoModalIso = null; // 'YYYY-MM-DD' do dia aberto no modal, ou null
-        let plantaoHorarioPadrao = '09:00 às 21:00'; // horário mostrado em todo dia útil (fins de semana sempre "-")
-
-        function loadPlantaoHorarioPadrao() {
-            try {
-                const saved = localStorage.getItem(`${appId}-plantao-horario-padrao`);
-                if (saved) plantaoHorarioPadrao = saved;
-            } catch (e) {}
-        }
-        // Editor inline do horário padrão (troca o botão-relógio por um campo de texto + OK) — sem
-        // prompt() nativo, pra ficar consistente com o resto do app (que sempre usa campos/modais
-        // próprios em vez de diálogos do navegador).
-        let editandoHorarioPadraoPlantao = false;
-        function toggleEditarHorarioPadrao() {
-            editandoHorarioPadraoPlantao = !editandoHorarioPadraoPlantao;
-            renderPlantaoHorarioWrap();
-        }
-        function renderPlantaoHorarioWrap() {
-            const wrap = document.getElementById('plantaoHorarioWrap');
-            if (!wrap) return;
-            if (editandoHorarioPadraoPlantao) {
-                wrap.innerHTML = `
-                    <input id="plantaoHorarioInput" type="text" value="${plantaoHorarioPadrao}" placeholder="09:00 às 21:00" onkeydown="if(event.key==='Enter') salvarHorarioPadraoPlantao()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-300 outline-none focus:border-brand-500 transition w-36">
-                    <button onclick="salvarHorarioPadraoPlantao()" class="h-8 px-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition">OK</button>`;
-                const inp = document.getElementById('plantaoHorarioInput');
-                if (inp) { inp.focus(); inp.select(); }
-            } else {
-                wrap.innerHTML = `<button onclick="toggleEditarHorarioPadrao()" title="Editar horário padrão dos dias úteis" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-regular fa-clock text-xs"></i></button>`;
-            }
-        }
-        function salvarHorarioPadraoPlantao() {
-            const inp = document.getElementById('plantaoHorarioInput');
-            const v = inp ? inp.value.trim() : '';
-            if (v) {
-                plantaoHorarioPadrao = v;
-                localStorage.setItem(`${appId}-plantao-horario-padrao`, plantaoHorarioPadrao);
-                pushCloudSettings();
-            }
-            editandoHorarioPadraoPlantao = false;
-            renderPlantaoHorarioWrap();
-            renderPlantoes();
-        }
 
         function mudarSemanaPlantao(delta) {
             plantaoSemanaRef = delta === 0
@@ -3836,7 +3857,7 @@
             if (tituloEl) tituloEl.textContent = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano} — ${DOW_PT[dataObj.getDay()]}`;
             if (subtituloEl) subtituloEl.textContent = `Escala ${escalaDef.label}`;
 
-            const vagas = VAGAS_POR_ESCALA[escalaKey];
+            const vagas = vagasPorEscala[escalaKey];
             const fila = escalasPlantao[escalaKey][iso] || [];
             const nomesNaFila = fila.map(p => p.nome);
             const disponiveis = getActiveCorretores().filter(n => !nomesNaFila.includes(n));
@@ -3883,7 +3904,7 @@
             if (!nome) return;
             if (!escalasPlantao[escalaKey][iso]) escalasPlantao[escalaKey][iso] = [];
             const fila = escalasPlantao[escalaKey][iso];
-            if (fila.length >= VAGAS_POR_ESCALA[escalaKey]) { showToast('Vagas completas pra essa escala nesse dia.', true); return; }
+            if (fila.length >= vagasPorEscala[escalaKey]) { showToast('Vagas completas pra essa escala nesse dia.', true); return; }
             if (!fila.some(p => p.nome === nome)) fila.push({ nome, confirmado: false });
             saveEscalasPlantao();
             renderPlantaoDiaModalConteudo();
@@ -3915,7 +3936,7 @@
         // vaga (preenchida = avatar+nome+status; vazia = "–"). Clicar em qualquer lugar do bloco
         // abre o modal de edição dessa escala nesse dia.
         function plantaoEscalaBlocoHTML(escalaDef, iso) {
-            const vagas = VAGAS_POR_ESCALA[escalaDef.key];
+            const vagas = vagasPorEscala[escalaDef.key];
             const fila = escalasPlantao[escalaDef.key][iso] || [];
             return `
                 <div class="px-3 py-2 cursor-pointer hover:bg-slate-800/30 transition" onclick="abrirPlantaoDiaModal('${escalaDef.key}', '${iso}')">
@@ -3973,7 +3994,6 @@
                         <div class="flex-1 flex flex-col divide-y divide-slate-800/60">
                             ${ESCALAS_PLANTAO_DEF.map(e => plantaoEscalaBlocoHTML(e, iso)).join('')}
                         </div>
-                        <div class="px-3 py-2 text-[10px] text-slate-500 border-t border-slate-800/70">Horário: ${ehFimDeSemana ? '-' : plantaoHorarioPadrao}</div>
                     </div>`;
             }).join('');
         }
@@ -3998,7 +4018,7 @@
             loadMetasPorCorretor();
             loadMesesComerciais();
             loadEscalasPlantao();
-            loadPlantaoHorarioPadrao();
+            loadVagasPorEscala();
             if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
                 const sb = document.getElementById('sidebar');
                 if (sb) sb.style.display = 'none';
@@ -4208,7 +4228,7 @@
                 if (typeof data.agendaGsheetsUrl === 'string' && data.agendaGsheetsUrl) { agendaGsheetsUrl = data.agendaGsheetsUrl; localStorage.setItem(`${appId}-agenda-gsheets-url`, agendaGsheetsUrl); }
                 if (Array.isArray(data.mesesComerciais)) { mesesComerciais = data.mesesComerciais; localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais)); }
                 if (data.escalasPlantao && typeof data.escalasPlantao === 'object') { escalasPlantao = Object.assign({ diamond: {}, roleta: {}, represados: {} }, data.escalasPlantao); localStorage.setItem(`${appId}-escalas-plantao`, JSON.stringify(escalasPlantao)); }
-                if (typeof data.plantaoHorarioPadrao === 'string' && data.plantaoHorarioPadrao) { plantaoHorarioPadrao = data.plantaoHorarioPadrao; localStorage.setItem(`${appId}-plantao-horario-padrao`, plantaoHorarioPadrao); }
+                if (data.vagasPorEscala && typeof data.vagasPorEscala === 'object') { vagasPorEscala = Object.assign({ diamond: 3, roleta: 2, represados: 1 }, data.vagasPorEscala); localStorage.setItem(`${appId}-vagas-por-escala`, JSON.stringify(vagasPorEscala)); }
                 if (data.prospeccaoPorMes && typeof data.prospeccaoPorMes === 'object') {
                     const cloudMeses = data.prospeccaoPorMes;
                     // Remove localmente os meses que não existem mais na nuvem (outro dispositivo
@@ -4282,7 +4302,7 @@
                     agendaGsheetsUrl: agendaGsheetsUrl,
                     mesesComerciais: mesesComerciais,
                     escalasPlantao: escalasPlantao,
-                    plantaoHorarioPadrao: plantaoHorarioPadrao,
+                    vagasPorEscala: vagasPorEscala,
                     _updatedAt: Date.now()
                 };
                 // Prospecção (todos os meses juntos) só entra na sincronização se couber com
