@@ -973,7 +973,7 @@
                     </div>
 
                     <div class="overflow-x-auto pb-2">
-                        <div class="grid grid-cols-7 gap-3 min-w-[1550px]" id="plantoesSemanaGrid"></div>
+                        <div class="grid grid-cols-7 gap-3 min-w-[1750px]" id="plantoesSemanaGrid"></div>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
@@ -3958,13 +3958,15 @@
                         <span class="text-[10px] font-bold text-slate-500">${fila.length}/${vagas} vagas</span>
                     </div>
                     ${fila.length ? `
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-3">
                         ${fila.map((pessoa, idx) => `
-                            <div class="flex items-center gap-2 min-w-0">
-                                <span class="text-xs font-extrabold ${escalaDef.text} w-5 shrink-0">${idx + 1}º</span>
-                                ${corretorAvatarInner(pessoa.nome, 'h-8 w-8', 'text-[10px]', 'shrink-0')}
-                                <span class="text-sm font-semibold text-slate-100 truncate flex-1">${pessoa.nome}</span>
-                                <span class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</span>
+                            <div class="flex items-start gap-2 min-w-0">
+                                <span class="text-xs font-extrabold ${escalaDef.text} w-5 shrink-0 pt-1.5">${idx + 1}º</span>
+                                ${corretorAvatarInner(pessoa.nome, 'h-8 w-8', 'text-[10px]', 'shrink-0 mt-0.5')}
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-semibold text-slate-100 leading-tight break-words">${pessoa.nome}</p>
+                                    <span class="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</span>
+                                </div>
                             </div>`).join('')}
                     </div>` : `
                     <div class="flex flex-col items-center justify-center gap-1 py-3 text-slate-700">
