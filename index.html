@@ -968,7 +968,9 @@
                             <p class="text-sm font-bold text-slate-100 w-40 text-center" id="plantaoSemanaLabel">—</p>
                             <button onclick="mudarSemanaPlantao(1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-right text-xs"></i></button>
                             <button onclick="mudarSemanaPlantao(0)" class="text-[11px] font-bold text-brand-400 hover:text-brand-300 transition px-2">Hoje</button>
-                            <button onclick="editarHorarioPadraoPlantao()" title="Editar horário padrão dos dias úteis" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-regular fa-clock text-xs"></i></button>
+                            <span id="plantaoHorarioWrap">
+                                <button onclick="toggleEditarHorarioPadrao()" title="Editar horário padrão dos dias úteis" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-regular fa-clock text-xs"></i></button>
+                            </span>
                         </div>
                     </div>
 
@@ -3762,14 +3764,37 @@
                 if (saved) plantaoHorarioPadrao = saved;
             } catch (e) {}
         }
-        function editarHorarioPadraoPlantao() {
-            const novo = prompt('Horário padrão de funcionamento (dias úteis):', plantaoHorarioPadrao);
-            if (novo === null) return;
-            const v = novo.trim();
-            if (!v) return;
-            plantaoHorarioPadrao = v;
-            localStorage.setItem(`${appId}-plantao-horario-padrao`, plantaoHorarioPadrao);
-            pushCloudSettings();
+        // Editor inline do horário padrão (troca o botão-relógio por um campo de texto + OK) — sem
+        // prompt() nativo, pra ficar consistente com o resto do app (que sempre usa campos/modais
+        // próprios em vez de diálogos do navegador).
+        let editandoHorarioPadraoPlantao = false;
+        function toggleEditarHorarioPadrao() {
+            editandoHorarioPadraoPlantao = !editandoHorarioPadraoPlantao;
+            renderPlantaoHorarioWrap();
+        }
+        function renderPlantaoHorarioWrap() {
+            const wrap = document.getElementById('plantaoHorarioWrap');
+            if (!wrap) return;
+            if (editandoHorarioPadraoPlantao) {
+                wrap.innerHTML = `
+                    <input id="plantaoHorarioInput" type="text" value="${plantaoHorarioPadrao}" placeholder="09:00 às 21:00" onkeydown="if(event.key==='Enter') salvarHorarioPadraoPlantao()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-300 outline-none focus:border-brand-500 transition w-36">
+                    <button onclick="salvarHorarioPadraoPlantao()" class="h-8 px-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition">OK</button>`;
+                const inp = document.getElementById('plantaoHorarioInput');
+                if (inp) { inp.focus(); inp.select(); }
+            } else {
+                wrap.innerHTML = `<button onclick="toggleEditarHorarioPadrao()" title="Editar horário padrão dos dias úteis" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-regular fa-clock text-xs"></i></button>`;
+            }
+        }
+        function salvarHorarioPadraoPlantao() {
+            const inp = document.getElementById('plantaoHorarioInput');
+            const v = inp ? inp.value.trim() : '';
+            if (v) {
+                plantaoHorarioPadrao = v;
+                localStorage.setItem(`${appId}-plantao-horario-padrao`, plantaoHorarioPadrao);
+                pushCloudSettings();
+            }
+            editandoHorarioPadraoPlantao = false;
+            renderPlantaoHorarioWrap();
             renderPlantoes();
         }
 
