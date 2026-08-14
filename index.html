@@ -961,35 +961,19 @@
                             <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
                                 <i class="fa-solid fa-clipboard-list text-violet-400"></i> Plantões
                             </h2>
-                            <p class="text-xs text-slate-500">Escala de plantão por dia — cada dia tem uma fila ordenada de corretores (1º, 2º, 3º...).</p>
+                            <p class="text-xs text-slate-500">Escalas Diamond, Roleta e Represados — semana inteira, uma coluna por dia.</p>
                         </div>
-                        <div class="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800">
-                            <button onclick="setEscalaAtiva('diamond')" id="escalaBtn-diamond" class="escala-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Diamond</button>
-                            <button onclick="setEscalaAtiva('roleta')" id="escalaBtn-roleta" class="escala-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Roleta</button>
-                            <button onclick="setEscalaAtiva('represados')" id="escalaBtn-represados" class="escala-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Represados</button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="mudarSemanaPlantao(-1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                            <p class="text-sm font-bold text-slate-100 w-40 text-center" id="plantaoSemanaLabel">—</p>
+                            <button onclick="mudarSemanaPlantao(1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                            <button onclick="mudarSemanaPlantao(0)" class="text-[11px] font-bold text-brand-400 hover:text-brand-300 transition px-2">Hoje</button>
+                            <button onclick="editarHorarioPadraoPlantao()" title="Editar horário padrão dos dias úteis" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-regular fa-clock text-xs"></i></button>
                         </div>
                     </div>
 
-                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
-                        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
-                            <div class="flex items-center gap-2">
-                                <button onclick="mudarMesPlantao(-1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-left text-xs"></i></button>
-                                <p class="text-sm font-bold text-slate-100 w-32 text-center" id="plantaoMesLabel">—</p>
-                                <button onclick="mudarMesPlantao(1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-right text-xs"></i></button>
-                                <button onclick="mudarMesPlantao(0)" class="text-[11px] font-bold text-brand-400 hover:text-brand-300 transition px-2">Hoje</button>
-                            </div>
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest" id="escalaAtivaLabel">Escala Diamond</span>
-                        </div>
-                        <div class="grid grid-cols-7 gap-1.5 mb-1.5 text-center">
-                            <span class="text-[9px] font-bold text-slate-500 uppercase">Seg</span>
-                            <span class="text-[9px] font-bold text-slate-500 uppercase">Ter</span>
-                            <span class="text-[9px] font-bold text-slate-500 uppercase">Qua</span>
-                            <span class="text-[9px] font-bold text-slate-500 uppercase">Qui</span>
-                            <span class="text-[9px] font-bold text-slate-500 uppercase">Sex</span>
-                            <span class="text-[9px] font-bold text-slate-500 uppercase">Sáb</span>
-                            <span class="text-[9px] font-bold text-slate-500 uppercase">Dom</span>
-                        </div>
-                        <div class="grid grid-cols-7 gap-1.5" id="plantoesLista"></div>
+                    <div class="overflow-x-auto pb-2">
+                        <div class="grid grid-cols-7 gap-3 min-w-[1050px]" id="plantoesSemanaGrid"></div>
                     </div>
                 </div>
 
@@ -3738,7 +3722,7 @@
             const filtersBar = document.getElementById('filtersBar');
             if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings');
             if (viewName === 'corretor') renderCorretorCards();
-            if (viewName === 'plantoes') setEscalaAtiva(escalaAtiva);
+            if (viewName === 'plantoes') renderPlantoes();
 
             const sb = document.getElementById('sidebar');
             if (sb) {
@@ -3756,29 +3740,43 @@
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // ====== PLANTÕES: renderização (grade de calendário, horizontal) e edição (modal por dia)
-        // das 3 escalas (Diamond/Roleta/Represados) ======
-        let escalaAtiva = 'diamond';
-        let plantaoMesRef = new Date();
-        let plantaoModalIso = null; // 'YYYY-MM-DD' do dia aberto no modal de edição, ou null
+        // ====== PLANTÕES: semana inteira (7 colunas), as 3 escalas (Diamond/Roleta/Represados)
+        // empilhadas dentro de cada dia, vagas fixas por escala, status Confirmado/Aguardando por
+        // pessoa, edição num modal por (escala, dia). Cada pessoa na fila agora é
+        // { nome, confirmado } — não mais uma string simples.
+        const ESCALAS_PLANTAO_DEF = [
+            { key: 'diamond', label: 'Diamond', text: 'text-violet-400' },
+            { key: 'roleta', label: 'Roleta', text: 'text-emerald-400' },
+            { key: 'represados', label: 'Represados', text: 'text-amber-400' }
+        ];
+        const VAGAS_POR_ESCALA = { diamond: 3, roleta: 2, represados: 1 };
 
-        function setEscalaAtiva(key) {
-            escalaAtiva = key;
-            const NOMES = { diamond: 'Diamond', roleta: 'Roleta', represados: 'Represados' };
-            ['diamond', 'roleta', 'represados'].forEach(k => {
-                const btn = document.getElementById('escalaBtn-' + k);
-                if (!btn) return;
-                btn.className = 'escala-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition ' + (k === key ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-slate-200');
-            });
-            const labelEl = document.getElementById('escalaAtivaLabel');
-            if (labelEl) labelEl.textContent = `Escala ${NOMES[key]}`;
+        let plantaoSemanaRef = new Date();
+        let plantaoModalEscala = null; // chave da escala aberta no modal, ou null
+        let plantaoModalIso = null; // 'YYYY-MM-DD' do dia aberto no modal, ou null
+        let plantaoHorarioPadrao = '09:00 às 21:00'; // horário mostrado em todo dia útil (fins de semana sempre "-")
+
+        function loadPlantaoHorarioPadrao() {
+            try {
+                const saved = localStorage.getItem(`${appId}-plantao-horario-padrao`);
+                if (saved) plantaoHorarioPadrao = saved;
+            } catch (e) {}
+        }
+        function editarHorarioPadraoPlantao() {
+            const novo = prompt('Horário padrão de funcionamento (dias úteis):', plantaoHorarioPadrao);
+            if (novo === null) return;
+            const v = novo.trim();
+            if (!v) return;
+            plantaoHorarioPadrao = v;
+            localStorage.setItem(`${appId}-plantao-horario-padrao`, plantaoHorarioPadrao);
+            pushCloudSettings();
             renderPlantoes();
         }
 
-        function mudarMesPlantao(delta) {
-            plantaoMesRef = delta === 0
+        function mudarSemanaPlantao(delta) {
+            plantaoSemanaRef = delta === 0
                 ? new Date()
-                : new Date(plantaoMesRef.getFullYear(), plantaoMesRef.getMonth() + delta, 1);
+                : new Date(plantaoSemanaRef.getFullYear(), plantaoSemanaRef.getMonth(), plantaoSemanaRef.getDate() + delta * 7);
             renderPlantoes();
         }
 
@@ -3786,77 +3784,99 @@
             return `${ano}-${String(mesIdx + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
         }
 
-        // Abre o modal de edição de UM dia específico (chamado ao clicar numa célula da grade).
-        function abrirPlantaoDiaModal(iso) {
+        // Abre o modal de edição de UMA escala num dia específico (clique num bloco da coluna).
+        function abrirPlantaoDiaModal(escalaKey, iso) {
+            plantaoModalEscala = escalaKey;
             plantaoModalIso = iso;
             renderPlantaoDiaModalConteudo();
             document.getElementById('plantaoDiaModal').classList.remove('hidden');
         }
         function fecharPlantaoDiaModal() {
+            plantaoModalEscala = null;
             plantaoModalIso = null;
             document.getElementById('plantaoDiaModal').classList.add('hidden');
         }
 
-        // Preenche o modal com o título (data + escala) e a fila editável (chips com ▲▼✕ + select
-        // "+ Adicionar corretor", só ativos que ainda não estão na fila desse dia).
+        // Preenche o modal com o título (data + escala), a fila editável (avatar + nome + status
+        // Confirmado/Aguardando clicável + ▲▼✕) e o select "+ Adicionar corretor" — some sozinho
+        // quando as vagas daquela escala já estão completas.
         function renderPlantaoDiaModalConteudo() {
-            const iso = plantaoModalIso;
-            if (!iso) return;
+            const escalaKey = plantaoModalEscala, iso = plantaoModalIso;
+            if (!escalaKey || !iso) return;
+            const escalaDef = ESCALAS_PLANTAO_DEF.find(e => e.key === escalaKey);
             const [ano, mes, dia] = iso.split('-').map(Number);
             const dataObj = new Date(ano, mes - 1, dia);
-            const NOMES = { diamond: 'Diamond', roleta: 'Roleta', represados: 'Represados' };
             const tituloEl = document.getElementById('plantaoDiaModalTitulo');
             const subtituloEl = document.getElementById('plantaoDiaModalSubtitulo');
             if (tituloEl) tituloEl.textContent = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano} — ${DOW_PT[dataObj.getDay()]}`;
-            if (subtituloEl) subtituloEl.textContent = `Escala ${NOMES[escalaAtiva]}`;
+            if (subtituloEl) subtituloEl.textContent = `Escala ${escalaDef.label}`;
 
-            const fila = escalasPlantao[escalaAtiva][iso] || [];
-            const disponiveis = getActiveCorretores().filter(n => !fila.includes(n));
+            const vagas = VAGAS_POR_ESCALA[escalaKey];
+            const fila = escalasPlantao[escalaKey][iso] || [];
+            const nomesNaFila = fila.map(p => p.nome);
+            const disponiveis = getActiveCorretores().filter(n => !nomesNaFila.includes(n));
+            const podeAdicionar = fila.length < vagas;
+
             const conteudoEl = document.getElementById('plantaoDiaModalConteudo');
             if (!conteudoEl) return;
             conteudoEl.innerHTML = `
                 <div class="flex flex-col gap-1.5">
-                    ${fila.length ? fila.map((nome, idx) => `
+                    ${fila.length ? fila.map((pessoa, idx) => `
                         <div class="flex items-center gap-2 bg-slate-950/50 border border-slate-800/70 rounded-lg px-2.5 py-1.5">
-                            <span class="text-violet-400 font-extrabold text-xs w-6 shrink-0">${idx + 1}º</span>
-                            <span class="flex-1 min-w-0 truncate text-sm font-semibold text-slate-200">${nome}</span>
-                            <button onclick="moverPlantaoDia('${iso}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="h-7 w-7 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-up text-[10px]"></i></button>
-                            <button onclick="moverPlantaoDia('${iso}', ${idx}, 1)" ${idx === fila.length - 1 ? 'disabled' : ''} class="h-7 w-7 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-down text-[10px]"></i></button>
-                            <button onclick="removerPlantaoDia('${iso}', ${idx})" class="h-7 w-7 shrink-0 rounded text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                            <span class="${escalaDef.text} font-extrabold text-xs w-6 shrink-0">${idx + 1}º</span>
+                            ${corretorAvatarInner(pessoa.nome, 'h-6 w-6', 'text-[9px]', 'shrink-0')}
+                            <span class="flex-1 min-w-0 truncate text-sm font-semibold text-slate-200">${pessoa.nome}</span>
+                            <button onclick="togglePlantaoConfirmado('${escalaKey}','${iso}',${idx})" class="text-[9px] font-bold px-1.5 py-1 rounded transition shrink-0 ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</button>
+                            <button onclick="moverPlantaoDia('${escalaKey}','${iso}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="h-7 w-7 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-up text-[10px]"></i></button>
+                            <button onclick="moverPlantaoDia('${escalaKey}','${iso}', ${idx}, 1)" ${idx === fila.length - 1 ? 'disabled' : ''} class="h-7 w-7 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-down text-[10px]"></i></button>
+                            <button onclick="removerPlantaoDia('${escalaKey}','${iso}', ${idx})" class="h-7 w-7 shrink-0 rounded text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-xmark text-[10px]"></i></button>
                         </div>`).join('') : '<p class="text-xs text-slate-500 italic px-1">Nenhum corretor na fila ainda.</p>'}
                 </div>
+                <p class="text-[10px] text-slate-500 mt-2">${fila.length}/${vagas} vagas preenchidas</p>
+                ${podeAdicionar ? `
                 <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-800/60">
                     <select id="plantaoAddSelect" class="flex-1 bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-2 text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
                         <option value="">+ Adicionar corretor à fila...</option>
                         ${disponiveis.map(n => `<option value="${n}">${n}</option>`).join('')}
                     </select>
-                    <button onclick="adicionarPlantaoDia('${iso}')" class="text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 transition px-3 py-2 rounded-lg shrink-0">Adicionar</button>
-                </div>`;
+                    <button onclick="adicionarPlantaoDia('${escalaKey}','${iso}')" class="text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 transition px-3 py-2 rounded-lg shrink-0">Adicionar</button>
+                </div>` : `<p class="text-[10px] text-amber-400 mt-3 pt-3 border-t border-slate-800/60 flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Vagas completas pra essa escala nesse dia.</p>`}`;
         }
 
-        function adicionarPlantaoDia(iso) {
+        function togglePlantaoConfirmado(escalaKey, iso, idx) {
+            const fila = escalasPlantao[escalaKey][iso];
+            if (!fila || !fila[idx]) return;
+            fila[idx].confirmado = !fila[idx].confirmado;
+            saveEscalasPlantao();
+            renderPlantaoDiaModalConteudo();
+            renderPlantoes();
+        }
+
+        function adicionarPlantaoDia(escalaKey, iso) {
             const sel = document.getElementById('plantaoAddSelect');
             const nome = sel ? sel.value : '';
             if (!nome) return;
-            if (!escalasPlantao[escalaAtiva][iso]) escalasPlantao[escalaAtiva][iso] = [];
-            if (!escalasPlantao[escalaAtiva][iso].includes(nome)) escalasPlantao[escalaAtiva][iso].push(nome);
+            if (!escalasPlantao[escalaKey][iso]) escalasPlantao[escalaKey][iso] = [];
+            const fila = escalasPlantao[escalaKey][iso];
+            if (fila.length >= VAGAS_POR_ESCALA[escalaKey]) { showToast('Vagas completas pra essa escala nesse dia.', true); return; }
+            if (!fila.some(p => p.nome === nome)) fila.push({ nome, confirmado: false });
             saveEscalasPlantao();
             renderPlantaoDiaModalConteudo();
             renderPlantoes();
         }
 
-        function removerPlantaoDia(iso, idx) {
-            const fila = escalasPlantao[escalaAtiva][iso];
+        function removerPlantaoDia(escalaKey, iso, idx) {
+            const fila = escalasPlantao[escalaKey][iso];
             if (!fila) return;
             fila.splice(idx, 1);
-            if (fila.length === 0) delete escalasPlantao[escalaAtiva][iso];
+            if (fila.length === 0) delete escalasPlantao[escalaKey][iso];
             saveEscalasPlantao();
             renderPlantaoDiaModalConteudo();
             renderPlantoes();
         }
 
-        function moverPlantaoDia(iso, idx, direcao) {
-            const fila = escalasPlantao[escalaAtiva][iso];
+        function moverPlantaoDia(escalaKey, iso, idx, direcao) {
+            const fila = escalasPlantao[escalaKey][iso];
             if (!fila) return;
             const novoIdx = idx + direcao;
             if (novoIdx < 0 || novoIdx >= fila.length) return;
@@ -3866,48 +3886,71 @@
             renderPlantoes();
         }
 
-        // Grade de calendário (7 colunas, semana começando na segunda — mesma convenção do resto do
-        // BI) em vez da lista vertical antiga (extensa demais, exigia muita rolagem). Cada célula é
-        // compacta (dia + até 2 nomes, "+N" se tiver mais) e abre o modal de edição ao clicar —
-        // edição inline não cabe direito numa grade apertada.
+        // Um bloco de escala dentro da coluna do dia: nome da escala + "X/Y vagas", e uma linha por
+        // vaga (preenchida = avatar+nome+status; vazia = "–"). Clicar em qualquer lugar do bloco
+        // abre o modal de edição dessa escala nesse dia.
+        function plantaoEscalaBlocoHTML(escalaDef, iso) {
+            const vagas = VAGAS_POR_ESCALA[escalaDef.key];
+            const fila = escalasPlantao[escalaDef.key][iso] || [];
+            return `
+                <div class="px-3 py-2 cursor-pointer hover:bg-slate-800/30 transition" onclick="abrirPlantaoDiaModal('${escalaDef.key}', '${iso}')">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wide ${escalaDef.text}">${escalaDef.label}</span>
+                        <span class="text-[9px] font-bold text-slate-500">${fila.length}/${vagas} vagas</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        ${Array.from({ length: vagas }, (_, i) => {
+                            const pessoa = fila[i];
+                            if (!pessoa) return `<div class="text-slate-700 text-[10px] pl-[21px]">–</div>`;
+                            return `
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="text-[9px] font-extrabold ${escalaDef.text} w-4 shrink-0">${i + 1}º</span>
+                                    ${corretorAvatarInner(pessoa.nome, 'h-4 w-4', 'text-[6px]', 'shrink-0')}
+                                    <span class="text-[10px] font-semibold text-slate-200 truncate flex-1">${pessoa.nome}</span>
+                                    <span class="text-[8px] font-bold px-1 py-0.5 rounded shrink-0 ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</span>
+                                </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+        }
+
+        // Grade semanal (segunda a domingo, mesma convenção do resto do BI) — 7 colunas lado a lado
+        // (rola na horizontal em telas estreitas), cada coluna com as 3 escalas empilhadas + o
+        // horário do dia no rodapé.
         function renderPlantoes() {
-            const labelEl = document.getElementById('plantaoMesLabel');
-            const ano = plantaoMesRef.getFullYear(), mesIdx = plantaoMesRef.getMonth();
-            const nomeMes = getMesName(mesIdx + 1);
-            if (labelEl) labelEl.textContent = `${nomeMes.charAt(0).toUpperCase()}${nomeMes.slice(1)}/${ano}`;
-            const listaEl = document.getElementById('plantoesLista');
-            if (!listaEl) return;
+            const ref = new Date(plantaoSemanaRef); ref.setHours(0, 0, 0, 0);
+            const dow = ref.getDay();
+            const desdeSegunda = (dow === 0) ? 6 : (dow - 1);
+            const segunda = new Date(ref); segunda.setDate(ref.getDate() - desdeSegunda);
+            const domingo = new Date(segunda); domingo.setDate(segunda.getDate() + 6);
+            const labelEl = document.getElementById('plantaoSemanaLabel');
+            if (labelEl) labelEl.textContent = `${formatDate(segunda)} a ${formatDate(domingo)}`;
 
-            const diasNoMes = new Date(ano, mesIdx + 1, 0).getDate();
             const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-            const escala = escalasPlantao[escalaAtiva] || {};
+            const DIAS_NOMES = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO', 'DOMINGO'];
 
-            const primeiroDow = new Date(ano, mesIdx, 1).getDay();
-            const espacosVazios = (primeiroDow === 0) ? 6 : (primeiroDow - 1); // segunda = 1ª coluna
-
-            const MAX_CHIPS = 2;
-            let html = '';
-            for (let i = 0; i < espacosVazios; i++) html += '<div></div>';
-            for (let d = 1; d <= diasNoMes; d++) {
-                const dataObj = new Date(ano, mesIdx, d);
-                const iso = plantaoDataISO(ano, mesIdx, d);
-                const fila = escala[iso] || [];
+            const gridEl = document.getElementById('plantoesSemanaGrid');
+            if (!gridEl) return;
+            gridEl.innerHTML = Array.from({ length: 7 }, (_, i) => {
+                const dataObj = new Date(segunda); dataObj.setDate(segunda.getDate() + i);
+                const iso = plantaoDataISO(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate());
                 const ehHoje = dataObj.getTime() === hoje.getTime();
-                const visiveis = fila.slice(0, MAX_CHIPS);
-                const extras = fila.length - visiveis.length;
-                html += `
-                    <div onclick="abrirPlantaoDiaModal('${iso}')" class="min-h-[72px] rounded-lg border cursor-pointer transition hover:border-brand-500/50 px-1.5 py-1.5 flex flex-col gap-1 ${ehHoje ? 'border-brand-500/60 bg-brand-500/5' : 'border-slate-800/70 bg-slate-950/40'}">
-                        <span class="text-xs font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-300'}">${String(d).padStart(2, '0')}</span>
-                        <div class="flex flex-col gap-0.5 min-w-0">
-                            ${visiveis.map((nome, idx) => `
-                                <span class="text-[9px] font-semibold text-slate-300 bg-slate-800/70 border border-slate-700 rounded px-1 py-0.5 truncate" title="${nome}">
-                                    <span class="text-violet-400 font-extrabold">${idx + 1}º</span> ${nome}
-                                </span>`).join('')}
-                            ${extras > 0 ? `<span class="text-[9px] font-bold text-slate-500">+${extras}</span>` : ''}
+                const ehFimDeSemana = i >= 5; // 5=sábado, 6=domingo
+                return `
+                    <div class="bg-slate-900/40 rounded-2xl border ${ehHoje ? 'border-brand-500' : 'border-slate-800'} flex flex-col overflow-hidden">
+                        <div class="px-3 py-2.5 border-b border-slate-800/70 flex items-center justify-between">
+                            <div>
+                                <p class="text-[11px] font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'} uppercase tracking-wide">${DIAS_NOMES[i]}</p>
+                                <p class="text-[10px] text-slate-500">${String(dataObj.getDate()).padStart(2, '0')}/${String(dataObj.getMonth() + 1).padStart(2, '0')}</p>
+                            </div>
+                            <i class="fa-solid ${ehFimDeSemana ? 'fa-ban text-slate-700' : 'fa-crown text-amber-400'} text-xs"></i>
                         </div>
+                        <div class="flex-1 flex flex-col divide-y divide-slate-800/60">
+                            ${ESCALAS_PLANTAO_DEF.map(e => plantaoEscalaBlocoHTML(e, iso)).join('')}
+                        </div>
+                        <div class="px-3 py-2 text-[10px] text-slate-500 border-t border-slate-800/70">Horário: ${ehFimDeSemana ? '-' : plantaoHorarioPadrao}</div>
                     </div>`;
-            }
-            listaEl.innerHTML = html;
+            }).join('');
         }
 
         // Oculta / mostra a barra lateral (mais espaço para o painel). Persiste no navegador.
@@ -3930,6 +3973,7 @@
             loadMetasPorCorretor();
             loadMesesComerciais();
             loadEscalasPlantao();
+            loadPlantaoHorarioPadrao();
             if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
                 const sb = document.getElementById('sidebar');
                 if (sb) sb.style.display = 'none';
@@ -4139,6 +4183,7 @@
                 if (typeof data.agendaGsheetsUrl === 'string' && data.agendaGsheetsUrl) { agendaGsheetsUrl = data.agendaGsheetsUrl; localStorage.setItem(`${appId}-agenda-gsheets-url`, agendaGsheetsUrl); }
                 if (Array.isArray(data.mesesComerciais)) { mesesComerciais = data.mesesComerciais; localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais)); }
                 if (data.escalasPlantao && typeof data.escalasPlantao === 'object') { escalasPlantao = Object.assign({ diamond: {}, roleta: {}, represados: {} }, data.escalasPlantao); localStorage.setItem(`${appId}-escalas-plantao`, JSON.stringify(escalasPlantao)); }
+                if (typeof data.plantaoHorarioPadrao === 'string' && data.plantaoHorarioPadrao) { plantaoHorarioPadrao = data.plantaoHorarioPadrao; localStorage.setItem(`${appId}-plantao-horario-padrao`, plantaoHorarioPadrao); }
                 if (data.prospeccaoPorMes && typeof data.prospeccaoPorMes === 'object') {
                     const cloudMeses = data.prospeccaoPorMes;
                     // Remove localmente os meses que não existem mais na nuvem (outro dispositivo
@@ -4212,6 +4257,7 @@
                     agendaGsheetsUrl: agendaGsheetsUrl,
                     mesesComerciais: mesesComerciais,
                     escalasPlantao: escalasPlantao,
+                    plantaoHorarioPadrao: plantaoHorarioPadrao,
                     _updatedAt: Date.now()
                 };
                 // Prospecção (todos os meses juntos) só entra na sincronização se couber com
