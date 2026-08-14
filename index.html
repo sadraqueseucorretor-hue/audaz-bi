@@ -973,7 +973,16 @@
                     </div>
 
                     <div class="overflow-x-auto pb-2">
-                        <div class="grid grid-cols-7 gap-3 min-w-[1050px]" id="plantoesSemanaGrid"></div>
+                        <div class="grid grid-cols-7 gap-3 min-w-[1550px]" id="plantoesSemanaGrid"></div>
+                    </div>
+
+                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                        <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-violet-400"></i> Resumo da Semana — Vezes por Escala
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full" id="plantaoResumoSemanaTable"></table>
+                        </div>
                     </div>
                 </div>
 
@@ -3778,9 +3787,9 @@
         // pessoa, edição num modal por (escala, dia). Cada pessoa na fila agora é
         // { nome, confirmado } — não mais uma string simples.
         const ESCALAS_PLANTAO_DEF = [
-            { key: 'diamond', label: 'Diamond', text: 'text-violet-400' },
-            { key: 'roleta', label: 'Roleta', text: 'text-emerald-400' },
-            { key: 'represados', label: 'Represados', text: 'text-amber-400' }
+            { key: 'diamond', label: 'Diamond', text: 'text-violet-400', icon: 'fa-gem' },
+            { key: 'roleta', label: 'Roleta', text: 'text-emerald-400', icon: 'fa-bullseye' },
+            { key: 'represados', label: 'Represados', text: 'text-amber-400', icon: 'fa-users' }
         ];
         // Capacidade máxima por escala — era fixa (Diamond=3/Roleta=2/Represados=1), agora
         // editável pelo diretor no modal "Capacidade das Escalas". Reduzir a capacidade abaixo do
@@ -3935,34 +3944,40 @@
         // Um bloco de escala dentro da coluna do dia: nome da escala + "X/Y vagas", e uma linha por
         // vaga (preenchida = avatar+nome+status; vazia = "–"). Clicar em qualquer lugar do bloco
         // abre o modal de edição dessa escala nesse dia.
+        // Versão "mais visível": avatar e texto maiores, e quando a escala está totalmente vazia
+        // mostra um estado grande (ícone + "Sem escala" + travessão) em vez de uma linha "–" por
+        // vaga — muito mais fácil de bater o olho e ver quem está de plantão sem precisar abrir o
+        // modal.
         function plantaoEscalaBlocoHTML(escalaDef, iso) {
             const vagas = vagasPorEscala[escalaDef.key];
             const fila = escalasPlantao[escalaDef.key][iso] || [];
             return `
-                <div class="px-3 py-2 cursor-pointer hover:bg-slate-800/30 transition" onclick="abrirPlantaoDiaModal('${escalaDef.key}', '${iso}')">
-                    <div class="flex items-center justify-between mb-1.5">
-                        <span class="text-[10px] font-extrabold uppercase tracking-wide ${escalaDef.text}">${escalaDef.label}</span>
-                        <span class="text-[9px] font-bold text-slate-500">${fila.length}/${vagas} vagas</span>
+                <div class="px-4 py-3 cursor-pointer hover:bg-slate-800/30 transition" onclick="abrirPlantaoDiaModal('${escalaDef.key}', '${iso}')">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-extrabold uppercase tracking-wide ${escalaDef.text}">${escalaDef.label}</span>
+                        <span class="text-[10px] font-bold text-slate-500">${fila.length}/${vagas} vagas</span>
                     </div>
-                    <div class="flex flex-col gap-1">
-                        ${Array.from({ length: vagas }, (_, i) => {
-                            const pessoa = fila[i];
-                            if (!pessoa) return `<div class="text-slate-700 text-[10px] pl-[21px]">–</div>`;
-                            return `
-                                <div class="flex items-center gap-1.5 min-w-0">
-                                    <span class="text-[9px] font-extrabold ${escalaDef.text} w-4 shrink-0">${i + 1}º</span>
-                                    ${corretorAvatarInner(pessoa.nome, 'h-4 w-4', 'text-[6px]', 'shrink-0')}
-                                    <span class="text-[10px] font-semibold text-slate-200 truncate flex-1">${pessoa.nome}</span>
-                                    <span class="text-[8px] font-bold px-1 py-0.5 rounded shrink-0 ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</span>
-                                </div>`;
-                        }).join('')}
-                    </div>
+                    ${fila.length ? `
+                    <div class="flex flex-col gap-2">
+                        ${fila.map((pessoa, idx) => `
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="text-xs font-extrabold ${escalaDef.text} w-5 shrink-0">${idx + 1}º</span>
+                                ${corretorAvatarInner(pessoa.nome, 'h-8 w-8', 'text-[10px]', 'shrink-0')}
+                                <span class="text-sm font-semibold text-slate-100 truncate flex-1">${pessoa.nome}</span>
+                                <span class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</span>
+                            </div>`).join('')}
+                    </div>` : `
+                    <div class="flex flex-col items-center justify-center gap-1 py-3 text-slate-700">
+                        <i class="fa-solid ${escalaDef.icon} text-xl opacity-40 ${escalaDef.text}"></i>
+                        <span class="text-[11px] font-semibold text-slate-600">Sem escala</span>
+                        <span class="text-slate-700">—</span>
+                    </div>`}
                 </div>`;
         }
 
         // Grade semanal (segunda a domingo, mesma convenção do resto do BI) — 7 colunas lado a lado
-        // (rola na horizontal em telas estreitas), cada coluna com as 3 escalas empilhadas + o
-        // horário do dia no rodapé.
+        // (rola na horizontal em telas estreitas), cada coluna com as 3 escalas empilhadas. Abaixo
+        // da grade, um resumo com quantas vezes cada corretor apareceu em cada escala na semana.
         function renderPlantoes() {
             const ref = new Date(plantaoSemanaRef); ref.setHours(0, 0, 0, 0);
             const dow = ref.getDay();
@@ -3983,19 +3998,75 @@
                 const ehHoje = dataObj.getTime() === hoje.getTime();
                 const ehFimDeSemana = i >= 5; // 5=sábado, 6=domingo
                 return `
-                    <div class="bg-slate-900/40 rounded-2xl border ${ehHoje ? 'border-brand-500' : 'border-slate-800'} flex flex-col overflow-hidden">
-                        <div class="px-3 py-2.5 border-b border-slate-800/70 flex items-center justify-between">
+                    <div class="bg-slate-900/40 rounded-2xl border-2 ${ehHoje ? 'border-brand-500' : 'border-slate-800'} flex flex-col overflow-hidden">
+                        <div class="px-4 py-3 border-b border-slate-800/70 flex items-center justify-between">
                             <div>
-                                <p class="text-[11px] font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'} uppercase tracking-wide">${DIAS_NOMES[i]}</p>
-                                <p class="text-[10px] text-slate-500">${String(dataObj.getDate()).padStart(2, '0')}/${String(dataObj.getMonth() + 1).padStart(2, '0')}</p>
+                                <p class="text-sm font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'} uppercase tracking-wide">${DIAS_NOMES[i]}</p>
+                                <p class="text-xs text-slate-500">${String(dataObj.getDate()).padStart(2, '0')}/${String(dataObj.getMonth() + 1).padStart(2, '0')}</p>
                             </div>
-                            <i class="fa-solid ${ehFimDeSemana ? 'fa-ban text-slate-700' : 'fa-crown text-amber-400'} text-xs"></i>
+                            <i class="fa-solid ${ehFimDeSemana ? 'fa-ban text-slate-700' : 'fa-crown text-amber-400'} text-base"></i>
                         </div>
                         <div class="flex-1 flex flex-col divide-y divide-slate-800/60">
                             ${ESCALAS_PLANTAO_DEF.map(e => plantaoEscalaBlocoHTML(e, iso)).join('')}
                         </div>
                     </div>`;
             }).join('');
+
+            renderPlantaoResumoSemana(segunda);
+        }
+
+        // Quantas vezes cada corretor apareceu em cada escala NA SEMANA exibida (segunda a domingo)
+        // — conta toda entrada na fila, independente de estar Confirmado ou Aguardando. Só lista
+        // quem apareceu pelo menos 1 vez, pra não poluir com uma lista de zeros.
+        function renderPlantaoResumoSemana(segunda) {
+            const tableEl = document.getElementById('plantaoResumoSemanaTable');
+            if (!tableEl) return;
+            const contagem = {};
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(segunda); d.setDate(segunda.getDate() + i);
+                const iso = plantaoDataISO(d.getFullYear(), d.getMonth(), d.getDate());
+                ESCALAS_PLANTAO_DEF.forEach(e => {
+                    const fila = escalasPlantao[e.key][iso] || [];
+                    fila.forEach(pessoa => {
+                        if (!contagem[pessoa.nome]) contagem[pessoa.nome] = { diamond: 0, roleta: 0, represados: 0 };
+                        contagem[pessoa.nome][e.key]++;
+                    });
+                });
+            }
+            const nomes = Object.keys(contagem).sort((a, b) => {
+                const totalA = contagem[a].diamond + contagem[a].roleta + contagem[a].represados;
+                const totalB = contagem[b].diamond + contagem[b].roleta + contagem[b].represados;
+                return totalB - totalA || a.localeCompare(b, 'pt-BR');
+            });
+            if (!nomes.length) {
+                tableEl.innerHTML = '<tr><td class="text-xs text-slate-500 italic py-4">Ninguém escalado nessa semana ainda.</td></tr>';
+                return;
+            }
+            const head = `<thead><tr class="border-b border-slate-800">
+                <th class="text-left py-2 pr-3 text-slate-500 text-[10px] uppercase font-bold tracking-wide">Corretor</th>
+                <th class="text-center py-2 px-3 text-violet-400 text-[10px] uppercase font-bold tracking-wide">Diamond</th>
+                <th class="text-center py-2 px-3 text-emerald-400 text-[10px] uppercase font-bold tracking-wide">Roleta</th>
+                <th class="text-center py-2 px-3 text-amber-400 text-[10px] uppercase font-bold tracking-wide">Represados</th>
+                <th class="text-center py-2 pl-3 text-slate-300 text-[10px] uppercase font-bold tracking-wide">Total</th>
+            </tr></thead>`;
+            const body = nomes.map(nome => {
+                const c = contagem[nome];
+                const total = c.diamond + c.roleta + c.represados;
+                return `
+                    <tr class="border-b border-slate-800/50">
+                        <td class="py-2.5 pr-3">
+                            <div class="flex items-center gap-2 min-w-0">
+                                ${corretorAvatarInner(nome, 'h-7 w-7', 'text-[9px]', 'shrink-0')}
+                                <span class="text-sm font-semibold text-slate-200 truncate">${nome}</span>
+                            </div>
+                        </td>
+                        <td class="text-center py-2.5 px-3 font-bold ${c.diamond ? 'text-violet-300' : 'text-slate-700'}">${c.diamond}</td>
+                        <td class="text-center py-2.5 px-3 font-bold ${c.roleta ? 'text-emerald-300' : 'text-slate-700'}">${c.roleta}</td>
+                        <td class="text-center py-2.5 px-3 font-bold ${c.represados ? 'text-amber-300' : 'text-slate-700'}">${c.represados}</td>
+                        <td class="text-center py-2.5 pl-3 font-extrabold text-slate-100">${total}</td>
+                    </tr>`;
+            }).join('');
+            tableEl.innerHTML = head + `<tbody>${body}</tbody>`;
         }
 
         // Oculta / mostra a barra lateral (mais espaço para o painel). Persiste no navegador.
