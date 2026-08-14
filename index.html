@@ -972,8 +972,31 @@
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto pb-2">
-                        <div class="grid grid-cols-7 gap-2 min-w-[1450px]" id="plantoesSemanaGrid"></div>
+                    <div class="flex flex-col lg:flex-row gap-4 items-start">
+                        <!-- Barra lateral: resumo de vagas da semana, notas por escala e total de plantonistas -->
+                        <div class="w-full lg:w-64 shrink-0 space-y-4">
+                            <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-4">
+                                <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-3">Resumo da Semana</h3>
+                                <div class="space-y-2" id="plantaoResumoVagasCards"></div>
+                            </div>
+                            <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-4">
+                                <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-3">Informações Importantes</h3>
+                                <div class="space-y-3" id="plantaoInfoEscalaList"></div>
+                            </div>
+                            <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-4">
+                                <div class="flex items-center gap-2 mb-1 text-brand-400">
+                                    <i class="fa-solid fa-users text-sm"></i>
+                                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Total de Plantonistas</span>
+                                </div>
+                                <p class="text-3xl font-extrabold text-white" id="plantaoTotalPlantonistas">0</p>
+                                <p class="text-[10px] text-slate-500">Corretores ativos na semana</p>
+                            </div>
+                        </div>
+
+                        <!-- Grade semanal -->
+                        <div class="overflow-x-auto pb-2 flex-1 w-full">
+                            <div class="grid grid-cols-7 gap-2 min-w-[1450px]" id="plantoesSemanaGrid"></div>
+                        </div>
                     </div>
 
                     <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
@@ -3787,10 +3810,59 @@
         // pessoa, edição num modal por (escala, dia). Cada pessoa na fila agora é
         // { nome, confirmado } — não mais uma string simples.
         const ESCALAS_PLANTAO_DEF = [
-            { key: 'diamond', label: 'Diamond', text: 'text-violet-400', icon: 'fa-gem' },
-            { key: 'roleta', label: 'Roleta', text: 'text-emerald-400', icon: 'fa-bullseye' },
-            { key: 'represados', label: 'Represados', text: 'text-amber-400', icon: 'fa-users' }
+            { key: 'diamond', label: 'Diamond', text: 'text-violet-400', bg: 'bg-violet-500/15', icon: 'fa-gem' },
+            { key: 'roleta', label: 'Roleta', text: 'text-emerald-400', bg: 'bg-emerald-500/15', icon: 'fa-bullseye' },
+            { key: 'represados', label: 'Represados', text: 'text-amber-400', bg: 'bg-amber-500/15', icon: 'fa-users' }
         ];
+        // Notas livres por escala (ex.: regras de tolerância/horário) — editáveis pelo diretor,
+        // mostradas na barra lateral "Informações Importantes". Puramente informativo, não afeta
+        // nenhum cálculo.
+        let plantaoInfoEscala = { diamond: '', roleta: '', represados: '' };
+        function loadPlantaoInfoEscala() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`${appId}-plantao-info-escala`) || 'null');
+                if (saved && typeof saved === 'object') plantaoInfoEscala = Object.assign({ diamond: '', roleta: '', represados: '' }, saved);
+            } catch (e) {}
+        }
+        let plantaoInfoEditando = null; // chave da escala com o textarea aberto, ou null
+        function toggleEditarInfoEscala(key) {
+            plantaoInfoEditando = (plantaoInfoEditando === key) ? null : key;
+            renderPlantaoInfoEscala();
+        }
+        function salvarInfoEscala(key) {
+            const ta = document.getElementById(`plantaoInfoInput-${key}`);
+            plantaoInfoEscala[key] = ta ? ta.value.trim() : '';
+            localStorage.setItem(`${appId}-plantao-info-escala`, JSON.stringify(plantaoInfoEscala));
+            pushCloudSettings();
+            plantaoInfoEditando = null;
+            renderPlantaoInfoEscala();
+        }
+        function renderPlantaoInfoEscala() {
+            const el = document.getElementById('plantaoInfoEscalaList');
+            if (!el) return;
+            el.innerHTML = ESCALAS_PLANTAO_DEF.map(e => {
+                if (plantaoInfoEditando === e.key) {
+                    return `
+                        <div onclick="event.stopPropagation()">
+                            <div class="flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid ${e.icon} ${e.text} text-xs"></i>
+                                <span class="text-[10px] font-extrabold uppercase ${e.text}">${e.label}</span>
+                            </div>
+                            <textarea id="plantaoInfoInput-${e.key}" rows="3" placeholder="Ex.: Tolerância até 09h30..." class="w-full bg-slate-950 border border-slate-800 text-[11px] rounded-lg px-2 py-1.5 text-slate-300 outline-none focus:border-brand-500 transition resize-none">${plantaoInfoEscala[e.key] || ''}</textarea>
+                            <button onclick="salvarInfoEscala('${e.key}')" class="mt-1 text-[10px] font-bold text-brand-400 hover:text-brand-300 transition">Salvar</button>
+                        </div>`;
+                }
+                return `
+                    <div class="cursor-pointer group" onclick="toggleEditarInfoEscala('${e.key}')">
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <i class="fa-solid ${e.icon} ${e.text} text-xs"></i>
+                            <span class="text-[10px] font-extrabold uppercase ${e.text}">${e.label}</span>
+                            <i class="fa-solid fa-pen text-[9px] text-slate-600 group-hover:text-slate-400 ml-auto"></i>
+                        </div>
+                        <p class="text-[11px] text-slate-400 whitespace-pre-line leading-snug">${plantaoInfoEscala[e.key] ? plantaoInfoEscala[e.key] : '<span class="italic text-slate-600">Sem observações — clique pra adicionar</span>'}</p>
+                    </div>`;
+            }).join('');
+        }
         // Capacidade máxima por escala — era fixa (Diamond=3/Roleta=2/Represados=1), agora
         // editável pelo diretor no modal "Capacidade das Escalas". Reduzir a capacidade abaixo do
         // que já está preenchido num dia NÃO remove ninguém da fila (evita perder dado real) — só
@@ -3948,38 +4020,40 @@
         // mostra um estado grande (ícone + "Sem escala" + travessão) em vez de uma linha "–" por
         // vaga — muito mais fácil de bater o olho e ver quem está de plantão sem precisar abrir o
         // modal.
+        // Versão compacta: sem badge de Confirmado/Aguardando na grade (fica só no modal de edição,
+        // que continua mostrando/alternando isso normalmente) — ícone da escala num círculo colorido
+        // + fração compacta "X/Y" no lugar de "X/Y vagas".
         function plantaoEscalaBlocoHTML(escalaDef, iso) {
             const vagas = vagasPorEscala[escalaDef.key];
             const fila = escalasPlantao[escalaDef.key][iso] || [];
             return `
                 <div class="px-3 py-2.5 cursor-pointer hover:bg-slate-800/30 transition" onclick="abrirPlantaoDiaModal('${escalaDef.key}', '${iso}')">
-                    <div class="flex items-center justify-between mb-1.5">
-                        <span class="text-[11px] font-extrabold uppercase tracking-wide ${escalaDef.text}">${escalaDef.label}</span>
-                        <span class="text-[9px] font-bold text-slate-500">${fila.length}/${vagas} vagas</span>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-1.5">
+                            <div class="h-5 w-5 rounded-full ${escalaDef.bg} flex items-center justify-center shrink-0">
+                                <i class="fa-solid ${escalaDef.icon} ${escalaDef.text} text-[9px]"></i>
+                            </div>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wide ${escalaDef.text}">${escalaDef.label}</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400">${fila.length}/${vagas}</span>
                     </div>
                     ${fila.length ? `
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-1.5">
                         ${fila.map((pessoa, idx) => `
                             <div class="flex items-start gap-1.5 min-w-0">
-                                <span class="text-[11px] font-extrabold ${escalaDef.text} w-4 shrink-0 pt-1">${idx + 1}º</span>
-                                ${corretorAvatarInner(pessoa.nome, 'h-6 w-6', 'text-[9px]', 'shrink-0')}
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-xs font-semibold text-slate-100 leading-tight break-words">${pessoa.nome}</p>
-                                    <span class="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</span>
-                                </div>
+                                <span class="text-[10px] font-extrabold ${escalaDef.text} w-4 shrink-0 pt-0.5">${idx + 1}º</span>
+                                ${corretorAvatarInner(pessoa.nome, 'h-5 w-5', 'text-[8px]', 'shrink-0')}
+                                <span class="text-xs font-semibold text-slate-100 leading-tight break-words">${pessoa.nome}</span>
                             </div>`).join('')}
                     </div>` : `
-                    <div class="flex flex-col items-center justify-center gap-0.5 py-2 text-slate-700">
-                        <i class="fa-solid ${escalaDef.icon} text-base opacity-40 ${escalaDef.text}"></i>
-                        <span class="text-[10px] font-semibold text-slate-600">Sem escala</span>
-                        <span class="text-slate-700 text-xs">—</span>
-                    </div>`}
+                    <p class="text-[10px] text-slate-600 italic pl-1">Sem escala</p>`}
                 </div>`;
         }
 
         // Grade semanal (segunda a domingo, mesma convenção do resto do BI) — 7 colunas lado a lado
-        // (rola na horizontal em telas estreitas), cada coluna com as 3 escalas empilhadas. Abaixo
-        // da grade, um resumo com quantas vezes cada corretor apareceu em cada escala na semana.
+        // (rola na horizontal em telas estreitas), cada coluna com as 3 escalas empilhadas. Ao lado,
+        // uma barra fixa com o resumo de vagas da semana, notas por escala e total de plantonistas.
+        // Abaixo da grade, um resumo com quantas vezes cada corretor apareceu em cada escala.
         function renderPlantoes() {
             const ref = new Date(plantaoSemanaRef); ref.setHours(0, 0, 0, 0);
             const dow = ref.getDay();
@@ -3993,28 +4067,74 @@
             const DIAS_NOMES = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO', 'DOMINGO'];
 
             const gridEl = document.getElementById('plantoesSemanaGrid');
-            if (!gridEl) return;
-            gridEl.innerHTML = Array.from({ length: 7 }, (_, i) => {
-                const dataObj = new Date(segunda); dataObj.setDate(segunda.getDate() + i);
-                const iso = plantaoDataISO(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate());
-                const ehHoje = dataObj.getTime() === hoje.getTime();
-                const ehFimDeSemana = i >= 5; // 5=sábado, 6=domingo
-                return `
-                    <div class="bg-slate-900/40 rounded-2xl border-2 ${ehHoje ? 'border-brand-500' : 'border-slate-800'} flex flex-col overflow-hidden">
-                        <div class="px-3 py-2 border-b border-slate-800/70 flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'} uppercase tracking-wide">${DIAS_NOMES[i]}</p>
-                                <p class="text-[10px] text-slate-500">${String(dataObj.getDate()).padStart(2, '0')}/${String(dataObj.getMonth() + 1).padStart(2, '0')}</p>
+            if (gridEl) {
+                gridEl.innerHTML = Array.from({ length: 7 }, (_, i) => {
+                    const dataObj = new Date(segunda); dataObj.setDate(segunda.getDate() + i);
+                    const iso = plantaoDataISO(dataObj.getFullYear(), dataObj.getMonth(), dataObj.getDate());
+                    const ehHoje = dataObj.getTime() === hoje.getTime();
+                    return `
+                        <div class="bg-slate-900/40 rounded-2xl border-2 ${ehHoje ? 'border-brand-500' : 'border-slate-800'} flex flex-col overflow-hidden">
+                            <div class="px-3 py-2 border-b border-slate-800/70 flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'} uppercase tracking-wide">${DIAS_NOMES[i]}</p>
+                                    <p class="text-[10px] text-slate-500">${String(dataObj.getDate()).padStart(2, '0')}/${String(dataObj.getMonth() + 1).padStart(2, '0')}</p>
+                                </div>
+                                ${ehHoje
+                                    ? '<span class="text-[9px] font-extrabold text-white bg-brand-500 px-2 py-0.5 rounded-full shrink-0">HOJE</span>'
+                                    : '<i class="fa-regular fa-calendar text-slate-600 text-sm"></i>'}
                             </div>
-                            <i class="fa-solid ${ehFimDeSemana ? 'fa-ban text-slate-700' : 'fa-crown text-amber-400'} text-sm"></i>
+                            <div class="flex-1 flex flex-col divide-y divide-slate-800/60">
+                                ${ESCALAS_PLANTAO_DEF.map(e => plantaoEscalaBlocoHTML(e, iso)).join('')}
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+
+            renderPlantaoResumoVagas(segunda);
+            renderPlantaoTotalPlantonistas(segunda);
+            renderPlantaoInfoEscala();
+            renderPlantaoResumoSemana(segunda);
+        }
+
+        // Barra lateral "Resumo da Semana": vagas preenchidas x capacidade total, somando os 7 dias
+        // exibidos, por escala.
+        function renderPlantaoResumoVagas(segunda) {
+            const el = document.getElementById('plantaoResumoVagasCards');
+            if (!el) return;
+            el.innerHTML = ESCALAS_PLANTAO_DEF.map(e => {
+                let preenchidas = 0, totalVagas = 0;
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(segunda); d.setDate(segunda.getDate() + i);
+                    const iso = plantaoDataISO(d.getFullYear(), d.getMonth(), d.getDate());
+                    preenchidas += (escalasPlantao[e.key][iso] || []).length;
+                    totalVagas += vagasPorEscala[e.key];
+                }
+                return `
+                    <div class="flex items-center gap-2.5 bg-slate-950/50 border border-slate-800/70 rounded-xl px-3 py-2.5">
+                        <div class="h-9 w-9 rounded-full ${e.bg} flex items-center justify-center shrink-0">
+                            <i class="fa-solid ${e.icon} ${e.text} text-sm"></i>
                         </div>
-                        <div class="flex-1 flex flex-col divide-y divide-slate-800/60">
-                            ${ESCALAS_PLANTAO_DEF.map(e => plantaoEscalaBlocoHTML(e, iso)).join('')}
+                        <div class="min-w-0 flex-1">
+                            <p class="text-[10px] font-extrabold uppercase ${e.text}">${e.label}</p>
+                            <p class="text-[9px] text-slate-500">Vagas preenchidas</p>
                         </div>
+                        <p class="text-base font-extrabold text-slate-100 shrink-0">${preenchidas}/${totalVagas}</p>
                     </div>`;
             }).join('');
+        }
 
-            renderPlantaoResumoSemana(segunda);
+        // Barra lateral "Total de Plantonistas": corretores distintos escalados em QUALQUER escala,
+        // em QUALQUER dia da semana exibida.
+        function renderPlantaoTotalPlantonistas(segunda) {
+            const el = document.getElementById('plantaoTotalPlantonistas');
+            if (!el) return;
+            const nomes = new Set();
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(segunda); d.setDate(segunda.getDate() + i);
+                const iso = plantaoDataISO(d.getFullYear(), d.getMonth(), d.getDate());
+                ESCALAS_PLANTAO_DEF.forEach(e => (escalasPlantao[e.key][iso] || []).forEach(p => nomes.add(p.nome)));
+            }
+            el.textContent = nomes.size;
         }
 
         // Quantas vezes cada corretor apareceu em cada escala NA SEMANA exibida (segunda a domingo)
@@ -4092,6 +4212,7 @@
             loadMesesComerciais();
             loadEscalasPlantao();
             loadVagasPorEscala();
+            loadPlantaoInfoEscala();
             if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
                 const sb = document.getElementById('sidebar');
                 if (sb) sb.style.display = 'none';
@@ -4302,6 +4423,7 @@
                 if (Array.isArray(data.mesesComerciais)) { mesesComerciais = data.mesesComerciais; localStorage.setItem(`${appId}-meses-comerciais`, JSON.stringify(mesesComerciais)); }
                 if (data.escalasPlantao && typeof data.escalasPlantao === 'object') { escalasPlantao = Object.assign({ diamond: {}, roleta: {}, represados: {} }, data.escalasPlantao); localStorage.setItem(`${appId}-escalas-plantao`, JSON.stringify(escalasPlantao)); }
                 if (data.vagasPorEscala && typeof data.vagasPorEscala === 'object') { vagasPorEscala = Object.assign({ diamond: 3, roleta: 2, represados: 1 }, data.vagasPorEscala); localStorage.setItem(`${appId}-vagas-por-escala`, JSON.stringify(vagasPorEscala)); }
+                if (data.plantaoInfoEscala && typeof data.plantaoInfoEscala === 'object') { plantaoInfoEscala = Object.assign({ diamond: '', roleta: '', represados: '' }, data.plantaoInfoEscala); localStorage.setItem(`${appId}-plantao-info-escala`, JSON.stringify(plantaoInfoEscala)); }
                 if (data.prospeccaoPorMes && typeof data.prospeccaoPorMes === 'object') {
                     const cloudMeses = data.prospeccaoPorMes;
                     // Remove localmente os meses que não existem mais na nuvem (outro dispositivo
@@ -4376,6 +4498,7 @@
                     mesesComerciais: mesesComerciais,
                     escalasPlantao: escalasPlantao,
                     vagasPorEscala: vagasPorEscala,
+                    plantaoInfoEscala: plantaoInfoEscala,
                     _updatedAt: Date.now()
                 };
                 // Prospecção (todos os meses juntos) só entra na sincronização se couber com
