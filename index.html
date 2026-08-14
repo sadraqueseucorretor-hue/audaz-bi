@@ -980,7 +980,16 @@
                             </div>
                             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest" id="escalaAtivaLabel">Escala Diamond</span>
                         </div>
-                        <div class="space-y-1.5" id="plantoesLista"></div>
+                        <div class="grid grid-cols-7 gap-1.5 mb-1.5 text-center">
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Seg</span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Ter</span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Qua</span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Qui</span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Sex</span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Sáb</span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase">Dom</span>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1.5" id="plantoesLista"></div>
                     </div>
                 </div>
 
@@ -1400,6 +1409,25 @@
             <button onclick="toggleMesesComerciaisModal()" class="w-full mt-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg transition border border-slate-700">
                 Concluir
             </button>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR DIA DE PLANTÃO (fila ordenada de corretores de 1 dia, dentro da escala ativa) -->
+    <div id="plantaoDiaModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+            <button onclick="fecharPlantaoDiaModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="h-10 w-10 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-center justify-center text-violet-400">
+                    <i class="fa-solid fa-clipboard-list text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-slate-200" id="plantaoDiaModalTitulo">—</h4>
+                    <p class="text-xs text-slate-500" id="plantaoDiaModalSubtitulo">—</p>
+                </div>
+            </div>
+            <div id="plantaoDiaModalConteudo"></div>
         </div>
     </div>
 
@@ -3728,14 +3756,14 @@
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // ====== PLANTÕES: renderização e edição das 3 escalas (Diamond/Roleta/Represados) ======
+        // ====== PLANTÕES: renderização (grade de calendário, horizontal) e edição (modal por dia)
+        // das 3 escalas (Diamond/Roleta/Represados) ======
         let escalaAtiva = 'diamond';
         let plantaoMesRef = new Date();
-        let expandedDiaPlantao = null; // 'YYYY-MM-DD' do dia com o editor aberto, ou null
+        let plantaoModalIso = null; // 'YYYY-MM-DD' do dia aberto no modal de edição, ou null
 
         function setEscalaAtiva(key) {
             escalaAtiva = key;
-            expandedDiaPlantao = null;
             const NOMES = { diamond: 'Diamond', roleta: 'Roleta', represados: 'Represados' };
             ['diamond', 'roleta', 'represados'].forEach(k => {
                 const btn = document.getElementById('escalaBtn-' + k);
@@ -3751,7 +3779,6 @@
             plantaoMesRef = delta === 0
                 ? new Date()
                 : new Date(plantaoMesRef.getFullYear(), plantaoMesRef.getMonth() + delta, 1);
-            expandedDiaPlantao = null;
             renderPlantoes();
         }
 
@@ -3759,43 +3786,62 @@
             return `${ano}-${String(mesIdx + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
         }
 
-        function toggleEditarDiaPlantao(iso) {
-            expandedDiaPlantao = (expandedDiaPlantao === iso) ? null : iso;
-            renderPlantoes();
+        // Abre o modal de edição de UM dia específico (chamado ao clicar numa célula da grade).
+        function abrirPlantaoDiaModal(iso) {
+            plantaoModalIso = iso;
+            renderPlantaoDiaModalConteudo();
+            document.getElementById('plantaoDiaModal').classList.remove('hidden');
+        }
+        function fecharPlantaoDiaModal() {
+            plantaoModalIso = null;
+            document.getElementById('plantaoDiaModal').classList.add('hidden');
         }
 
-        // Lista suspensa "+ Adicionar corretor" (só ativos, excluindo quem já está na fila desse
-        // dia) + a própria fila com setas ▲▼ pra reordenar e ✕ pra remover — sem drag-and-drop, mais
-        // simples de usar e de testar.
-        function renderEditorDiaPlantao(iso, fila) {
+        // Preenche o modal com o título (data + escala) e a fila editável (chips com ▲▼✕ + select
+        // "+ Adicionar corretor", só ativos que ainda não estão na fila desse dia).
+        function renderPlantaoDiaModalConteudo() {
+            const iso = plantaoModalIso;
+            if (!iso) return;
+            const [ano, mes, dia] = iso.split('-').map(Number);
+            const dataObj = new Date(ano, mes - 1, dia);
+            const NOMES = { diamond: 'Diamond', roleta: 'Roleta', represados: 'Represados' };
+            const tituloEl = document.getElementById('plantaoDiaModalTitulo');
+            const subtituloEl = document.getElementById('plantaoDiaModalSubtitulo');
+            if (tituloEl) tituloEl.textContent = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano} — ${DOW_PT[dataObj.getDay()]}`;
+            if (subtituloEl) subtituloEl.textContent = `Escala ${NOMES[escalaAtiva]}`;
+
+            const fila = escalasPlantao[escalaAtiva][iso] || [];
             const disponiveis = getActiveCorretores().filter(n => !fila.includes(n));
-            return `
-                <div class="mt-2 pt-2 border-t border-slate-800/60 flex flex-col gap-1.5" onclick="event.stopPropagation()">
-                    ${fila.map((nome, idx) => `
-                        <div class="flex items-center gap-2 bg-slate-900/60 rounded-lg px-2 py-1">
+            const conteudoEl = document.getElementById('plantaoDiaModalConteudo');
+            if (!conteudoEl) return;
+            conteudoEl.innerHTML = `
+                <div class="flex flex-col gap-1.5">
+                    ${fila.length ? fila.map((nome, idx) => `
+                        <div class="flex items-center gap-2 bg-slate-950/50 border border-slate-800/70 rounded-lg px-2.5 py-1.5">
                             <span class="text-violet-400 font-extrabold text-xs w-6 shrink-0">${idx + 1}º</span>
-                            <span class="flex-1 min-w-0 truncate text-xs font-semibold text-slate-200">${nome}</span>
-                            <button onclick="moverPlantaoDia('${iso}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="h-6 w-6 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-up text-[10px]"></i></button>
-                            <button onclick="moverPlantaoDia('${iso}', ${idx}, 1)" ${idx === fila.length - 1 ? 'disabled' : ''} class="h-6 w-6 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-down text-[10px]"></i></button>
-                            <button onclick="removerPlantaoDia('${iso}', ${idx})" class="h-6 w-6 shrink-0 rounded text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-xmark text-[10px]"></i></button>
-                        </div>`).join('')}
-                    <div class="flex items-center gap-2 mt-1">
-                        <select id="plantaoAddSelect-${iso}" class="flex-1 bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
-                            <option value="">+ Adicionar corretor à fila...</option>
-                            ${disponiveis.map(n => `<option value="${n}">${n}</option>`).join('')}
-                        </select>
-                        <button onclick="adicionarPlantaoDia('${iso}')" class="text-xs font-bold text-brand-400 hover:text-brand-300 transition px-2 shrink-0">Add</button>
-                    </div>
+                            <span class="flex-1 min-w-0 truncate text-sm font-semibold text-slate-200">${nome}</span>
+                            <button onclick="moverPlantaoDia('${iso}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="h-7 w-7 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-up text-[10px]"></i></button>
+                            <button onclick="moverPlantaoDia('${iso}', ${idx}, 1)" ${idx === fila.length - 1 ? 'disabled' : ''} class="h-7 w-7 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-down text-[10px]"></i></button>
+                            <button onclick="removerPlantaoDia('${iso}', ${idx})" class="h-7 w-7 shrink-0 rounded text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                        </div>`).join('') : '<p class="text-xs text-slate-500 italic px-1">Nenhum corretor na fila ainda.</p>'}
+                </div>
+                <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-800/60">
+                    <select id="plantaoAddSelect" class="flex-1 bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-2 text-slate-300 outline-none cursor-pointer focus:border-brand-500 transition">
+                        <option value="">+ Adicionar corretor à fila...</option>
+                        ${disponiveis.map(n => `<option value="${n}">${n}</option>`).join('')}
+                    </select>
+                    <button onclick="adicionarPlantaoDia('${iso}')" class="text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 transition px-3 py-2 rounded-lg shrink-0">Adicionar</button>
                 </div>`;
         }
 
         function adicionarPlantaoDia(iso) {
-            const sel = document.getElementById(`plantaoAddSelect-${iso}`);
+            const sel = document.getElementById('plantaoAddSelect');
             const nome = sel ? sel.value : '';
             if (!nome) return;
             if (!escalasPlantao[escalaAtiva][iso]) escalasPlantao[escalaAtiva][iso] = [];
             if (!escalasPlantao[escalaAtiva][iso].includes(nome)) escalasPlantao[escalaAtiva][iso].push(nome);
             saveEscalasPlantao();
+            renderPlantaoDiaModalConteudo();
             renderPlantoes();
         }
 
@@ -3805,6 +3851,7 @@
             fila.splice(idx, 1);
             if (fila.length === 0) delete escalasPlantao[escalaAtiva][iso];
             saveEscalasPlantao();
+            renderPlantaoDiaModalConteudo();
             renderPlantoes();
         }
 
@@ -3815,11 +3862,14 @@
             if (novoIdx < 0 || novoIdx >= fila.length) return;
             [fila[idx], fila[novoIdx]] = [fila[novoIdx], fila[idx]];
             saveEscalasPlantao();
+            renderPlantaoDiaModalConteudo();
             renderPlantoes();
         }
 
-        // Lista vertical com 1 linha por dia do mês exibido: data + dia da semana, a fila ordenada
-        // (chips numerados) e um lápis pra abrir/fechar o editor daquele dia especificamente.
+        // Grade de calendário (7 colunas, semana começando na segunda — mesma convenção do resto do
+        // BI) em vez da lista vertical antiga (extensa demais, exigia muita rolagem). Cada célula é
+        // compacta (dia + até 2 nomes, "+N" se tiver mais) e abre o modal de edição ao clicar —
+        // edição inline não cabe direito numa grade apertada.
         function renderPlantoes() {
             const labelEl = document.getElementById('plantaoMesLabel');
             const ano = plantaoMesRef.getFullYear(), mesIdx = plantaoMesRef.getMonth();
@@ -3832,30 +3882,32 @@
             const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
             const escala = escalasPlantao[escalaAtiva] || {};
 
-            listaEl.innerHTML = Array.from({ length: diasNoMes }, (_, i) => i + 1).map(d => {
+            const primeiroDow = new Date(ano, mesIdx, 1).getDay();
+            const espacosVazios = (primeiroDow === 0) ? 6 : (primeiroDow - 1); // segunda = 1ª coluna
+
+            const MAX_CHIPS = 2;
+            let html = '';
+            for (let i = 0; i < espacosVazios; i++) html += '<div></div>';
+            for (let d = 1; d <= diasNoMes; d++) {
                 const dataObj = new Date(ano, mesIdx, d);
                 const iso = plantaoDataISO(ano, mesIdx, d);
                 const fila = escala[iso] || [];
                 const ehHoje = dataObj.getTime() === hoje.getTime();
-                const expandido = expandedDiaPlantao === iso;
-                return `
-                    <div class="rounded-lg border ${ehHoje ? 'border-brand-500/50 bg-brand-500/5' : 'border-slate-800/70 bg-slate-950/40'} px-3 py-2">
-                        <div class="flex items-center gap-3 cursor-pointer" onclick="toggleEditarDiaPlantao('${iso}')">
-                            <div class="w-11 shrink-0 text-center">
-                                <p class="text-sm font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-200'}">${String(d).padStart(2, '0')}</p>
-                                <p class="text-[9px] font-bold text-slate-500 uppercase">${DOW_PT[dataObj.getDay()]}</p>
-                            </div>
-                            <div class="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
-                                ${fila.length ? fila.map((nome, idx) => `
-                                    <span class="inline-flex items-center gap-1 bg-slate-800/70 border border-slate-700 rounded-full px-2 py-0.5 text-[11px] font-semibold text-slate-200">
-                                        <span class="text-violet-400 font-extrabold">${idx + 1}º</span> ${nome}
-                                    </span>`).join('') : '<span class="text-[11px] text-slate-600 italic">Sem plantão definido</span>'}
-                            </div>
-                            <i class="fa-solid ${expandido ? 'fa-chevron-up' : 'fa-pen'} text-slate-500 text-xs shrink-0"></i>
+                const visiveis = fila.slice(0, MAX_CHIPS);
+                const extras = fila.length - visiveis.length;
+                html += `
+                    <div onclick="abrirPlantaoDiaModal('${iso}')" class="min-h-[72px] rounded-lg border cursor-pointer transition hover:border-brand-500/50 px-1.5 py-1.5 flex flex-col gap-1 ${ehHoje ? 'border-brand-500/60 bg-brand-500/5' : 'border-slate-800/70 bg-slate-950/40'}">
+                        <span class="text-xs font-extrabold ${ehHoje ? 'text-brand-400' : 'text-slate-300'}">${String(d).padStart(2, '0')}</span>
+                        <div class="flex flex-col gap-0.5 min-w-0">
+                            ${visiveis.map((nome, idx) => `
+                                <span class="text-[9px] font-semibold text-slate-300 bg-slate-800/70 border border-slate-700 rounded px-1 py-0.5 truncate" title="${nome}">
+                                    <span class="text-violet-400 font-extrabold">${idx + 1}º</span> ${nome}
+                                </span>`).join('')}
+                            ${extras > 0 ? `<span class="text-[9px] font-bold text-slate-500">+${extras}</span>` : ''}
                         </div>
-                        ${expandido ? renderEditorDiaPlantao(iso, fila) : ''}
                     </div>`;
-            }).join('');
+            }
+            listaEl.innerHTML = html;
         }
 
         // Oculta / mostra a barra lateral (mais espaço para o painel). Persiste no navegador.
