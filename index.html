@@ -4938,6 +4938,57 @@
             applyFilters();
         }
 
+        // ================= TRAVA DE IDENTIDADE (embutido no CRM via iframe) =================
+        // O CRM passa quem está logado pela querystring quando abre o BI no iframe
+        // (?embedRole=Corretor&embedCorretor=Nome ou ?embedRole=Gerente&embedEquipe=Nome).
+        // Corretor/Gerente ficam travados no próprio filtro de Corretor/Equipa — sem
+        // conseguir trocar pra ver outra pessoa/equipe. Diretor/Administrativo (sem
+        // parâmetro) e quem abre o link direto (fora do CRM) usam o painel normal, sem
+        // restrição — é o mesmo comportamento de sempre.
+        const _embedParams = new URLSearchParams(location.search);
+        const embedLockRole = _embedParams.get('embedRole'); // 'Corretor' | 'Gerente' | null
+        const embedLockCorretorRaw = _embedParams.get('embedCorretor') || '';
+        const embedLockEquipeRaw = _embedParams.get('embedEquipe') || '';
+        let embedLockUnresolved = false; // true = travado mas o nome não bateu com a planilha (fail-closed: sem dado nenhum, nunca "Todos")
+        let _embedAvisoMostrado = false;
+
+        function _normalizeTexto(s) {
+            return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        }
+
+        // Resolve o nome exato contra a planilha e trava os selects. Chamada de dentro de
+        // populateDynamicFilters() a cada atualização de dados — assim sobrevive a refresh
+        // e não depende da planilha já ter carregado na primeira chamada.
+        function applyEmbedLock(equipesConhecidas) {
+            if (!embedLockRole) return;
+            const selCorretor = document.getElementById('filterCorretor');
+            const selEquipe = document.getElementById('filterEquipe');
+
+            if (embedLockRole === 'Corretor') {
+                const alvo = _normalizeTexto(embedLockCorretorRaw);
+                const match = getActiveCorretores().find(n => _normalizeTexto(n) === alvo);
+                selCorretor.value = match || '';
+                selEquipe.value = '';
+                selCorretor.disabled = true;
+                selEquipe.disabled = true;
+                selCorretor.title = 'Filtro fixo — definido pelo seu login no CRM';
+                embedLockUnresolved = !match;
+            } else if (embedLockRole === 'Gerente') {
+                const alvo = _normalizeTexto(embedLockEquipeRaw);
+                const match = Array.from(equipesConhecidas).find(e => _normalizeTexto(e) === alvo);
+                selEquipe.value = match || '';
+                selEquipe.disabled = true;
+                selEquipe.title = 'Filtro fixo — definido pelo seu login no CRM';
+                embedLockUnresolved = !match;
+            }
+
+            if (embedLockUnresolved && !_embedAvisoMostrado) {
+                _embedAvisoMostrado = true;
+                const nomeAlvo = embedLockRole === 'Corretor' ? embedLockCorretorRaw : embedLockEquipeRaw;
+                showToast(`Não encontramos "${nomeAlvo}" na planilha do BI — mostrando sem dados. Avise o Diretor pra conferir o nome cadastrado.`, true);
+            }
+        }
+
         function populateDynamicFilters() {
             const corretores = new Set();
             const equipes = new Set();
@@ -4973,6 +5024,8 @@
             fillSelect('filterEmpreendimento', Array.from(empreendimentos).sort(), "Todos os empreendimentos", selEmpreendimento);
             fillMultiSelect('filterMes', Array.from(meses), selMesesAntes);
             fillSelect('filterAno', Array.from(anos).sort((a,b)=>b-a), "Todos", selAno);
+
+            applyEmbedLock(equipes);
 
             renderMesComercialPills();
             renderSemanaPills();
@@ -5310,7 +5363,10 @@
             // Comercial e Semana NÃO recortam aqui — cada métrica (análises/aprovações/vendas) confere
             // a SUA própria coluna de mês/data via metricMatchesRef(), para "conversar com toda a
             // planilha" (uma linha cadastrada em jun e aprovada em jul conta como aprovação de jul).
+            // embedLockUnresolved: travado pelo CRM (Corretor/Gerente) mas o nome não bateu com
+            // ninguém na planilha — nunca cai pra "Todos" nesse caso, fica vazio (fail-closed).
             filteredDataset = dataset.filter(row => {
+                if (embedLockUnresolved) return false;
                 if (selCorretor && row.Corretor !== selCorretor) return false;
                 if (selEquipe && row.Equipe !== selEquipe) return false;
                 if (selConstrutora && row.Construtora !== selConstrutora) return false;
@@ -5320,12 +5376,14 @@
             // Agenda de Visitas: só tem Corretor e Empreendimento em comum com os filtros
             // estruturais (não tem Equipe/Construtora) — filtra só por esses dois.
             filteredAgendaDataset = agendaDataset.filter(row => {
+                if (embedLockUnresolved) return false;
                 if (selCorretor && row.Corretor !== selCorretor) return false;
                 if (!agendaMatchesEmpreendimento(row, selEmpreendimento)) return false;
                 return true;
             });
             // Prospecção: só tem Corretor e Equipe em comum com os filtros estruturais.
             filteredProspeccaoDataset = prospeccaoDataset.filter(row => {
+                if (embedLockUnresolved) return false;
                 if (selCorretor && row.Corretor !== selCorretor) return false;
                 if (selEquipe && row.Equipe !== selEquipe) return false;
                 return true;
