@@ -2029,7 +2029,15 @@
         // { [etapaKey]: [linhas...] } — mesmo padrão, mas pra tira "Produtividade de Hoje" do Funil
         // (openFunnelHojeDetail).
         let funnelHojeRowsCache = {};
+        // Os Rankings Rápidos são a seção MAIS PESADA da página: 4.242 elementos de DOM (metade do
+        // total), recriados via innerHTML. Redesenhar isso a cada applyFilters() — inclusive no
+        // auto-refresh de 15s — com a aba escondida era trabalho 100% jogado fora e uma das causas
+        // do travamento. Agora só desenha quando a aba Rankings está aberta; se algo mudou enquanto
+        // ela estava fechada, fica pendente e é redesenhada ao entrar (ver switchView).
+        let quickRankingsPendente = false;
         function drawQuickRankings() {
+            if (activeView !== 'rankings') { quickRankingsPendente = true; return; }
+            quickRankingsPendente = false;
             const grid = document.getElementById('quickRankingsGrid');
             if (!grid) return;
             const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date(); // cards "Hoje" = sempre hoje
@@ -3787,6 +3795,9 @@
             if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings');
             if (viewName === 'corretor') renderCorretorCards();
             if (viewName === 'plantoes') renderPlantoes();
+            // Entrando nos Rankings: redesenha se algo mudou enquanto a aba estava fechada
+            // (drawQuickRankings marca `quickRankingsPendente` em vez de renderizar à toa).
+            if (viewName === 'rankings' && quickRankingsPendente) drawQuickRankings();
 
             const sb = document.getElementById('sidebar');
             if (sb) {
@@ -5714,7 +5725,10 @@
             });
         }
 
+        // Mesma ideia dos Rankings (743 elementos): só renderiza com a aba Corretor aberta.
+        // `switchView('corretor')` sempre chama esta função, então nada fica desatualizado.
         function renderCorretorCards() {
+            if (activeView !== 'corretor') return;
             const container = document.getElementById('corretorCardsGrid');
             if (!container) return;
 
