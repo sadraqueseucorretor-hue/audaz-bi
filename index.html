@@ -683,7 +683,7 @@
 
                     <div class="mb-6">
                         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i class="fa-solid fa-percent text-brand-500"></i> Taxa de Conversão</p>
-                        <p class="text-[10px] text-slate-600 mb-2 leading-relaxed">Volume do mês na etapa seguinte ÷ volume do mês na etapa anterior — não é o mesmo lead acompanhado do início ao fim (por isso pode passar de 100% quando entram no mês mais leads represados de meses anteriores).</p>
+                        <p class="text-[10px] text-slate-600 mb-2 leading-relaxed">Volume do mês na etapa seguinte ÷ volume do mês na etapa anterior — não é o mesmo lead acompanhado do início ao fim (por isso pode passar de 100% quando entram no mês mais leads represados de meses anteriores). O funil tem 2 ramos a partir da Prospecção — Documentação e Agendamento & Visita — mostrados separados abaixo.</p>
                         <div class="overflow-x-auto">
                             <table class="w-full text-xs" id="taxaConversaoTable"></table>
                         </div>
@@ -6607,9 +6607,13 @@
             }).join('');
         }
 
-        // Tabela de Taxa de Conversão por mês, cobrindo o funil inteiro etapa a etapa (Prospecção
-        // → Agendamento → Compareceu → Análise → Aprovação → Venda) + uma linha "geral" de ponta a
-        // ponta (Prospecção → Venda) destacada no fim, com o mês mais recente da janela em destaque.
+        // Tabela de Taxa de Conversão por mês. O funil tem 2 RAMOS independentes que só se
+        // encontram na Prospecção lá atrás — Documentação (Análise→Aprovação→Venda) e Agendamento &
+        // Visita (Agendamento→Compareceu→Venda) — não é uma cadeia única. Corrigido depois que o
+        // usuário reportou "Compareceu → Análise" batendo 600%+: fazia sentido, porque Compareceu e
+        // Análise nunca foram etapas sequenciais de verdade, são volumes de 2 ramos paralelos sendo
+        // divididos um pelo outro sem relação real nenhuma. Cada ramo tem sua própria linha "geral"
+        // (Prospecção → Venda daquele ramo) destacada no fim do grupo.
         function renderTaxaConversaoTable(janela) {
             const el = document.getElementById('taxaConversaoTable');
             if (!el) return;
@@ -6621,22 +6625,33 @@
                 return `<th class="text-center py-1.5 px-3 font-bold ${isUltimo ? 'text-brand-400 bg-brand-500/5' : 'text-slate-400'}">${label}</th>`;
             }).join('');
 
-            const linhas = [
-                { label: 'Prospecção → Agendamento', calc: m => m.prospeccao > 0 ? (m.agendamentos / m.prospeccao) * 100 : 0 },
-                { label: 'Agendamento → Compareceu', calc: m => m.agendamentos > 0 ? (m.compareceu / m.agendamentos) * 100 : 0 },
-                { label: 'Compareceu → Análise', calc: m => m.compareceu > 0 ? (m.analises / m.compareceu) * 100 : 0 },
-                { label: 'Análise → Aprovação', calc: m => m.analises > 0 ? (m.aprovacoes / m.analises) * 100 : 0 },
-                { label: 'Aprovação → Venda', calc: m => m.aprovacoes > 0 ? (m.vendas / m.aprovacoes) * 100 : 0 },
-                { label: 'Prospecção → Venda (geral)', calc: m => m.prospeccao > 0 ? (m.vendas / m.prospeccao) * 100 : 0, destaque: true }
+            const grupos = [
+                { titulo: 'Documentação', linhas: [
+                    { label: 'Prospecção → Análise', calc: m => m.prospeccao > 0 ? (m.analises / m.prospeccao) * 100 : 0 },
+                    { label: 'Análise → Aprovação', calc: m => m.analises > 0 ? (m.aprovacoes / m.analises) * 100 : 0 },
+                    { label: 'Aprovação → Venda', calc: m => m.aprovacoes > 0 ? (m.vendas / m.aprovacoes) * 100 : 0 },
+                    { label: 'Prospecção → Venda (Documentação)', calc: m => m.prospeccao > 0 ? (m.vendas / m.prospeccao) * 100 : 0, destaque: true }
+                ] },
+                { titulo: 'Agendamento & Visita', linhas: [
+                    { label: 'Prospecção → Agendamento', calc: m => m.prospeccao > 0 ? (m.agendamentos / m.prospeccao) * 100 : 0 },
+                    { label: 'Agendamento → Compareceu', calc: m => m.agendamentos > 0 ? (m.compareceu / m.agendamentos) * 100 : 0 },
+                    { label: 'Compareceu → Venda', calc: m => m.compareceu > 0 ? (m.vendas / m.compareceu) * 100 : 0 },
+                    { label: 'Prospecção → Venda (Agendamento)', calc: m => m.prospeccao > 0 ? (m.vendas / m.prospeccao) * 100 : 0, destaque: true }
+                ] }
             ];
-            const bodyRows = linhas.map(l => {
-                const cells = janela.map((m, i) => {
-                    const isUltimo = i === janela.length - 1;
-                    return `<td class="text-center py-2 px-3 font-semibold ${l.destaque ? 'text-brand-400' : (isUltimo ? 'text-slate-100 bg-brand-500/5' : 'text-slate-300')}">${l.calc(m).toFixed(1)}%</td>`;
+
+            const bodyRows = grupos.map(g => {
+                const tituloRow = `<tr class="border-t border-slate-800/60"><td colspan="${janela.length + 1}" class="pt-3 pb-1 text-[10px] font-bold text-slate-500 uppercase tracking-wide">${g.titulo}</td></tr>`;
+                const linhasHtml = g.linhas.map(l => {
+                    const cells = janela.map((m, i) => {
+                        const isUltimo = i === janela.length - 1;
+                        return `<td class="text-center py-2 px-3 font-semibold ${l.destaque ? 'text-brand-400' : (isUltimo ? 'text-slate-100 bg-brand-500/5' : 'text-slate-300')}">${l.calc(m).toFixed(1)}%</td>`;
+                    }).join('');
+                    const rowCls = l.destaque ? 'border-t-2 border-slate-700 bg-slate-950/40' : 'border-t border-slate-800/60';
+                    const labelCls = l.destaque ? 'py-2 pr-3 text-brand-300 font-bold whitespace-nowrap' : 'py-2 pr-3 text-slate-400 whitespace-nowrap';
+                    return `<tr class="${rowCls}"><td class="${labelCls}">${l.label}</td>${cells}</tr>`;
                 }).join('');
-                const rowCls = l.destaque ? 'border-t-2 border-slate-700 bg-slate-950/40' : 'border-t border-slate-800/60';
-                const labelCls = l.destaque ? 'py-2 pr-3 text-brand-300 font-bold whitespace-nowrap' : 'py-2 pr-3 text-slate-400 whitespace-nowrap';
-                return `<tr class="${rowCls}"><td class="${labelCls}">${l.label}</td>${cells}</tr>`;
+                return tituloRow + linhasHtml;
             }).join('');
 
             el.innerHTML = `<thead><tr><th class="text-left py-1.5 pr-3"></th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody>`;
@@ -6662,17 +6677,17 @@
 
             // "denom" = volume da etapa ANTERIOR do par (o denominador da razão) — exige um mínimo
             // dos dois meses pra não deixar a maior queda ser decidida por uma etapa com amostra
-            // muito pequena. "Compareceu → Análise" fica de fora dessa busca de propósito: entre a
-            // visita e o envio da documentação passam-se costumeiramente semanas, então a razão do
-            // MESMO mês pra essas duas etapas é estruturalmente ruidosa (o lead que "virou análise"
-            // nesse mês quase sempre compareceu num mês anterior) — continua na tabela de baixo
-            // (com a ressalva explicada ali), só não entra no resumo automático de 1 frase.
+            // muito pequena. Segue os 2 ramos reais do funil (Documentação e Agendamento & Visita,
+            // que só se encontram lá na Prospecção) — não existe "Compareceu → Análise" de verdade,
+            // são volumes de ramos paralelos, não etapas sequenciais (ver renderTaxaConversaoTable).
             const AMOSTRA_MINIMA = 3;
             const etapas = [
+                { label: 'Prospecção → Análise', denom: m => m.prospeccao, calc: m => m.prospeccao > 0 ? (m.analises / m.prospeccao) * 100 : null },
+                { label: 'Análise → Aprovação', denom: m => m.analises, calc: m => m.analises > 0 ? (m.aprovacoes / m.analises) * 100 : null },
+                { label: 'Aprovação → Venda', denom: m => m.aprovacoes, calc: m => m.aprovacoes > 0 ? (m.vendas / m.aprovacoes) * 100 : null },
                 { label: 'Prospecção → Agendamento', denom: m => m.prospeccao, calc: m => m.prospeccao > 0 ? (m.agendamentos / m.prospeccao) * 100 : null },
                 { label: 'Agendamento → Compareceu', denom: m => m.agendamentos, calc: m => m.agendamentos > 0 ? (m.compareceu / m.agendamentos) * 100 : null },
-                { label: 'Análise → Aprovação', denom: m => m.analises, calc: m => m.analises > 0 ? (m.aprovacoes / m.analises) * 100 : null },
-                { label: 'Aprovação → Venda', denom: m => m.aprovacoes, calc: m => m.aprovacoes > 0 ? (m.vendas / m.aprovacoes) * 100 : null }
+                { label: 'Compareceu → Venda', denom: m => m.compareceu, calc: m => m.compareceu > 0 ? (m.vendas / m.compareceu) * 100 : null }
             ];
 
             let maiorQuedaEtapa = null, maiorQueda = 0;
