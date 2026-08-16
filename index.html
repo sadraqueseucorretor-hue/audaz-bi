@@ -668,7 +668,7 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
                         <div class="lg:col-span-3">
-                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Segunda a Domingo — Real vs Ritmo Ideal</p>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Semana Útil (Seg a Sáb) — Real vs Ritmo Ideal</p>
                             <div class="h-56 relative">
                                 <canvas id="chartRitmoSemana"></canvas>
                             </div>
@@ -7349,18 +7349,30 @@
             const domingo = new Date(segunda); domingo.setDate(segunda.getDate() + 6);
             const diaHoje = desdeSegunda + 1; // 1..7, segunda = 1
 
-            const tituloEl = document.getElementById('ritmoSemanaTitulo');
-            if (tituloEl) tituloEl.textContent = `${formatDate(segunda)} a ${formatDate(domingo)}`;
-            const periodoEl = document.getElementById('ritmoSemanaPeriodoLabel');
-            if (periodoEl) periodoEl.textContent = 'Semana atual (segunda a domingo)';
-            const hojeLbl = document.getElementById('ritmoSemanaHojeLabel');
-            if (hojeLbl) hojeLbl.textContent = `Hoje: ${DOW_PT[dow]}, dia ${diaHoje} de 7`;
+            // A semana de TRABALHO vai de segunda a SÁBADO (6 dias úteis) — domingo não conta porque
+            // o admin não sobe análise. O domingo continua aparecendo no gráfico (com a linha ideal
+            // plana), mas todos os textos/contadores falam em dia útil, senão o cabeçalho ("dia 7 de
+            // 7") contradiz o resumo logo abaixo ("dias úteis 6 de 6").
+            const DIAS_UTEIS_SEMANA_HDR = 6;
+            const sabado = new Date(segunda); sabado.setDate(segunda.getDate() + 5);
+            const semanaUtilEncerrada = (dow === 0); // domingo: a semana útil já fechou no sábado
 
-            const diasRestantes = Math.max(0, 7 - diaHoje);
+            const tituloEl = document.getElementById('ritmoSemanaTitulo');
+            if (tituloEl) tituloEl.textContent = `${formatDate(segunda)} a ${formatDate(sabado)}`;
+            const periodoEl = document.getElementById('ritmoSemanaPeriodoLabel');
+            if (periodoEl) periodoEl.textContent = 'Semana útil (segunda a sábado) — domingo não conta';
+            const hojeLbl = document.getElementById('ritmoSemanaHojeLabel');
+            if (hojeLbl) hojeLbl.textContent = semanaUtilEncerrada
+                ? 'Hoje: DOM — semana útil encerrada'
+                : `Hoje: ${DOW_PT[dow]}, dia útil ${contarDiasUteis(segunda, diaHoje)} de ${DIAS_UTEIS_SEMANA_HDR}`;
+
+            const diasRestantes = Math.max(0, DIAS_UTEIS_SEMANA_HDR - contarDiasUteis(segunda, diaHoje));
+            const fechamentoBoxSem = document.getElementById('ritmoSemanaFechamentoBox');
+            if (fechamentoBoxSem) fechamentoBoxSem.style.display = semanaUtilEncerrada ? 'none' : '';
             const diasFaltamEl = document.getElementById('ritmoSemanaDiasFaltam');
-            if (diasFaltamEl) diasFaltamEl.textContent = `${diasRestantes} dias`;
+            if (diasFaltamEl) diasFaltamEl.textContent = diasRestantes === 1 ? '1 dia útil' : `${diasRestantes} dias úteis`;
             const encerramentoEl = document.getElementById('ritmoSemanaEncerramento');
-            if (encerramentoEl) encerramentoEl.textContent = `Encerramento: ${formatDate(domingo)}`;
+            if (encerramentoEl) encerramentoEl.textContent = `Encerramento: ${formatDate(sabado)}`;
 
             // Meta semanal já cadastrada (não a mensal ÷ 7) — mesma convenção da Evolução Semanal do
             // Mês: meta individual do corretor filtrado sobrepõe a meta da equipe.
@@ -7454,7 +7466,8 @@
                         tooltip: { callbacks: { title: (items) => items[0].label } }
                     },
                     scales: {
-                        x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        // Domingo com o rótulo apagado — não é dia útil, a linha ideal fica plana nele.
+                        x: { grid: { display: false }, ticks: { color: (c) => c.index === 6 ? '#475569' : '#94a3b8', font: { size: 10 } } },
                         y: { grid: { color: 'rgba(255, 255, 255, 0.08)' }, ticks: { color: '#cbd5e1', font: { size: 11 } }, beginAtZero: true }
                     }
                 },
