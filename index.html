@@ -7762,12 +7762,14 @@
             afterDatasetsDraw(chart) {
                 const { ctx, chartArea } = chart;
                 ctx.save();
-                ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = '#0b1220';
                 ctx.textAlign = 'center';
 
-                // Agrupa por mês (índice) pra resolver colisão entre séries no mesmo x
+                // Agrupa pela POSIÇÃO HORIZONTAL (não pelo índice do mês): em linha as 3 séries caem
+                // no mesmo x e precisam de anti-colisão; em barras agrupadas cada série tem seu
+                // próprio x, então nada é empurrado à toa e o número fica reto em cima da barra.
                 const porMes = {};
                 chart.data.datasets.forEach((ds, i) => {
                     const meta = chart.getDatasetMeta(i);
@@ -7775,7 +7777,8 @@
                     meta.data.forEach((el, idx) => {
                         const val = ds.data[idx];
                         if (val === null || val === undefined) return;
-                        (porMes[idx] = porMes[idx] || []).push({ x: el.x, y: el.y, val, cor: ds.borderColor || ds.backgroundColor });
+                        const chave = Math.round(el.x);
+                        (porMes[chave] = porMes[chave] || []).push({ x: el.x, y: el.y, val, cor: ds.borderColor || ds.backgroundColor });
                     });
                 });
 
@@ -8140,6 +8143,13 @@
                 pointBackgroundColor: hex, pointBorderColor: '#0b1220', pointBorderWidth: thick ? 1.5 : 1,
                 tension: 0.3, fill: false, yAxisID: yAxisID || 'y'
             });
+            // Meio/fim do funil em BARRAS agrupadas (pedido do usuário, via mockup): Análises,
+            // Aprovações e Vendas têm ordens de grandeza parecidas, então a barra compara melhor
+            // mês a mês do que 3 linhas quase paralelas — e o número fica limpo acima de cada barra,
+            // sem o embolamento que linhas sobrepostas causavam.
+            const funilBarDataset = (label, data, hex) => ({
+                label, data, backgroundColor: hex, borderColor: hex, borderRadius: 4, borderWidth: 0
+            });
 
             const ctxTopo = document.getElementById('chartEvolucaoTopoFunil').getContext('2d');
             charts.evolucaoTopoFunil = new Chart(ctxTopo, {
@@ -8158,13 +8168,13 @@
 
             const ctxFinal = document.getElementById('chartEvolucaoFunilFinal').getContext('2d');
             charts.evolucaoFunilFinal = new Chart(ctxFinal, {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: labelsJanela,
                     datasets: [
-                        funilDataset('Análises', anaJanela, '#38bdf8'),
-                        funilDataset('Aprovações', aprovJanela, '#fb923c'),
-                        funilDataset('Vendas', vendJanela, '#4ade80', true)
+                        funilBarDataset('Análises', anaJanela, '#3b82f6'),
+                        funilBarDataset('Aprovações', aprovJanela, '#f59e0b'),
+                        funilBarDataset('Vendas', vendJanela, '#22c55e')
                     ]
                 },
                 options: funilChartOptions(['analises', 'aprovacoes', 'vendas']),
