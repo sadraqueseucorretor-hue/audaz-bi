@@ -4634,11 +4634,41 @@
         // =========================================================================
         // ✨ NOVO: ENGINE DE AUTO-ATUALIZAÇÃO EM TEMPO REAL (REAL-TIME SYNC) ✨
         // =========================================================================
+        // Pausa o auto-refresh enquanto a aba não está visível. Sem isso o BI continuava baixando os
+        // 2 CSVs do Google Sheets a cada 15s mesmo esquecido numa aba de fundo — medido em produção:
+        // 48 requisições em 5,6 min (~480/hora), ~770ms cada, sem ninguém olhando a tela. Ao voltar
+        // pra aba, busca na hora em vez de esperar o próximo tick, então o usuário não perde nada.
+        let pausaPorVisibilidadeInstalada = false;
+        function instalarPausaPorVisibilidade() {
+            if (pausaPorVisibilidadeInstalada) return;
+            pausaPorVisibilidadeInstalada = true;
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    clearInterval(countdownTimerId);
+                    countdownTimerId = null;
+                    updateSyncStatusUI("inactive");
+                } else {
+                    const rateAtual = parseInt(document.getElementById('autoRefreshSelect').value);
+                    if (rateAtual > 0 && !isMockDataActive) {
+                        silentFetchFromGoogleSheets();
+                        silentFetchAgendaFromGoogleSheets();
+                    }
+                    startAutoRefreshTimer();
+                }
+            });
+        }
+
         function startAutoRefreshTimer() {
             clearInterval(countdownTimerId);
-            
+            instalarPausaPorVisibilidade();
+
             const rate = parseInt(document.getElementById('autoRefreshSelect').value);
             if (rate === 0 || isMockDataActive) {
+                updateSyncStatusUI("inactive");
+                return;
+            }
+            // Aba em segundo plano: não inicia contagem nenhuma (o listener acima religa ao voltar).
+            if (document.visibilityState === 'hidden') {
                 updateSyncStatusUI("inactive");
                 return;
             }
