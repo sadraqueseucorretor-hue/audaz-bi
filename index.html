@@ -7505,8 +7505,13 @@
                                 const boxH = 38;
                                 let boxX = point.x - boxW / 2;
                                 boxX = Math.max(2, Math.min(boxX, chart.width - boxW - 2));
-                                let boxY = point.y - boxH - 16;
+                                // No último dia da semana os 2 balões ("hoje" e "meta final") caem no
+                                // mesmo canto e se sobrepõem — nesse caso desenha o de hoje ABAIXO do
+                                // ponto em vez de acima.
+                                const ehUltimoPonto = diaHoje === 7;
+                                let boxY = ehUltimoPonto ? point.y + 14 : point.y - boxH - 16;
                                 if (boxY < 2) boxY = point.y + 14;
+                                if (boxY + boxH > chart.height) boxY = Math.max(2, point.y - boxH - 16);
 
                                 ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
                                 ctx.strokeStyle = '#38bdf8';
