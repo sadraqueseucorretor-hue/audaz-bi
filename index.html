@@ -3749,7 +3749,10 @@
 
         function switchView(viewName) {
             activeView = viewName;
-            drawProductionCalendar();
+            // O Mapa de Calor só existe nas views "dashboard" e "calendar" (é inline no painel) —
+            // redesenhá-lo ao entrar em Rankings/Corretor/Plantões era ~12ms jogados fora em TODA
+            // troca de aba, contribuindo pro travamento que o usuário reportou.
+            if (viewName === 'dashboard' || viewName === 'calendar') drawProductionCalendar();
             const onCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-100";
             const offCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200";
             const linkDashboard = document.getElementById('navLinkDashboard');
@@ -6550,6 +6553,20 @@
         }
 
         let charts = {};
+
+        // ===== PERFORMANCE DOS GRÁFICOS =====
+        // São 9 gráficos Chart.js responsivos na tela. No padrão do Chart.js cada um anima 1000ms a
+        // cada (re)desenho — então esconder a barra lateral ou trocar de aba disparava 9 animações
+        // de 1 segundo ao mesmo tempo (o layout muda → todos re-renderizam), o que travava a
+        // interface visivelmente. Medido: cada troca de aba gerava "long tasks" de 74-93ms.
+        // Animação curta (250ms) mantém a sensação de fluidez, e no RESIZE ela é zerada — redesenhar
+        // por mudança de tamanho não precisa de animação nenhuma, é justamente o caso que travava.
+        if (window.Chart && Chart.defaults) {
+            Chart.defaults.animation.duration = 250;
+            if (Chart.defaults.transitions && Chart.defaults.transitions.resize) {
+                Chart.defaults.transitions.resize.animation.duration = 0;
+            }
+        }
 
         // Mini gráfico de linha (SVG puro, sem Chart.js) usado dentro dos cards de tendência.
         function renderSparklineSvg(serie, color) {
