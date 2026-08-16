@@ -7752,6 +7752,55 @@
             }
         };
 
+        // Rótulos de valor em cada ponto dos 2 gráficos da "Evolução Mensal de Operações" — o usuário
+        // pediu pra ver o número de cada mês sem precisar passar o mouse. Diferente do plugin da
+        // Evolução Semanal, aqui as linhas se CRUZAM bastante (ex.: Prospecção x Agendamentos x
+        // Compareceu), então os rótulos do mesmo mês são agrupados e empurrados pra baixo quando
+        // colidiriam, e as pontas são "puxadas" pra dentro pra não vazar da área do gráfico.
+        const EVO_MENSAL_VALUE_LABELS_PLUGIN = {
+            id: 'evoMensalValueLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx, chartArea } = chart;
+                ctx.save();
+                ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#0b1220';
+                ctx.textAlign = 'center';
+
+                // Agrupa por mês (índice) pra resolver colisão entre séries no mesmo x
+                const porMes = {};
+                chart.data.datasets.forEach((ds, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    if (meta.hidden) return;
+                    meta.data.forEach((el, idx) => {
+                        const val = ds.data[idx];
+                        if (val === null || val === undefined) return;
+                        (porMes[idx] = porMes[idx] || []).push({ x: el.x, y: el.y, val, cor: ds.borderColor || ds.backgroundColor });
+                    });
+                });
+
+                const ESPACO = 14;
+                Object.values(porMes).forEach(pontos => {
+                    pontos.sort((a, b) => a.y - b.y); // de cima pra baixo
+                    let ultimoY = -Infinity;
+                    pontos.forEach(p => {
+                        let y = p.y - 10;
+                        if (y - ultimoY < ESPACO) y = ultimoY + ESPACO; // empurra se fosse colidir
+                        y = Math.max(chartArea.top + 10, Math.min(y, chartArea.bottom - 2));
+                        ultimoY = y;
+                        // Encosta o texto pra dentro nas pontas, pra não cortar no 1º/último mês
+                        const texto = String(p.val);
+                        const meia = ctx.measureText(texto).width / 2 + 2;
+                        const x = Math.max(chartArea.left + meia, Math.min(p.x, chartArea.right - meia));
+                        ctx.fillStyle = p.cor;
+                        ctx.strokeText(texto, x, y);
+                        ctx.fillText(texto, x, y);
+                    });
+                });
+                ctx.restore();
+            }
+        };
+
         // Monta a tabela (etapa x semana) que fica abaixo de cada mini-gráfico: 3 sub-linhas por
         // etapa (Meta / Realizado / % Ating.) + coluna Total no fim, igual ao formato pedido.
         function buildEvoSemanalTable(labelsCurtos, linhas) {
@@ -8103,7 +8152,8 @@
                         funilDataset('Compareceu', compJanela, '#22d3ee')
                     ]
                 },
-                options: funilChartOptions(['prospeccao', 'agendamentos', 'compareceu'], true)
+                options: funilChartOptions(['prospeccao', 'agendamentos', 'compareceu'], true),
+                plugins: [EVO_MENSAL_VALUE_LABELS_PLUGIN]
             });
 
             const ctxFinal = document.getElementById('chartEvolucaoFunilFinal').getContext('2d');
@@ -8117,7 +8167,8 @@
                         funilDataset('Vendas', vendJanela, '#4ade80', true)
                     ]
                 },
-                options: funilChartOptions(['analises', 'aprovacoes', 'vendas'])
+                options: funilChartOptions(['analises', 'aprovacoes', 'vendas']),
+                plugins: [EVO_MENSAL_VALUE_LABELS_PLUGIN]
             });
 
             // 2. Gráfico de Evolução de VGV — barras com o valor escrito em cima + bolha com a
