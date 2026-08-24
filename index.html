@@ -8662,16 +8662,14 @@
                 return normalizeMes(mesRef) === activeMonth && (getMesAno(mesRef) || activeYear) === activeYear;
             };
 
-            // Roster do Mapa de Calor: corretores ATIVOS (inclui pré-cadastrados, mesmo sem
-            // produção) + DESATIVADOS QUE PRODUZIRAM NO MÊS EXIBIDO. Assim, ao consultar um mês
-            // passado, quem saiu depois continua aparecendo com a produção que fez — desativar não
-            // apaga histórico. Nos meses em que ele não produziu, simplesmente não aparece.
-            const produziuNoMesExibido = new Set();
-            dataset.forEach(row => {
-                if (!row.Corretor || isCorretorActive(row.Corretor)) return;
-                if (pertenceAoMesGenerico(true, row['Mês Cadastro'], row['Data Cadastro'])) produziuNoMesExibido.add(row.Corretor);
-            });
-            const activeCorretores = getActiveCorretores().concat(Array.from(produziuNoMesExibido));
+            // Roster do Mapa de Calor: SÓ corretores ATIVOS (inclui pré-cadastrados sem produção).
+            // Exceção deliberada à regra "desativar não esconde histórico": este painel é ferramenta
+            // de GESTÃO DA EQUIPE ATUAL — mede sequência de dias ativos, dias parados e quem precisa
+            // de cobrança. Não faz sentido cobrar/monitorar quem não está mais na equipe, então o
+            // desativado sai daqui mesmo tendo documentação lançada dentro do mês exibido (pedido
+            // explícito do usuário). O histórico dele segue intacto nos demais indicadores
+            // (rankings, análises, aprovações, vendas, VGV) — ver regras-negocio-audaz-bi.
+            const activeCorretores = getActiveCorretores();
             const activeSet = new Set(activeCorretores);
 
             // ===== STATUS DE ATIVIDADE (dias sem subir análise) + SEQUÊNCIA ATUAL =====
