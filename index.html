@@ -812,6 +812,7 @@
                                 <button id="rankSort-vendas" onclick="setRankSort('vendas')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Vendas</button>
                                 <button id="rankSort-aprovacoes" onclick="setRankSort('aprovacoes')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Aprovações</button>
                                 <button id="rankSort-analises" onclick="setRankSort('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Análises</button>
+                                <button id="rankSort-ipc" onclick="setRankSort('ipc')" title="Índice de Produtividade do Corretor — média mensal de vendas nos últimos 3 meses comerciais" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">IPC</button>
                             </div>
 
                             <div class="overflow-x-auto">
@@ -824,6 +825,8 @@
                                             <th class="pb-3 text-center">Aprovs</th>
                                             <th class="pb-3 text-center">Vendas</th>
                                             <th class="pb-3 text-center">Conversão</th>
+                                            <th class="pb-3 text-center whitespace-nowrap" title="Vendas nos últimos 3 meses comerciais (janela do IPC — independente do período filtrado acima)">Vendas 3M</th>
+                                            <th class="pb-3 text-center whitespace-nowrap" title="IPC — Índice de Produtividade do Corretor: vendas dos últimos 3 meses comerciais ÷ 3 (média mensal)">IPC</th>
                                             <th class="pb-3 text-right pr-2">VGV</th>
                                         </tr>
                                     </thead>
@@ -875,6 +878,49 @@
                     </div>
 
                 </div>
+
+                <!-- 4.5 IPC — ÍNDICE DE PRODUTIVIDADE DO CORRETOR (KPI oficial de produtividade).
+                     Média mensal de vendas nos últimos 3 meses comerciais. Janela móvel, ancorada
+                     no mês comercial em foco. Ver calcularIPC() para a regra completa. -->
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6" id="ipcSection">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-5">
+                        <div>
+                            <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-gauge-high text-emerald-500"></i> IPC — Índice de Produtividade do Corretor
+                            </h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">
+                                Vendas dos últimos 3 meses comerciais ÷ 3 = média de vendas por mês.
+                                <span class="text-slate-400 font-semibold" id="ipcJanelaHint"></span>
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="text-center px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                                <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Média da equipa</p>
+                                <p class="text-lg font-extrabold text-brand-400 tabular-nums leading-tight" id="ipcMediaEquipe">0,00</p>
+                            </div>
+                            <div class="text-center px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                                <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Acima da média</p>
+                                <p class="text-lg font-extrabold text-emerald-400 tabular-nums leading-tight" id="ipcAcimaCount">0</p>
+                            </div>
+                            <div class="text-center px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                                <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Abaixo da média</p>
+                                <p class="text-lg font-extrabold text-amber-400 tabular-nums leading-tight" id="ipcAbaixoCount">0</p>
+                            </div>
+                            <div class="text-center px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                                <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Vendas 3M</p>
+                                <p class="text-lg font-extrabold text-indigo-400 tabular-nums leading-tight" id="ipcTotalVendas">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="ipcRankingList" class="space-y-1.5"></div>
+                    <div class="flex items-center gap-3 flex-wrap mt-4 pt-3 border-t border-slate-800/60 text-[10px] text-slate-500">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span> 25%+ acima da média</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-brand-500"></span> Na média ou acima</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span> Abaixo da média</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span> Crítico (inclui IPC 0,00 — barra vazia)</span>
+                        <span class="flex items-center gap-1.5 ml-auto"><i class="fa-solid fa-grip-lines-vertical text-slate-300"></i> Linha branca = média da equipa</span>
+                    </div>
+                </section>
 
                 <!-- 5. PAINEL DE ALERTAS AUTOMÁTICOS & PREDITIVOS -->
                 <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
@@ -6433,8 +6479,166 @@
             document.getElementById('funnelComissaoTrend').innerHTML = trendHtml(kpiValues.comissaoCorretor || 0, comissaoAnterior);
         }
 
+        // ===================== IPC — ÍNDICE DE PRODUTIVIDADE DO CORRETOR =====================
+        // KPI oficial de produtividade comercial da AUDAZ.
+        //   IPC = vendas do corretor nos ÚLTIMOS 3 MESES COMERCIAIS ÷ 3
+        // Ou seja: a MÉDIA MENSAL de vendas do corretor no trimestre corrente (3 vendas → 1,00;
+        // 2 → 0,67; 1 → 0,33; 0 → 0,00; 5 → 1,67...).
+        //
+        // JANELA MÓVEL: são sempre os 3 meses que TERMINAM no mês comercial em foco — em setembro
+        // é jul+ago+set; em outubro passa a ago+set+out. Meses anteriores à janela nunca entram.
+        //
+        // Como isto "respeita o filtro de mês": o filtro define a ÂNCORA da janela, não o recorte.
+        // Se recortasse (só o mês selecionado), o IPC deixaria de ser um índice de 3 meses e viraria
+        // outro contador de vendas do mês — o dashboard já tem esse. Então: selecionou Agosto nos
+        // pills → janela jun+jul+ago; sem seleção → mês comercial corrente do BI e os 2 anteriores.
+        // Vários meses selecionados (modo comparativo) → ancora no mais recente deles.
+        //
+        // Demais filtros são respeitados na íntegra: corretor, equipa, construtora e empreendimento
+        // vêm de filteredDataset; a situação da venda vem de isVendaModo() (toggle Gerais x
+        // Finalizadas). O filtro de SEMANA é deliberadamente ignorado — uma janela de 7 dias não tem
+        // significado dentro de um índice trimestral.
+        //
+        // Não altera nenhuma regra existente de Vendas, VGV ou Comissão: só LÊ as mesmas funções.
+        const IPC_MESES_JANELA = 3;
+
+        // Os 3 meses comerciais da janela, do mais antigo ao mais recente.
+        function getJanelaIPC(refDate) {
+            const base = refDate || currentRefDate || new Date();
+            const meses = [];
+            for (let i = IPC_MESES_JANELA - 1; i >= 0; i--) {
+                const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+                meses.push({ nome: getMesName(d.getMonth() + 1), ano: d.getFullYear(), idx: d.getMonth() });
+            }
+            return meses;
+        }
+
+        // A venda pertence à janela? Sempre por MÊS GANHO (faturamento), a mesma coluna que o resto
+        // do BI usa pra Vendas/VGV — nunca por safra/cadastro.
+        function rowNaJanelaIPC(row, janela) {
+            const nome = normalizeMes(row['Mês Ganho']);
+            if (!nome) return false;
+            const ano = getMesAno(row['Mês Ganho']);
+            return janela.some(m => m.nome === nome && (ano === null || ano === m.ano));
+        }
+
+        function fmtIPC(v) {
+            return (v || 0).toFixed(2).replace('.', ',');
+        }
+
+        // Rótulo curto da janela, ex.: "Jul + Ago + Set/2026"
+        function ipcJanelaTexto(janela) {
+            if (!janela || !janela.length) return '—';
+            const abrev = m => m.nome.slice(0, 3);
+            return janela.map(abrev).join(' + ') + '/' + janela[janela.length - 1].ano;
+        }
+
+        // Faixa do corretor em relação à média da equipa — a MESMA escala usada pela cor da barra do
+        // comparativo e pelo badge da tabela, pra legenda e números nunca se contradizerem.
+        // IPC 0,00 (nenhuma venda no trimestre) é classificado como CRÍTICO, não como "neutro":
+        // num KPI de produtividade, zero é a informação mais forte que existe.
+        function ipcFaixa(ipc, media) {
+            if (media > 0 && ipc >= media * 1.25) return 'otimo';
+            if (media > 0 && ipc >= media) return 'bom';
+            if (ipc > 0 && media > 0 && ipc >= media * 0.6) return 'atencao';
+            return 'critico';
+        }
+        const IPC_CORES = {
+            otimo:   { badge: 'bg-emerald-500/15 text-emerald-400', barra: 'bg-emerald-500', texto: 'text-emerald-400' },
+            bom:     { badge: 'bg-brand-500/15 text-brand-400',     barra: 'bg-brand-500',   texto: 'text-brand-400' },
+            atencao: { badge: 'bg-amber-500/15 text-amber-400',     barra: 'bg-amber-500',   texto: 'text-amber-400' },
+            critico: { badge: 'bg-rose-500/15 text-rose-400',       barra: 'bg-rose-500',    texto: 'text-rose-400' }
+        };
+        function ipcBadge(ipc, media) {
+            return IPC_CORES[ipcFaixa(ipc, media)].badge;
+        }
+
+        // Snapshot do IPC do render atual — calculado uma vez em drawTables() e reaproveitado pela
+        // tabela e pelo comparativo visual, pra não varrer o dataset duas vezes.
+        let ipcSnapshot = { janela: [], lista: [], porCorretor: {}, mediaEquipe: 0, totalVendas: 0 };
+
+        function calcularIPC(refDate) {
+            const janela = getJanelaIPC(refDate);
+            const mapa = {};
+            // Roster: os ATIVOS entram pré-cadastrados com IPC 0,00 — produtividade zero num
+            // trimestre é justamente a informação que o gestor precisa ver, não um vazio.
+            // DESATIVAR ≠ EXCLUIR: quem vendeu na janela e foi desativado depois continua aparecendo
+            // (histórico preservado); quem foi desativado e não vendeu na janela não é pré-cadastrado
+            // e some naturalmente — mesmo mecanismo já usado em drawTables/drawQuickRankings.
+            getActiveCorretores().forEach(nome => {
+                mapa[nome] = { corretor: nome, vendas3m: 0, vgv3m: 0, ipc: 0, porMes: {}, ativo: true };
+            });
+            (filteredDataset || []).forEach(row => {
+                const c = row.Corretor;
+                if (!c) return;
+                if (!isVendaModo(row)) return;             // só GANHO/VENDA — nunca lead, visita, análise ou proposta
+                if (!rowNaJanelaIPC(row, janela)) return;
+                if (!mapa[c]) mapa[c] = { corretor: c, vendas3m: 0, vgv3m: 0, ipc: 0, porMes: {}, ativo: isCorretorActive(c) };
+                mapa[c].vendas3m++;
+                mapa[c].vgv3m += getVGV(row);
+                const k = normalizeMes(row['Mês Ganho']);
+                mapa[c].porMes[k] = (mapa[c].porMes[k] || 0) + 1;
+            });
+            const lista = Object.values(mapa);
+            lista.forEach(c => { c.ipc = c.vendas3m / IPC_MESES_JANELA; });
+            lista.sort((a, b) => (b.ipc - a.ipc) || (b.vgv3m - a.vgv3m) || a.corretor.localeCompare(b.corretor));
+            const totalVendas = lista.reduce((s, c) => s + c.vendas3m, 0);
+            // Média da equipa = IPC médio entre os corretores listados (base da comparação visual).
+            const mediaEquipe = lista.length ? (totalVendas / IPC_MESES_JANELA) / lista.length : 0;
+            const porCorretor = {};
+            lista.forEach(c => { porCorretor[c.corretor] = c; });
+            return { janela, lista, porCorretor, mediaEquipe, totalVendas };
+        }
+
+        // Comparativo visual do IPC: barras horizontais por corretor com a média da equipa marcada,
+        // pra bater o olho e ver quem está acima/abaixo da produtividade média. Lê o ipcSnapshot já
+        // calculado em drawTables() — não varre o dataset de novo.
+        function renderIPCComparativo() {
+            const lista = document.getElementById('ipcRankingList');
+            if (!lista) return;
+            const snap = ipcSnapshot || { lista: [], janela: [], mediaEquipe: 0, totalVendas: 0 };
+            const media = snap.mediaEquipe || 0;
+
+            const hint = document.getElementById('ipcJanelaHint');
+            if (hint) hint.textContent = 'Janela: ' + ipcJanelaTexto(snap.janela);
+            const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            setTxt('ipcMediaEquipe', fmtIPC(media));
+            setTxt('ipcTotalVendas', snap.totalVendas || 0);
+            setTxt('ipcAcimaCount', snap.lista.filter(c => c.ipc >= media && media > 0).length);
+            setTxt('ipcAbaixoCount', snap.lista.filter(c => c.ipc < media).length);
+
+            if (!snap.lista.length) {
+                lista.innerHTML = `<p class="text-center py-6 text-slate-500 text-xs">Sem corretores para calcular o IPC neste recorte.</p>`;
+                return;
+            }
+            // Escala das barras: o maior IPC ocupa 100%. Piso de 1,00 pra não inflar visualmente um
+            // trimestre fraco (se todo mundo tem 0,33, a barra não deve parecer "cheia").
+            const maxIpc = Math.max(1, ...snap.lista.map(c => c.ipc));
+            const pctMedia = (media / maxIpc) * 100;
+            const janelaTxt = ipcJanelaTexto(snap.janela);
+
+            lista.innerHTML = snap.lista.map((c, i) => {
+                const cor = IPC_CORES[ipcFaixa(c.ipc, media)];
+                const pct = c.ipc > 0 ? Math.max(2, (c.ipc / maxIpc) * 100) : 0; // barra vazia = zero venda, sem maquiar
+                const inativo = c.ativo === false
+                    ? ' <span class="text-[9px] font-bold text-slate-500 uppercase">(inativo)</span>' : '';
+                const detalhe = snap.janela.map(m => `${m.nome.slice(0,3)}: ${c.porMes[m.nome] || 0}`).join('  ·  ');
+                return `
+                <div class="flex items-center gap-2.5 group" title="${c.corretor} — ${c.vendas3m} venda(s) em ${janelaTxt} ÷ 3 = IPC ${fmtIPC(c.ipc)}&#10;${detalhe}">
+                    <span class="w-6 text-[10px] font-bold text-slate-600 text-right shrink-0">${i + 1}º</span>
+                    <span class="w-40 sm:w-52 text-[11px] font-semibold text-slate-300 truncate shrink-0">${c.corretor}${inativo}</span>
+                    <div class="flex-1 h-5 bg-slate-950/70 rounded-md relative overflow-hidden border border-slate-800/60 min-w-[80px]">
+                        <div class="h-full ${cor.barra} rounded-md transition-all duration-500 group-hover:brightness-110" style="width:${pct}%"></div>
+                        ${media > 0 ? `<div class="absolute top-0 bottom-0 w-px bg-white/70" style="left:${Math.min(99.5, pctMedia)}%"></div>` : ''}
+                    </div>
+                    <span class="w-11 text-right text-[11px] font-extrabold tabular-nums shrink-0 ${cor.texto}">${fmtIPC(c.ipc)}</span>
+                    <span class="w-14 text-right text-[10px] text-slate-500 tabular-nums shrink-0 hidden sm:block">${c.vendas3m} vd</span>
+                </div>`;
+            }).join('');
+        }
+
         // Ordenação dos rankings (corretores e equipas)
-        let rankSort = 'vgv'; // vgv | vendas | aprovacoes | analises
+        let rankSort = 'vgv'; // vgv | vendas | aprovacoes | analises | ipc
         function rankSorter(a, b) {
             const diff = (b[rankSort] || 0) - (a[rankSort] || 0);
             if (diff !== 0) return diff;
@@ -6444,7 +6648,7 @@
         function setRankSort(campo) {
             rankSort = campo;
             // atualiza visual dos botões
-            ['analises','aprovacoes','vendas','vgv'].forEach(k => {
+            ['analises','aprovacoes','vendas','vgv','ipc'].forEach(k => {
                 const b = document.getElementById('rankSort-' + k);
                 if (b) b.className = (k === campo)
                     ? 'rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition'
@@ -6530,6 +6734,17 @@
                 }
             });
 
+            // IPC (janela móvel de 3 meses comerciais) — calculado uma vez por render e anexado a
+            // cada corretor da tabela. Repare que é uma janela DIFERENTE da das colunas Análises/
+            // Aprovações/Vendas (que seguem o período filtrado): o IPC é sempre trimestral.
+            ipcSnapshot = calcularIPC(refDateTables);
+            const ipcJanelaLabel = ipcJanelaTexto(ipcSnapshot.janela);
+            Object.values(corretoresMap).forEach(c => {
+                const ipcRow = ipcSnapshot.porCorretor[c.corretor];
+                c.vendas3m = ipcRow ? ipcRow.vendas3m : 0;
+                c.ipc = ipcRow ? ipcRow.ipc : 0;
+            });
+
             let rankingCorretores = Object.values(corretoresMap)
                 .filter(c => c.corretor && c.corretor.toLowerCase().includes(searchCorretorTerm))
                 .sort(rankSorter);
@@ -6538,7 +6753,7 @@
             corrBody.innerHTML = '';
 
             if (rankingCorretores.length === 0) {
-                corrBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
+                corrBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
             } else {
                 rankingCorretores.forEach((c, index) => {
                     const conversao = c.analises > 0 ? ((c.vendas / c.analises) * 100).toFixed(1) : 0;
@@ -6556,12 +6771,18 @@
                             <td class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
                             <td class="py-3 text-center font-medium">${conversao}%</td>
+                            <td class="py-3 text-center text-slate-400">${c.vendas3m || 0}</td>
+                            <td class="py-3 text-center">
+                                <span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${ipcJanelaLabel} ÷ 3 — média da equipa: ${fmtIPC(ipcSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>
+                            </td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
                         </tr>
                     `;
                     corrBody.insertAdjacentHTML('beforeend', rowHtml);
                 });
             }
+
+            renderIPCComparativo();
 
             let equipesMap = {};
             filteredDataset.forEach(row => {
