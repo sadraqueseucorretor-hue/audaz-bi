@@ -6682,20 +6682,27 @@
         function calcularIPC(refDate) {
             const janela = getJanelaIPC(refDate);
             const mapa = {};
-            // Roster: os ATIVOS entram pré-cadastrados com IPC 0,00 — produtividade zero num
+            // Roster: SÓ corretores ATIVOS, pré-cadastrados com IPC 0,00 — produtividade zero num
             // trimestre é justamente a informação que o gestor precisa ver, não um vazio.
-            // DESATIVAR ≠ EXCLUIR: quem vendeu na janela e foi desativado depois continua aparecendo
-            // (histórico preservado); quem foi desativado e não vendeu na janela não é pré-cadastrado
-            // e some naturalmente — mesmo mecanismo já usado em drawTables/drawQuickRankings.
+            //
+            // ⚠️ EXCEÇÃO à regra "DESATIVAR ≠ EXCLUIR" (pedido explícito do usuário em 09/09/2026,
+            // mesma exceção já aplicada ao Mapa de Calor Operacional): o corretor desativado NÃO
+            // aparece no IPC, mesmo tendo vendido dentro da janela. Motivo: o IPC é um KPI de
+            // produtividade da EQUIPE ATUAL — serve pra cobrar, comparar e definir meta de quem está
+            // na casa hoje. Manter quem saiu distorceria a média da equipe (que é a régua da
+            // comparação visual) e cobraria produtividade de quem não vende mais.
+            // O histórico dele segue intacto em todo o resto: Análises, Aprovações, Vendas, VGV,
+            // comissões e rankings dos períodos em que produziu.
             getActiveCorretores().forEach(nome => {
                 mapa[nome] = { corretor: nome, vendas3m: 0, vgv3m: 0, ipc: 0, porMes: {}, ativo: true };
             });
             (filteredDataset || []).forEach(row => {
                 const c = row.Corretor;
                 if (!c) return;
+                if (!isCorretorActive(c)) return;          // inativo fica fora do IPC (ver comentário acima)
                 if (!isVendaModo(row)) return;             // só GANHO/VENDA — nunca lead, visita, análise ou proposta
                 if (!rowNaJanelaIPC(row, janela)) return;
-                if (!mapa[c]) mapa[c] = { corretor: c, vendas3m: 0, vgv3m: 0, ipc: 0, porMes: {}, ativo: isCorretorActive(c) };
+                if (!mapa[c]) mapa[c] = { corretor: c, vendas3m: 0, vgv3m: 0, ipc: 0, porMes: {}, ativo: true };
                 mapa[c].vendas3m++;
                 mapa[c].vgv3m += getVGV(row);
                 const k = normalizeMes(row['Mês Ganho']);
@@ -6886,6 +6893,10 @@
                 const ipcRow = ipcSnapshot.porCorretor[c.corretor];
                 c.vendas3m = ipcRow ? ipcRow.vendas3m : 0;
                 c.ipc = ipcRow ? ipcRow.ipc : 0;
+                // O corretor desativado continua na tabela pelo histórico (Análises/Aprovações/
+                // Vendas/VGV), mas o IPC não se aplica a ele — mostrar "0,00" seria mentira, pois
+                // ele pode ter vendido dentro da janela. Marca pra renderizar "—".
+                c.ipcNaoSeAplica = !isCorretorActive(c.corretor);
             });
 
             let rankingCorretores = Object.values(corretoresMap)
@@ -6914,9 +6925,11 @@
                             <td class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
                             <td class="py-3 text-center font-medium">${conversao}%</td>
-                            <td class="py-3 text-center text-slate-400">${c.vendas3m || 0}</td>
+                            <td class="py-3 text-center text-slate-400">${c.ipcNaoSeAplica ? '<span class="text-slate-600">—</span>' : (c.vendas3m || 0)}</td>
                             <td class="py-3 text-center">
-                                <span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${ipcJanelaLabel} ÷ 3 — média da equipa: ${fmtIPC(ipcSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>
+                                ${c.ipcNaoSeAplica
+                                    ? `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded text-slate-600" title="Corretor desativado — o IPC mede a produtividade da equipa atual e não se aplica a ele. O histórico dele segue nas demais colunas.">—</span>`
+                                    : `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${ipcJanelaLabel} ÷ ${ipcSnapshot.divisor} — média da equipa: ${fmtIPC(ipcSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>`}
                             </td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
                         </tr>
