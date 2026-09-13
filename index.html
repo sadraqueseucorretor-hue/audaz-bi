@@ -187,6 +187,9 @@
                         <button onclick="switchView('plantoes')" id="navLinkPlantoes" title="Plantões (Diamond / Roleta / Represados)" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-clipboard-list text-violet-400"></i><span class="hidden lg:inline">Plantões</span>
                         </button>
+                        <button onclick="switchView('tela')" id="navLinkTela" title="Tela de exibição (TV): funil do mês, feito hoje, docs do dia, dias sem doc, ranking e IPC" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-tv text-emerald-400"></i><span class="hidden lg:inline">Tela</span>
+                        </button>
                     </nav>
 
                     <!-- Dynamic Live-Sync Indicator -->
@@ -1060,6 +1063,14 @@
                             <table class="w-full" id="plantaoResumoSemanaTable"></table>
                         </div>
                     </div>
+                </div>
+
+                <!-- TELA (modo TV): visão de exibição para monitor da equipe. Tudo numa tela só, sem
+                     rolagem, fonte grande: Funil do Mês · Feito Hoje · Corretores (docs do dia, dias
+                     sem doc, ranking do mês e IPC). Abre pela aba "Tela", por ?tela=1 ou por #tela
+                     (pra deixar a TV bootando direto nela). Renderizada por renderTela(). -->
+                <div id="telaSection" class="hidden">
+                    <div id="telaRoot" class="min-h-[calc(100vh-4.5rem)] flex flex-col gap-3 select-none"></div>
                 </div>
 
                 <!-- CALENDÁRIO DE PRODUÇÃO / MAPA DE CALOR OPERACIONAL (inline no painel, sempre visível) -->
@@ -3816,6 +3827,238 @@
         // aparecer se ele já tinha escondido manualmente).
         let rankingsViewSidebarWasVisible = null;
 
+        // ===================== TELA (MODO TV) =====================
+        // Visão de exibição pra monitor/TV da equipe: tudo numa tela só, sem rolagem, fonte grande.
+        //   1. FUNIL DO MÊS   — as 6 etapas com meta, % e ritmo (mesmos números do Funil de Vendas)
+        //   2. FEITO HOJE     — as 6 etapas só de hoje (mesma conta da faixa "Hoje" do funil)
+        //   3. CORRETORES     — docs de hoje, dias sem subir doc, ranking do mês (análises/
+        //                       aprovações/vendas) e IPC, tudo numa linha por corretor
+        // Não calcula nada novo: só reaproveita kpiValues, metasMensais, funnelHojeRowsCache,
+        // metricMatchesRef/isAprovadoNoPeriodo/isVendaModo e calcularIPC — se um número está aqui,
+        // é o mesmo do painel. Roster = equipe ATUAL (getActiveCorretores), como Mapa de Calor e IPC.
+        // Re-renderiza a cada applyFilters (auto-refresh de 15s mantém a TV viva).
+        function renderTela() {
+            const root = document.getElementById('telaRoot');
+            if (!root) return;
+            if (!Array.isArray(dataset) || !dataset.length) {
+                root.innerHTML = `<div class="flex-1 flex items-center justify-center text-slate-500 text-2xl">Carregando dados…</div>`;
+                return;
+            }
+            const hoje = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const refDate = currentRefDate || hoje;
+            const janela = getJanelaMesComercial('analises');
+
+            // ---------- 1. FUNIL DO MÊS ----------
+            const idealPorDiaUtil = (meta, jan) => jan.diasUteisNoMes > 0 ? meta * jan.diaUtilHoje / jan.diasUteisNoMes : 0;
+            const etapas = [
+                { key: 'prospeccao',   label: 'Prospecção',   icon: 'fa-bullhorn',            cor: 'pink',   real: kpiValues.prospeccao || 0,   meta: metasMensais.prospeccao || 0,   jan: getJanelaMesComercial('prospeccao') },
+                { key: 'agendamentos', label: 'Agendamentos', icon: 'fa-calendar-check',      cor: 'violet', real: kpiValues.agendamentos || 0, meta: metasMensais.agendamentos || 0, jan: getJanelaMesComercial('agendamentos') },
+                { key: 'compareceu',   label: 'Compareceu',   icon: 'fa-door-open',           cor: 'cyan',   real: kpiValues.compareceu || 0,   meta: metasMensais.compareceu || 0,   jan: getJanelaMesComercial('compareceu') },
+                { key: 'analises',     label: 'Análises',     icon: 'fa-file-invoice-dollar', cor: 'sky',    real: kpiValues.analyses || 0,     meta: metasMensais.analises || 0,     jan: janela },
+                { key: 'aprovacoes',   label: 'Aprovações',   icon: 'fa-circle-check',        cor: 'amber',  real: kpiValues.approvals || 0,    meta: metasMensais.aprovacoes || 0,   jan: getJanelaMesComercial('aprovacoes') },
+                { key: 'vendas',       label: 'Vendas',       icon: 'fa-house-circle-check',  cor: 'emerald', real: kpiValues.salesView ?? kpiValues.sales ?? 0, meta: metasMensais.vendas || 0, jan: getJanelaMesComercial('vendas') }
+            ];
+            const funilHtml = etapas.map(e => {
+                const ideal = idealPorDiaUtil(e.meta, e.jan);
+                const pctMeta = e.meta > 0 ? Math.min(100, (e.real / e.meta) * 100) : 0;
+                const ritmo = ideal > 0 ? e.real / ideal : (e.real > 0 ? 1 : 0);
+                const corRitmo = ritmo >= 1 ? 'text-emerald-400' : (ritmo >= 0.8 ? 'text-amber-400' : 'text-rose-400');
+                const tagRitmo = ritmo >= 1 ? 'No ritmo' : (ritmo >= 0.8 ? 'Perto' : 'Abaixo');
+                return `
+                <div class="flex items-center gap-4 py-1.5 border-b border-slate-800/50 last:border-0">
+                    <div class="w-9 h-9 rounded-xl bg-${e.cor}-500/15 text-${e.cor}-400 flex items-center justify-center text-base shrink-0"><i class="fa-solid ${e.icon}"></i></div>
+                    <div class="w-40 shrink-0">
+                        <p class="text-sm font-bold text-slate-300 uppercase tracking-wider">${e.label}</p>
+                        <p class="text-xs text-slate-500">ideal hoje <span class="text-slate-400 font-semibold">${Math.round(ideal)}</span></p>
+                    </div>
+                    <div class="w-36 shrink-0 text-right">
+                        <span class="text-3xl font-black text-white tabular-nums leading-none">${e.real}</span>
+                        <span class="text-base text-slate-500 font-semibold">/ ${e.meta}</span>
+                    </div>
+                    <div class="flex-1 min-w-[80px]">
+                        <div class="h-3 rounded-full bg-slate-800/80 overflow-hidden">
+                            <div class="h-full rounded-full bg-${e.cor}-500" style="width:${pctMeta}%"></div>
+                        </div>
+                    </div>
+                    <div class="w-28 shrink-0 text-right">
+                        <span class="text-xl font-extrabold tabular-nums ${corRitmo}">${e.meta > 0 ? Math.round((e.real / e.meta) * 100) : 0}%</span>
+                        <p class="text-[11px] font-bold uppercase ${corRitmo}">${tagRitmo}</p>
+                    </div>
+                </div>`;
+            }).join('');
+
+            // ---------- 2. FEITO HOJE ----------
+            // Garante que a conta de "hoje" está fresca (a mesma da faixa do funil).
+            if (typeof renderFunnelHojeStrip === 'function') renderFunnelHojeStrip();
+            const hojeC = funnelHojeRowsCache || {};
+            const hojeTiles = etapas.map(e => {
+                const v = (hojeC[e.key] || []).length;
+                return `
+                <div class="rounded-2xl border ${v > 0 ? `border-${e.cor}-500/40 bg-${e.cor}-500/10` : 'border-slate-800 bg-slate-950/40'} p-2 flex flex-col items-center justify-center text-center">
+                    <span class="text-4xl font-black tabular-nums leading-none ${v > 0 ? `text-${e.cor}-300` : 'text-slate-600'}">${v}</span>
+                    <span class="mt-2 text-[11px] font-bold uppercase tracking-wider ${v > 0 ? `text-${e.cor}-400` : 'text-slate-500'}"><i class="fa-solid ${e.icon} mr-1"></i>${e.label}</span>
+                </div>`;
+            }).join('');
+
+            // ---------- 3. CORRETORES ----------
+            const ipc = calcularIPC(refDate);
+            const ativos = getActiveCorretores();
+            const porCorretor = {};
+            ativos.forEach(n => { porCorretor[n] = { nome: n, docsHoje: 0, ultimaDoc: null, analises: 0, aprovacoes: 0, vendas: 0 }; });
+            // Docs de hoje e última doc: TODA a base (não só o mês), igual ao Mapa de Calor — o
+            // "dias sem subir doc" tem que enxergar a última análise de verdade, mesmo do mês passado.
+            dataset.forEach(row => {
+                const c = porCorretor[row.Corretor];
+                if (!c) return;
+                const d = parseDate(row['Data Cadastro']);
+                if (d) {
+                    d.setHours(0, 0, 0, 0);
+                    if (d.getTime() === hoje.getTime()) c.docsHoje++;
+                    if (d <= hoje && (!c.ultimaDoc || d > c.ultimaDoc)) c.ultimaDoc = d;
+                }
+            });
+            // Ranking do mês: mesmas regras do Ranking Geral (cada métrica pela SUA coluna de mês).
+            filteredDataset.forEach(row => {
+                const c = porCorretor[row.Corretor];
+                if (!c) return;
+                if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDate)) c.analises++;
+                if (isAprovadoNoPeriodo(row, refDate)) c.aprovacoes++;
+                if (isVendaModo(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refDate)) c.vendas++;
+            });
+            const lista = Object.values(porCorretor).map(c => {
+                c.diasSemDoc = c.ultimaDoc ? Math.round((hoje - c.ultimaDoc) / 86400000) : null;
+                c.ipc = ipc.porCorretor[c.nome] ? ipc.porCorretor[c.nome].ipc : 0;
+                c.vendas3m = ipc.porCorretor[c.nome] ? ipc.porCorretor[c.nome].vendas3m : 0;
+                return c;
+            }).sort((a, b) => (b.analises - a.analises) || (b.vendas - a.vendas) || (b.aprovacoes - a.aprovacoes) || a.nome.localeCompare(b.nome));
+
+            const corDias = d => d === null ? 'text-slate-600' : (d <= 1 ? 'text-emerald-400' : (d <= 3 ? 'text-amber-400' : 'text-rose-400'));
+            const txtDias = d => d === null ? 'nunca' : (d === 0 ? 'hoje' : (d === 1 ? '1 dia' : `${d} dias`));
+            const medalha = i => i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : `${i + 1}º`));
+            const linhas = lista.map((c, i) => `
+                <tr class="border-b border-slate-800/40 ${i % 2 ? 'bg-slate-950/30' : ''}">
+                    <td class="py-1.5 pl-3 text-lg font-black text-slate-500 w-14">${medalha(i)}</td>
+                    <td class="py-1.5 text-lg font-bold text-slate-100 whitespace-nowrap">${c.nome}</td>
+                    <td class="py-1.5 text-center">
+                        <span class="inline-block min-w-[3rem] px-2 py-0.5 rounded-lg text-xl font-black tabular-nums ${c.docsHoje > 0 ? 'bg-sky-500/15 text-sky-300' : 'text-slate-600'}">${c.docsHoje}</span>
+                    </td>
+                    <td class="py-1.5 text-center text-lg font-extrabold tabular-nums ${corDias(c.diasSemDoc)}">${txtDias(c.diasSemDoc)}</td>
+                    <td class="py-1.5 text-center text-xl font-black text-sky-400 tabular-nums">${c.analises}</td>
+                    <td class="py-1.5 text-center text-xl font-black text-amber-400 tabular-nums">${c.aprovacoes}</td>
+                    <td class="py-1.5 text-center text-xl font-black text-emerald-400 tabular-nums">${c.vendas}</td>
+                    <td class="py-1.5 pr-3 text-center">
+                        <span class="inline-block min-w-[4.5rem] px-2 py-0.5 rounded-lg text-lg font-black tabular-nums ${ipcBadge(c.ipc, ipc.mediaEquipe)}">${fmtIPC(c.ipc)}</span>
+                    </td>
+                </tr>`).join('');
+
+            const diaSemana = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'][hoje.getDay()];
+            const agora = new Date();
+            const hora = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+
+            root.innerHTML = `
+                <!-- Cabeçalho -->
+                <div class="flex items-center justify-between gap-4 flex-wrap px-1">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white text-lg"><i class="fa-solid fa-chart-line"></i></div>
+                        <div>
+                            <p class="text-xl font-black text-white leading-tight">AUDAZ BI</p>
+                            <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Tela da equipe</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-black text-white">${janela.mesNome}/${janela.ano}</p>
+                        <p class="text-xs text-slate-400">Mês comercial · ${formatDate(janela.inicioReal)} a ${formatDate(janela.fimEstimado)} · dia <b class="text-slate-200">${janela.diaHoje}</b> de ${janela.diasNoMes}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-2xl font-black text-white">${diaSemana}, ${formatDate(hoje)}</p>
+                        <p class="text-xs text-slate-500">Atualizado às ${hora} · atualiza sozinho</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="telaFullscreen()" class="text-xs font-bold text-slate-300 border border-slate-700 hover:border-brand-500/50 hover:text-brand-400 rounded-lg px-3 py-2 transition"><i class="fa-solid fa-expand mr-1.5"></i>Tela cheia</button>
+                        <button onclick="switchView('dashboard')" class="text-xs font-bold text-slate-400 border border-slate-800 hover:text-slate-200 rounded-lg px-3 py-2 transition"><i class="fa-solid fa-arrow-left mr-1.5"></i>Painel</button>
+                    </div>
+                </div>
+
+                <!-- Linha 1: Funil do mês + Feito hoje -->
+                <div class="grid grid-cols-1 xl:grid-cols-5 gap-3">
+                    <section class="xl:col-span-3 bg-slate-900/50 rounded-2xl border border-slate-800 px-5 py-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-filter text-brand-400"></i> Funil do Mês</h3>
+                            <span class="text-[11px] text-slate-500 font-semibold">real / meta · % da meta · ritmo vs ideal de hoje</span>
+                        </div>
+                        ${funilHtml}
+                    </section>
+                    <section class="xl:col-span-2 bg-slate-900/50 rounded-2xl border border-slate-800 px-5 py-3 flex flex-col">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-bolt text-amber-400"></i> Feito Hoje</h3>
+                            <span class="text-[11px] text-slate-500 font-semibold">${formatDate(hoje)}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2.5 flex-1">${hojeTiles}</div>
+                    </section>
+                </div>
+
+                <!-- Linha 2: Corretores -->
+                <section class="bg-slate-900/50 rounded-2xl border border-slate-800 px-5 py-3 flex-1">
+                    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-users text-sky-400"></i> Corretores — Hoje · Mês · IPC</h3>
+                        <div class="flex items-center gap-4 text-[11px] text-slate-500 font-semibold">
+                            <span>Ordem: análises do mês</span>
+                            <span>IPC = vendas ${ipcJanelaTexto(ipc.janela)} ÷ ${ipc.divisor} · média da equipe <b class="text-brand-400">${fmtIPC(ipc.mediaEquipe)}</b></span>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b-2 border-slate-800 text-[11px] text-slate-500 font-black uppercase tracking-widest">
+                                    <th class="pb-2 pl-3">#</th>
+                                    <th class="pb-2">Corretor</th>
+                                    <th class="pb-2 text-center">Docs hoje</th>
+                                    <th class="pb-2 text-center">Sem subir doc</th>
+                                    <th class="pb-2 text-center text-sky-500">Análises</th>
+                                    <th class="pb-2 text-center text-amber-500">Aprovações</th>
+                                    <th class="pb-2 text-center text-emerald-500">Vendas</th>
+                                    <th class="pb-2 pr-3 text-center">IPC</th>
+                                </tr>
+                            </thead>
+                            <tbody>${linhas || `<tr><td colspan="8" class="py-8 text-center text-slate-500">Nenhum corretor ativo.</td></tr>`}</tbody>
+                        </table>
+                    </div>
+                </section>`;
+            ajustarEscalaTela();
+        }
+
+        // Faz a Tela caber SEMPRE sem rolagem, em qualquer TV e com qualquer quantidade de
+        // corretores: mede a altura natural do conteúdo e aplica um `zoom` proporcional quando
+        // ela passa da altura da janela. Nunca amplia (zoom máximo 1) — só encolhe o necessário.
+        function ajustarEscalaTela() {
+            const root = document.getElementById('telaRoot');
+            if (!root || activeView !== 'tela') return;
+            root.style.zoom = '1';
+            // Rola INSTANTÂNEO até a Tela (sem animação), pra medir com a posição final de verdade —
+            // com a barra de navegação rolada pra fora sobra o máximo de altura pra TV.
+            const sec = document.getElementById('telaSection');
+            if (sec) window.scrollTo(0, Math.max(0, sec.getBoundingClientRect().top + window.scrollY - 12));
+            const top = root.getBoundingClientRect().top;
+            const disponivel = window.innerHeight - top - 16;
+            const natural = root.scrollHeight;
+            if (natural > disponivel && disponivel > 200) {
+                root.style.zoom = String(Math.max(0.55, disponivel / natural));
+            }
+        }
+        let telaResizeTimer = null;
+        window.addEventListener('resize', () => {
+            if (activeView !== 'tela') return;
+            clearTimeout(telaResizeTimer);
+            telaResizeTimer = setTimeout(ajustarEscalaTela, 150);
+        });
+
+        function telaFullscreen() {
+            const el = document.documentElement;
+            if (document.fullscreenElement) { document.exitFullscreen && document.exitFullscreen(); return; }
+            (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+        }
+
         function switchView(viewName) {
             activeView = viewName;
             // O Mapa de Calor só existe nas views "dashboard" e "calendar" (é inline no painel) —
@@ -3829,11 +4072,13 @@
             const linkRankings = document.getElementById('navLinkRankings');
             const linkCorretor = document.getElementById('navLinkCorretor');
             const linkPlantoes = document.getElementById('navLinkPlantoes');
+            const linkTela = document.getElementById('navLinkTela');
             if (linkDashboard) linkDashboard.className = viewName === 'dashboard' ? onCls : offCls;
             if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
             if (linkRankings) linkRankings.className = viewName === 'rankings' ? onCls : offCls;
             if (linkCorretor) linkCorretor.className = viewName === 'corretor' ? onCls : offCls;
             if (linkPlantoes) linkPlantoes.className = viewName === 'plantoes' ? onCls : offCls;
+            if (linkTela) linkTela.className = viewName === 'tela' ? onCls : offCls;
 
             // "Rankings", "Corretor" e "Plantões" são telas dedicadas (escondem todo o resto do
             // Painel — Hero, KPIs, Funil, Calendário — que hoje é inline aqui dentro — e mostram só a
@@ -3843,26 +4088,30 @@
             const quickSection = document.getElementById('quickRankingsSection');
             const corretorSection = document.getElementById('corretorSection');
             const plantoesSection = document.getElementById('plantoesSection');
-            const secoesDedicadas = ['rankings', 'corretor', 'plantoes'];
+            const telaSection = document.getElementById('telaSection');
+            const secoesDedicadas = ['rankings', 'corretor', 'plantoes', 'tela'];
             if (dashboardViewEl) {
                 Array.from(dashboardViewEl.children).forEach(child => {
                     if (child === quickSection) { child.classList.toggle('hidden', viewName !== 'rankings'); return; }
                     if (child === corretorSection) { child.classList.toggle('hidden', viewName !== 'corretor'); return; }
                     if (child === plantoesSection) { child.classList.toggle('hidden', viewName !== 'plantoes'); return; }
+                    if (child === telaSection) { child.classList.toggle('hidden', viewName !== 'tela'); return; }
                     child.classList.toggle('hidden', secoesDedicadas.includes(viewName));
                 });
             }
+            // Filtros somem nas telas de exibição (Rankings e Tela/TV) — são telas pra olhar, não pra operar.
             const filtersBar = document.getElementById('filtersBar');
-            if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings');
+            if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings' || viewName === 'tela');
             if (viewName === 'corretor') renderCorretorCards();
             if (viewName === 'plantoes') renderPlantoes();
+            if (viewName === 'tela') renderTela();
             // Entrando nos Rankings: redesenha se algo mudou enquanto a aba estava fechada
             // (drawQuickRankings marca `quickRankingsPendente` em vez de renderizar à toa).
             if (viewName === 'rankings' && quickRankingsPendente) drawQuickRankings();
 
             const sb = document.getElementById('sidebar');
             if (sb) {
-                if (viewName === 'rankings') {
+                if (viewName === 'rankings' || viewName === 'tela') {
                     if (rankingsViewSidebarWasVisible === null) rankingsViewSidebarWasVisible = sb.style.display !== 'none';
                     sb.style.display = 'none';
                 } else if (rankingsViewSidebarWasVisible !== null) {
@@ -3871,9 +4120,10 @@
                 }
             }
 
-            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : (viewName === 'corretor' ? 'corretorSection' : (viewName === 'plantoes' ? 'plantoesSection' : 'dashboardView')));
+            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : (viewName === 'corretor' ? 'corretorSection' : (viewName === 'plantoes' ? 'plantoesSection' : (viewName === 'tela' ? 'telaSection' : 'dashboardView'))));
             const target = document.getElementById(targetId);
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Tela (TV) rola instantâneo dentro de ajustarEscalaTela() — o smooth aqui brigaria com ela.
+            if (target && viewName !== 'tela') target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         // ====== PLANTÕES: semana inteira (7 colunas), as 3 escalas (Diamond/Roleta/Represados)
@@ -4278,6 +4528,12 @@
             loadVagasPorEscala();
             loadPlantaoInfoEscala();
             loadIpcMesesCustom();
+            // TV bootando direto na Tela: abra o BI com ?tela=1 ou #tela e ele já entra no modo
+            // de exibição (os dados chegam depois e o applyFilters redesenha a Tela sozinho).
+            try {
+                const qs = new URLSearchParams(location.search);
+                if (qs.get('tela') === '1' || location.hash === '#tela') setTimeout(() => switchView('tela'), 0);
+            } catch (e) {}
             if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
                 const sb = document.getElementById('sidebar');
                 if (sb) sb.style.display = 'none';
@@ -5446,6 +5702,8 @@
             drawProductionCalendar();
             renderFiltersSummary();
             renderCorretorCards();
+            // Tela (TV): só redesenha se estiver aberta — é o que mantém a TV viva a cada auto-refresh.
+            if (activeView === 'tela') renderTela();
         }
 
         function checkPeriodMatch(rowDateStr, period, referenceDate) {
