@@ -187,6 +187,9 @@
                         <button onclick="switchView('plantoes')" id="navLinkPlantoes" title="Plantões (Diamond / Roleta / Represados)" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-clipboard-list text-violet-400"></i><span class="hidden lg:inline">Plantões</span>
                         </button>
+                        <button onclick="switchView('gamificacao')" id="navLinkGamificacao" title="Gamificação: pontos, rankings e metas dos corretores" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-trophy text-amber-400"></i><span class="hidden lg:inline">Gamificação</span>
+                        </button>
                         <button onclick="switchView('tela')" id="navLinkTela" title="Tela de exibição (TV): funil do mês, feito hoje, docs do dia, dias sem doc, ranking e IPC" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-tv text-emerald-400"></i><span class="hidden lg:inline">Tela</span>
                         </button>
@@ -1225,7 +1228,13 @@
                     </div>
                 </div>
 
-<div id="telaSection" class="hidden">
+                <!-- GAMIFICAÇÃO: camada de pontuação/ranking sobre os dados do BI (ver bloco JS "GAMIFICAÇÃO"). -->
+                <div id="gamificacaoSection" class="hidden">
+                    <div id="gamRoot"></div>
+                </div>
+
+                <!-- TELA (modo TV): visão de exibição para monitor da equipe — ver renderTela(). -->
+                <div id="telaSection" class="hidden">
                     <div id="telaRoot" class="min-h-[calc(100vh-4.5rem)] flex flex-col gap-3 select-none"></div>
                     <!-- Abaixo da 1ª tela (rolando): resultado da equipe por semana + de cada corretor
                          por semana. Fica FORA do #telaRoot de propósito: a auto-escala só ajusta a 1ª
@@ -1638,6 +1647,21 @@
     </div>
 
     <!-- MODAL: METAS POR CORRETOR (dia/semana/mês, por parâmetro dos Rankings Rápidos) -->
+    <!-- Modal da Gamificação: Registrar atividade / Cancelar lançamento -->
+    <div id="gamModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onclick="if(event.target===this) gamFecharModal()">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+                <h3 id="gamModalTitulo" class="text-sm font-black text-white uppercase tracking-wider"><i class="fa-solid fa-trophy text-amber-400 mr-1.5"></i>Registrar atividade</h3>
+                <button onclick="gamFecharModal()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="gamModalBody" class="px-5 py-4"></div>
+            <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-800">
+                <button onclick="gamFecharModal()" class="text-xs font-bold text-slate-400 hover:text-slate-200 px-3 py-2">Fechar</button>
+                <button id="gamModalSalvar" onclick="gamSalvarLancamento()" class="text-xs font-black text-white bg-brand-500 hover:bg-brand-400 rounded-lg px-4 py-2">Registrar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="metasCorretorModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl p-6 relative shadow-2xl">
             <button onclick="toggleMetasCorretorModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
@@ -3881,6 +3905,852 @@
         // aparecer se ele já tinha escondido manualmente).
         let rankingsViewSidebarWasVisible = null;
 
+        // =====================================================================================
+        // GAMIFICAÇÃO — camada de pontuação sobre os dados que o BI JÁ tem (pedido 13/09/2026)
+        // =====================================================================================
+        // Princípio: ATIVIDADE → OPORTUNIDADE → CONVERSÃO → RESULTADO. Tudo que o BI já registra
+        // pontua SOZINHO (leads, agendamentos, visitas, análises, aprovações, vendas, VGV). Só o que
+        // o BI ainda não tem é lançado à mão (ligações, presença/horário de entrada, conteúdo e
+        // outras atividades) — com auditoria: quem lançou, quando, justificativa; nada é apagado,
+        // só cancelado com motivo (fica no histórico).
+        //
+        // PONTUAÇÃO PROGRESSIVA POR QUANTIDADE, calculada POR DIA: "3 análises no dia" = a pontuação
+        // da quantidade 3 (não 1+2+3). Fez a 4ª → recalcula pra pontuação da quantidade 4. Cada
+        // quantidade tem o seu valor na tabela; acima da última linha, continua no mesmo passo da
+        // última diferença (ex.: 9→50, 10→55 ⇒ 11→60). Semana/mês = soma dos dias.
+        //
+        // A gamificação COMEÇA numa segunda-feira (gamConfig.inicio) do zero: nada antes disso vira
+        // ponto (o histórico do BI segue intacto). Semanas: Seg→Dom, numeradas a partir do início.
+        // Participam só corretores ATIVOS (mesmo com 0 em tudo). Inativo some do ranking, mas os
+        // lançamentos dele ficam guardados.
+        //
+        // O que o BI NÃO tem e por isso é manual (regra 30 do pedido): ligações, horário de entrada
+        // (presença), conteúdo/outras atividades. O que NÃO foi criado pra não duplicar: "documento
+        // enviado / pasta completa / pasta aprovada" — no BI isso É a análise enviada e a aprovação,
+        // que já pontuam; "visita realizada" e "cliente compareceu" são o MESMO evento na Agenda
+        // (status compareceu) — por isso "compareceu" existe como BÔNUS opcional, desligado por padrão.
+        //
+        // Persistência: localStorage + doc config/settings do Firestore (chave `gamificacao`), no
+        // mesmo fluxo de pushCloudSettings/applyCloudSettings. Só o diretor logado grava.
+
+        const GAM_LS_CONFIG = `${appId}-gam-config`;
+        const GAM_LS_LANC = `${appId}-gam-lancamentos`;
+
+        // Próxima segunda-feira a partir de hoje (se hoje é segunda, é hoje).
+        function gamProximaSegundaISO() {
+            const d = new Date(); d.setHours(0, 0, 0, 0);
+            const dow = d.getDay(); // 0 dom … 6 sáb
+            const add = dow === 1 ? 0 : ((8 - dow) % 7);
+            d.setDate(d.getDate() + add);
+            return gamISO(d);
+        }
+        function gamISO(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function gamDeISO(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
+        function gamHoje() { const d = isMockDataActive ? new Date(2026, 5, 9) : new Date(); d.setHours(0, 0, 0, 0); return d; }
+        function gamFmt(iso) { const d = gamDeISO(iso); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`; }
+        function gamFmtLongo(iso) { return formatDate(gamDeISO(iso)); }
+
+        function gamConfigPadrao() {
+            const tab = pares => pares.map(([q, p]) => ({ q, p }));
+            return {
+                versao: 1,
+                inicio: gamProximaSegundaISO(),
+                categorias: {
+                    ligacoes:     { label: 'Ligações',              icon: 'fa-phone',                cor: 'slate',   ativo: true,  origem: 'manual', unidade: 'ligações', tabela: tab([[1,0],[50,5],[100,10],[150,15],[200,20]]) },
+                    leads:        { label: 'Leads',                 icon: 'fa-bullhorn',             cor: 'pink',    ativo: true,  origem: 'auto',   criterio: 'cadastrado', tabela: tab([[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],[9,9],[10,10]]) },
+                    agendamentos: { label: 'Agendamentos',          icon: 'fa-calendar-check',       cor: 'violet',  ativo: true,  origem: 'auto',   tabela: tab([[1,3],[2,6],[3,9],[4,12],[5,15]]) },
+                    visitas:      { label: 'Visitas realizadas',    icon: 'fa-door-open',            cor: 'cyan',    ativo: true,  origem: 'auto',   tabela: tab([[1,10],[2,20],[3,30],[4,40],[5,50]]) },
+                    compareceu:   { label: 'Cliente compareceu (bônus)', icon: 'fa-user-check',      cor: 'teal',    ativo: false, origem: 'auto',   tabela: tab([[1,7],[2,14],[3,21],[4,28],[5,35]]) },
+                    analises:     { label: 'Análises',              icon: 'fa-file-invoice-dollar',  cor: 'sky',     ativo: true,  origem: 'auto',   tabela: tab([[1,5],[2,15],[3,20],[4,25],[5,30],[6,35],[7,40],[8,45],[9,50],[10,55]]) },
+                    aprovacoes:   { label: 'Aprovações',            icon: 'fa-circle-check',         cor: 'amber',   ativo: true,  origem: 'auto',   tabela: tab([[1,15],[2,30],[3,45],[4,60],[5,75]]) },
+                    vendas:       { label: 'Vendas',                icon: 'fa-house-circle-check',   cor: 'emerald', ativo: true,  origem: 'auto',   tabela: tab([[1,50],[2,100],[3,150],[4,200]]) },
+                    vgv:          { label: 'VGV (por venda)',       icon: 'fa-sack-dollar',          cor: 'indigo',  ativo: true,  origem: 'auto',   tabela: tab([[100000,10],[200000,20],[300000,30],[500000,50]]) },
+                    presenca:     { label: 'Presença (entrada)',    icon: 'fa-clock',                cor: 'orange',  ativo: true,  origem: 'manual', faixas: [{ ate: '09:00', p: 10 }, { ate: '09:15', p: 8 }, { ate: '09:30', p: 5 }, { ate: '10:00', p: 0 }, { ate: '10:30', p: -5 }, { ate: '23:59', p: -10 }] }
+                },
+                atividadesManuais: [
+                    { key: 'conteudo_gravou',     label: 'Gravou conteúdo',           pontos: 10, ativo: true },
+                    { key: 'conteudo_publicou',   label: 'Publicou conteúdo',         pontos: 10, ativo: true },
+                    { key: 'conteudo_participou', label: 'Participou de gravação',    pontos: 5,  ativo: true },
+                    { key: 'material',            label: 'Criou material comercial',  pontos: 5,  ativo: true },
+                    { key: 'marketing',           label: 'Ação de marketing',         pontos: 5,  ativo: true },
+                    { key: 'treinamento',         label: 'Treinamento',               pontos: 5,  ativo: true },
+                    { key: 'reuniao',             label: 'Reunião',                   pontos: 3,  ativo: true },
+                    { key: 'plantao',             label: 'Plantão',                   pontos: 5,  ativo: true },
+                    { key: 'prospeccao_externa',  label: 'Prospecção externa',        pontos: 5,  ativo: true },
+                    { key: 'evento',              label: 'Evento',                    pontos: 5,  ativo: true },
+                    { key: 'acao_comercial',      label: 'Ação comercial',            pontos: 5,  ativo: true },
+                    { key: 'captacao',            label: 'Captação',                  pontos: 5,  ativo: true },
+                    { key: 'pos_venda',           label: 'Pós-venda',                 pontos: 3,  ativo: true },
+                    { key: 'recuperacao',         label: 'Recuperação de cliente',    pontos: 5,  ativo: true },
+                    { key: 'indicacao',           label: 'Indicação',                 pontos: 5,  ativo: true }
+                ],
+                metas: { dia: 50, semana: 300, mes: 1200 },
+                metasCorretor: {},
+                gestor: {
+                    nome: 'Sadraque Ribeiro',
+                    metas: { semana: 100, mes: 400 },
+                    regras: [
+                        { key: 'g_reuniao',      label: 'Reunião realizada',                   pontos: 5,   auto: false, ativo: true },
+                        { key: 'g_treinamento',  label: 'Treinamento realizado',               pontos: 10,  auto: false, ativo: true },
+                        { key: 'g_conteudo',     label: 'Conteúdo produzido',                  pontos: 10,  auto: false, ativo: true },
+                        { key: 'g_acao',         label: 'Ação comercial criada',               pontos: 10,  auto: false, ativo: true },
+                        { key: 'g_venda_gestao', label: 'Venda originada pela gestão',         pontos: 30,  auto: false, ativo: true },
+                        { key: 'g_recuperacao',  label: 'Recuperação de corretor improdutivo', pontos: 20,  auto: false, ativo: true },
+                        { key: 'g_meta_semana',  label: 'Meta semanal da equipe atingida',     pontos: 30,  auto: true,  ativo: true },
+                        { key: 'g_meta_mes',     label: 'Meta mensal da equipe atingida',      pontos: 100, auto: true,  ativo: true }
+                    ]
+                }
+            };
+        }
+
+        let gamConfig = gamConfigPadrao();
+        let gamLancamentos = [];   // lançamentos manuais (+ cancelamentos, nunca apagados)
+        let gamView = 'hoje';      // hoje | semana | mes | individual | historico | gestao | config
+        let gamDiaSel = null;      // ISO do dia em foco (view HOJE)
+        let gamSemanaSel = null;   // nº da semana em foco (view SEMANA)
+        let gamCorretorSel = null; // view INDIVIDUAL
+        let gamHistFiltro = { corretor: '', origem: '' };
+
+        // Mescla config salva sobre o padrão (novas categorias/regras do código entram sem apagar o que o gestor mexeu).
+        function gamMesclarConfig(salva) {
+            const base = gamConfigPadrao();
+            if (!salva || typeof salva !== 'object') return base;
+            const cfg = Object.assign({}, base, salva);
+            cfg.categorias = Object.assign({}, base.categorias);
+            Object.keys(salva.categorias || {}).forEach(k => { cfg.categorias[k] = Object.assign({}, base.categorias[k] || {}, salva.categorias[k]); });
+            cfg.metas = Object.assign({}, base.metas, salva.metas || {});
+            cfg.metasCorretor = salva.metasCorretor || {};
+            cfg.atividadesManuais = Array.isArray(salva.atividadesManuais) ? salva.atividadesManuais : base.atividadesManuais;
+            cfg.gestor = Object.assign({}, base.gestor, salva.gestor || {});
+            cfg.gestor.metas = Object.assign({}, base.gestor.metas, (salva.gestor || {}).metas || {});
+            cfg.gestor.regras = Array.isArray((salva.gestor || {}).regras) ? salva.gestor.regras : base.gestor.regras;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(cfg.inicio || '')) cfg.inicio = base.inicio;
+            return cfg;
+        }
+        function loadGamificacao() {
+            try { gamConfig = gamMesclarConfig(JSON.parse(localStorage.getItem(GAM_LS_CONFIG) || 'null')); } catch (e) { gamConfig = gamConfigPadrao(); }
+            try { gamLancamentos = JSON.parse(localStorage.getItem(GAM_LS_LANC) || '[]'); if (!Array.isArray(gamLancamentos)) gamLancamentos = []; } catch (e) { gamLancamentos = []; }
+        }
+        function saveGamificacao() {
+            try {
+                localStorage.setItem(GAM_LS_CONFIG, JSON.stringify(gamConfig));
+                localStorage.setItem(GAM_LS_LANC, JSON.stringify(gamLancamentos));
+            } catch (e) {}
+            pushCloudSettings();
+        }
+        function gamUsuarioAtual() {
+            try { const u = firebase.auth && firebase.auth().currentUser; return u ? (u.email || u.displayName || 'diretor') : 'diretor'; } catch (e) { return 'diretor'; }
+        }
+
+        // ---------- PONTUAÇÃO PROGRESSIVA ----------
+        // Devolve a pontuação da QUANTIDADE (não soma degraus). Entre linhas, vale a maior linha
+        // ≤ qtd; acima da última linha, continua no passo da última diferença.
+        function gamPontosProgressivo(tabela, qtd) {
+            if (!qtd || qtd <= 0 || !Array.isArray(tabela) || !tabela.length) return 0;
+            const t = tabela.filter(r => r && isFinite(r.q) && isFinite(r.p)).map(r => ({ q: +r.q, p: +r.p })).sort((a, b) => a.q - b.q);
+            if (!t.length) return 0;
+            let alvo = null;
+            for (const r of t) { if (r.q <= qtd) alvo = r; else break; }
+            if (!alvo) return 0;
+            const ult = t[t.length - 1];
+            if (qtd <= ult.q) return alvo.p;
+            const prev = t.length >= 2 ? t[t.length - 2] : null;
+            const passo = prev && ult.q > prev.q ? (ult.p - prev.p) / (ult.q - prev.q) : (ult.q > 0 ? ult.p / ult.q : 0);
+            return Math.round(ult.p + (qtd - ult.q) * passo);
+        }
+        // Presença: primeira faixa cujo limite ("até HH:MM") é ≥ o horário.
+        function gamPontosPresenca(horario) {
+            const f = (gamConfig.categorias.presenca || {}).faixas || [];
+            if (!/^\d{2}:\d{2}$/.test(horario || '')) return 0;
+            const fs = f.slice().sort((a, b) => a.ate.localeCompare(b.ate));
+            for (const x of fs) { if (horario <= x.ate) return +x.p || 0; }
+            return fs.length ? (+fs[fs.length - 1].p || 0) : 0;
+        }
+
+        // ---------- PERÍODOS ----------
+        function gamInicioDate() { return gamDeISO(gamConfig.inicio); }
+        function gamAntesDoInicio(d) { return d < gamInicioDate(); }
+        // Semana N (1 = a que começa em gamConfig.inicio, segunda). Devolve {n, inicio, fim} (ISO).
+        function gamSemanaDe(d) {
+            const ini = gamInicioDate();
+            const diff = Math.floor((d - ini) / 86400000);
+            const n = Math.floor(diff / 7) + 1;
+            return gamSemanaN(n);
+        }
+        function gamSemanaN(n) {
+            const ini = gamInicioDate();
+            const a = new Date(ini); a.setDate(a.getDate() + (n - 1) * 7);
+            const b = new Date(a); b.setDate(b.getDate() + 6);
+            return { n, inicio: gamISO(a), fim: gamISO(b) };
+        }
+        function gamSemanaAtualN() { const h = gamHoje(); return h < gamInicioDate() ? 0 : gamSemanaDe(h).n; }
+        function gamDiasISO(iniISO, fimISO) {
+            const out = []; const a = gamDeISO(iniISO), b = gamDeISO(fimISO);
+            for (let d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) out.push(gamISO(d));
+            return out;
+        }
+
+        // ---------- COLETA AUTOMÁTICA (uma varredura, todos os corretores, por dia) ----------
+        // Devolve mapa[corretor][ISO] = { leads, agendamentos, visitas, compareceu, analises,
+        // aprovacoes, vendas, vgvLista:[...] } — só dias ≥ início da gamificação e só ATIVOS.
+        // Critérios = os mesmos das outras telas do BI (Rankings Rápidos "Hoje", Funil, Tela).
+        let gamAutoCache = { chave: '', mapa: {} };
+        function gamColetarAuto() {
+            const chave = `${gamConfig.inicio}|${(dataset||[]).length}|${(agendaDataset||[]).length}|${(prospeccaoDataset||[]).length}|${(gamConfig.categorias.leads||{}).criterio}|${inactiveCorretores.join(',')}`;
+            if (gamAutoCache.chave === chave) return gamAutoCache.mapa;
+            const ini = gamInicioDate();
+            const ativos = new Set(getActiveCorretores());
+            const mapa = {};
+            const vazio = () => ({ leads: 0, agendamentos: 0, visitas: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgvLista: [] });
+            const cel = (c, d) => {
+                if (!c || !ativos.has(c) || !d || d < ini) return null;
+                const iso = gamISO(d);
+                if (!mapa[c]) mapa[c] = {};
+                if (!mapa[c][iso]) mapa[c][iso] = vazio();
+                return mapa[c][iso];
+            };
+            const crit = (gamConfig.categorias.leads || {}).criterio || 'cadastrado';
+            (prospeccaoDataset || []).forEach(r => {
+                // 'cadastrado' = data de Cadastro; 'trabalhado' = só leads com Situação preenchida
+                if (crit === 'trabalhado' && !(r['Situação'] || '').toString().trim()) return;
+                const x = cel(r.Corretor, parseDate(r['Cadastro'])); if (x) x.leads++;
+            });
+            (agendaDataset || []).forEach(r => {
+                const a = cel(r.Corretor, parseDate(r['Data de Cadastro'])); if (a) a.agendamentos++;   // agendamento = quando foi marcado
+                if (isCompareceu(r)) { const v = cel(r.Corretor, parseDate(r['Data'])); if (v) { v.visitas++; v.compareceu++; } } // visita realizada = compareceu na data da visita
+            });
+            (dataset || []).forEach(r => {
+                const an = cel(r.Corretor, parseDate(r['Data Cadastro'])); if (an) an.analises++;
+                if (isAprovado(r['Situação - Analise'])) { const ap = cel(r.Corretor, parseDate(dataAprovacaoEfetiva(r))); if (ap) ap.aprovacoes++; }
+                if (isVendaGanhaReal(r)) { const vd = cel(r.Corretor, parseDate(r['Data Ganho'])); if (vd) { vd.vendas++; vd.vgvLista.push(getVGV(r)); } }
+            });
+            gamAutoCache = { chave, mapa };
+            return mapa;
+        }
+
+        // Pontos AUTOMÁTICOS de um corretor num dia, por categoria: { cat: {qtd, pontos} }
+        function gamPontosAutoDia(corretor, iso) {
+            const mapa = gamColetarAuto();
+            const c = (mapa[corretor] || {})[iso];
+            const out = {};
+            const cats = gamConfig.categorias;
+            const prog = (key, qtd) => { const cat = cats[key]; if (!cat || !cat.ativo) return; out[key] = { qtd, pontos: gamPontosProgressivo(cat.tabela, qtd) }; };
+            if (!c) return out;
+            prog('leads', c.leads); prog('agendamentos', c.agendamentos); prog('visitas', c.visitas);
+            prog('compareceu', c.compareceu); prog('analises', c.analises); prog('aprovacoes', c.aprovacoes); prog('vendas', c.vendas);
+            if (cats.vgv && cats.vgv.ativo && c.vgvLista.length) {
+                const pts = c.vgvLista.reduce((s, v) => s + gamPontosProgressivo(cats.vgv.tabela, v), 0);
+                out.vgv = { qtd: c.vgvLista.reduce((s, v) => s + v, 0), pontos: pts };
+            }
+            return out;
+        }
+        // Lançamentos MANUAIS válidos (não cancelados) de um corretor num dia.
+        function gamManuaisDia(corretor, iso) {
+            return gamLancamentos.filter(l => !l.cancelado && l.corretor === corretor && l.data === iso);
+        }
+        // Total de um corretor num dia: { pontos, auto:{...}, manuais:[...], contagens:{...} }
+        function gamDia(corretor, iso) {
+            const auto = gamPontosAutoDia(corretor, iso);
+            const manuais = gamManuaisDia(corretor, iso);
+            let pontos = 0;
+            Object.values(auto).forEach(a => { pontos += a.pontos; });
+            manuais.forEach(m => { pontos += (+m.pontos || 0); });
+            const mapa = gamColetarAuto();
+            const cont = (mapa[corretor] || {})[iso] || { leads: 0, agendamentos: 0, visitas: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgvLista: [] };
+            const lig = manuais.filter(m => m.atividade === 'ligacoes').reduce((s, m) => s + (+m.quantidade || 0), 0);
+            const pres = manuais.find(m => m.atividade === 'presenca');
+            return { pontos, auto, manuais, contagens: Object.assign({}, cont, { vgv: cont.vgvLista.reduce((s, v) => s + v, 0), ligacoes: lig, presenca: pres ? pres.horario : null }) };
+        }
+        // Acumulado num intervalo de dias (ISO inclusivo) — soma dos dias.
+        function gamPeriodo(corretor, iniISO, fimISO) {
+            const hojeISO = gamISO(gamHoje());
+            const acc = { pontos: 0, leads: 0, agendamentos: 0, visitas: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0, ligacoes: 0, presencas: 0, dias: 0, diasDecorridos: 0, porDia: {}, porCategoria: {} };
+            gamDiasISO(iniISO, fimISO).forEach(iso => {
+                acc.dias++;
+                if (iso <= hojeISO && iso >= gamConfig.inicio) acc.diasDecorridos++;
+                const d = gamDia(corretor, iso);
+                acc.pontos += d.pontos; acc.porDia[iso] = d.pontos;
+                ['leads','agendamentos','visitas','compareceu','analises','aprovacoes','vendas','vgv','ligacoes'].forEach(k => { acc[k] += d.contagens[k] || 0; });
+                if (d.contagens.presenca) acc.presencas++;
+                Object.entries(d.auto).forEach(([k, v]) => { acc.porCategoria[k] = (acc.porCategoria[k] || 0) + v.pontos; });
+                d.manuais.forEach(m => { const k = m.atividade === 'ligacoes' || m.atividade === 'presenca' ? m.atividade : 'manual'; acc.porCategoria[k] = (acc.porCategoria[k] || 0) + (+m.pontos || 0); });
+            });
+            return acc;
+        }
+        function gamMetaDe(corretor, tipo) {
+            const ind = gamConfig.metasCorretor[corretor];
+            if (ind && isFinite(ind[tipo]) && +ind[tipo] > 0) return +ind[tipo];
+            return +gamConfig.metas[tipo] || 0;
+        }
+        // Ranking de um intervalo: lista ordenada por pontos (todos os ativos, mesmo com 0).
+        function gamRanking(iniISO, fimISO) {
+            const lista = getActiveCorretores().map(c => Object.assign({ corretor: c }, gamPeriodo(c, iniISO, fimISO)));
+            lista.sort((a, b) => (b.pontos - a.pontos) || (b.vendas - a.vendas) || (b.aprovacoes - a.aprovacoes) || (b.analises - a.analises) || a.corretor.localeCompare(b.corretor));
+            lista.forEach((c, i) => { c.pos = i + 1; });
+            return lista;
+        }
+        // Projeção: média diária × dias do período.
+        function gamProjecao(acc) {
+            const media = acc.diasDecorridos > 0 ? acc.pontos / acc.diasDecorridos : 0;
+            return { media, projecao: Math.round(media * acc.dias) };
+        }
+
+        // ---------- GESTOR ----------
+        function gamGestorPeriodo(iniISO, fimISO) {
+            const manuais = gamLancamentos.filter(l => !l.cancelado && l.corretor === '__GESTOR__' && l.data >= iniISO && l.data <= fimISO);
+            let pontos = manuais.reduce((s, m) => s + (+m.pontos || 0), 0);
+            const autos = [];
+            // Regras automáticas: meta semanal/mensal DA EQUIPE atingida (soma dos pontos dos ativos ≥ soma das metas).
+            const regras = (gamConfig.gestor.regras || []).filter(r => r.ativo !== false && r.auto);
+            const ativos = getActiveCorretores();
+            const semanaIni = gamSemanaN(Math.max(1, gamSemanaAtualN())).inicio;
+            regras.forEach(r => {
+                if (r.key === 'g_meta_semana') {
+                    // conta cada semana COMPLETA dentro do intervalo em que a equipe bateu a meta
+                    let n = 1;
+                    while (true) {
+                        const s = gamSemanaN(n); if (s.inicio > fimISO) break;
+                        if (s.inicio >= iniISO && s.fim <= fimISO && s.fim < gamISO(gamHoje())) {
+                            const tot = ativos.reduce((a, c) => a + gamPeriodo(c, s.inicio, s.fim).pontos, 0);
+                            const meta = ativos.reduce((a, c) => a + gamMetaDe(c, 'semana'), 0);
+                            if (meta > 0 && tot >= meta) { pontos += +r.pontos; autos.push({ data: s.fim, label: `${r.label} (Semana ${s.n})`, pontos: +r.pontos }); }
+                        }
+                        n++; if (n > 200) break;
+                    }
+                }
+            });
+            return { pontos, manuais, autos };
+        }
+
+        // ---------- UI: helpers ----------
+        const GAM_COR = { slate: 'text-slate-300', pink: 'text-pink-400', violet: 'text-violet-400', cyan: 'text-cyan-400', teal: 'text-teal-400', sky: 'text-sky-400', amber: 'text-amber-400', emerald: 'text-emerald-400', indigo: 'text-indigo-400', orange: 'text-orange-400' };
+        const gamN = n => (+n || 0).toLocaleString('pt-BR');
+        // Medalha só pra quem PONTUOU — com todo mundo zerado a ordem é alfabética e medalha enganaria.
+        const gamMedalha = (i, pontos) => (pontos === undefined || pontos > 0) ? (i === 1 ? '🥇' : (i === 2 ? '🥈' : (i === 3 ? '🥉' : `${i}º`))) : `${i}º`;
+        function gamBarra(v, meta, cor) {
+            const pct = meta > 0 ? Math.min(100, Math.round((v / meta) * 100)) : 0;
+            const c = pct >= 100 ? 'bg-emerald-500' : (pct >= 70 ? 'bg-brand-500' : (pct >= 40 ? 'bg-amber-500' : 'bg-rose-500'));
+            return `<div class="flex items-center gap-2"><div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div class="h-full ${cor || c} rounded-full" style="width:${pct}%"></div></div><span class="text-[10px] font-bold tabular-nums text-slate-400 w-9 text-right">${meta > 0 ? pct + '%' : '—'}</span></div>`;
+        }
+        function gamStatusProjecao(proj, meta) {
+            if (meta <= 0) return '<span class="text-slate-500">sem meta</span>';
+            return proj >= meta ? '<span class="text-emerald-400 font-black">META PROJETADA</span>' : '<span class="text-rose-400 font-black">ABAIXO DA META</span>';
+        }
+        function gamAvatar(nome, size) { return corretorAvatarInner(nome, size || 'w-8 h-8', 'text-[10px]', 'shrink-0 ring-2 ring-slate-800'); }
+        function gamAntesInicioAviso() {
+            const h = gamHoje();
+            if (h >= gamInicioDate()) return '';
+            const dias = Math.round((gamInicioDate() - h) / 86400000);
+            return `<div class="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 flex items-center gap-3">
+                <i class="fa-solid fa-flag-checkered text-amber-400 text-xl"></i>
+                <div><p class="text-sm font-black text-amber-300">A gamificação começa em ${gamFmtLongo(gamConfig.inicio)} (segunda-feira) — faltam ${dias} dia${dias === 1 ? '' : 's'}.</p>
+                <p class="text-[11px] text-amber-200/70">A pontuação parte do zero nessa data. O histórico do BI segue intacto e não vira ponto retroativo. As tabelas de pontos já podem ser ajustadas em <b>Configurar</b>.</p></div></div>`;
+        }
+
+        function gamSetView(v) { gamView = v; renderGamificacao(); }
+        function gamSetDia(iso) { gamDiaSel = iso; renderGamificacao(); }
+        function gamShiftDia(n) { const d = gamDeISO(gamDiaSel || gamISO(gamHoje())); d.setDate(d.getDate() + n); gamDiaSel = gamISO(d); renderGamificacao(); }
+        function gamSetSemana(n) { gamSemanaSel = Math.max(1, n); renderGamificacao(); }
+        function gamAbrirCorretor(nome) { gamCorretorSel = nome; gamView = 'individual'; renderGamificacao(); }
+
+        // ---------- RENDER PRINCIPAL ----------
+        function renderGamificacao() {
+            const root = document.getElementById('gamRoot');
+            if (!root || activeView !== 'gamificacao') return;
+            if (!gamDiaSel) gamDiaSel = gamISO(gamHoje());
+            const semAtual = gamSemanaAtualN();
+            if (!gamSemanaSel) gamSemanaSel = Math.max(1, semAtual);
+            const tabs = [['hoje','Hoje','fa-sun'],['semana','Semana','fa-calendar-week'],['mes','Mês','fa-calendar'],['individual','Individual','fa-user'],['historico','Histórico','fa-clock-rotate-left'],['gestao','Gestão','fa-user-tie'],['config','Configurar','fa-sliders']];
+            const sem = semAtual > 0 ? gamSemanaN(semAtual) : null;
+            const cab = `
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-rose-500 flex items-center justify-center text-white text-xl shadow-lg shadow-amber-500/20"><i class="fa-solid fa-trophy"></i></div>
+                        <div>
+                            <h2 class="text-xl font-black text-white leading-tight">Gamificação</h2>
+                            <p class="text-[11px] text-slate-500">${sem ? `Semana <b class="text-slate-300">${sem.n}</b> · ${gamFmt(sem.inicio)} a ${gamFmt(sem.fim)}` : `Início em ${gamFmtLongo(gamConfig.inicio)}`} · início oficial ${gamFmtLongo(gamConfig.inicio)} · só corretores ativos</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="gamAbrirLancamento()" class="diretor-locked text-xs font-black text-white bg-brand-500 hover:bg-brand-400 rounded-xl px-4 py-2.5 transition shadow-lg shadow-brand-500/20 flex items-center gap-2" ${isDiretor ? '' : 'disabled title="Entre como diretor para lançar"'}><i class="fa-solid fa-plus"></i> REGISTRAR ATIVIDADE</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap bg-slate-950/60 border border-slate-800 rounded-2xl p-1.5">
+                    ${tabs.map(([k, l, ic]) => `<button onclick="gamSetView('${k}')" class="text-[11px] font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 ${gamView === k ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}"><i class="fa-solid ${ic} ${gamView === k ? 'text-amber-400' : ''}"></i>${l}</button>`).join('')}
+                </div>
+                ${gamAntesInicioAviso()}`;
+            let corpo = '';
+            try {
+                corpo = { hoje: gamViewHoje, semana: gamViewSemana, mes: gamViewMes, individual: gamViewIndividual, historico: gamViewHistorico, gestao: gamViewGestao, config: gamViewConfig }[gamView]();
+            } catch (e) { console.error(e); corpo = `<p class="text-rose-400 text-sm">Erro ao montar a tela: ${e.message}</p>`; }
+            root.innerHTML = `<div class="space-y-4">${cab}${corpo}</div>`;
+        }
+
+        // ---------- HOJE ----------
+        function gamViewHoje() {
+            const iso = gamDiaSel;
+            const hojeISO = gamISO(gamHoje());
+            const antes = iso < gamConfig.inicio;
+            const lista = gamRanking(iso, iso);
+            const cats = gamConfig.categorias;
+            const totalEquipe = lista.reduce((s, c) => s + c.pontos, 0);
+            const linhas = lista.map(c => {
+                const meta = gamMetaDe(c.corretor, 'dia');
+                const d = gamDia(c.corretor, iso);
+                const pres = d.contagens.presenca;
+                const presPts = d.manuais.filter(m => m.atividade === 'presenca').reduce((s, m) => s + (+m.pontos || 0), 0);
+                const top = c.pos <= 3 && c.pontos > 0;
+                return `<tr class="border-b border-slate-800/40 hover:bg-slate-900/40 transition cursor-pointer ${top ? 'bg-amber-500/5' : ''}" onclick="gamAbrirCorretor('${c.corretor.replace(/'/g, "\\'")}')">
+                    <td class="py-2 pl-3 text-base font-black ${top ? 'text-amber-400' : 'text-slate-500'}">${gamMedalha(c.pos, c.pontos)}</td>
+                    <td class="py-2"><div class="flex items-center gap-2.5">${gamAvatar(c.corretor)}<span class="text-sm font-bold text-slate-100 whitespace-nowrap">${c.corretor}</span></div></td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums ${c.ligacoes ? 'text-slate-200' : 'text-slate-700'}">${c.ligacoes}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums ${c.leads ? 'text-pink-400' : 'text-slate-700'}">${c.leads}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums ${c.agendamentos ? 'text-violet-400' : 'text-slate-700'}">${c.agendamentos}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums ${c.visitas ? 'text-cyan-400' : 'text-slate-700'}">${c.visitas}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums ${c.analises ? 'text-sky-400' : 'text-slate-700'}">${c.analises}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums ${c.aprovacoes ? 'text-amber-400' : 'text-slate-700'}">${c.aprovacoes}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums ${c.vendas ? 'text-emerald-400' : 'text-slate-700'}">${c.vendas}</td>
+                    <td class="py-2 text-center text-xs font-bold tabular-nums ${pres ? (presPts > 0 ? 'text-emerald-400' : (presPts < 0 ? 'text-rose-400' : 'text-amber-400')) : 'text-slate-700'}">${pres ? `${pres} <span class="text-[10px]">(${presPts >= 0 ? '+' : ''}${presPts})</span>` : '—'}</td>
+                    <td class="py-2 pr-3 text-right"><span class="text-lg font-black tabular-nums ${c.pontos > 0 ? 'text-white' : 'text-slate-600'}">${gamN(c.pontos)}</span><div class="w-24 ml-auto">${gamBarra(c.pontos, meta)}</div></td>
+                </tr>`;
+            }).join('');
+            const podio = lista[0] && lista[0].pontos > 0 ? lista.slice(0, 3).filter(c => c.pontos > 0).map((c, i) => `
+                <div class="flex-1 min-w-[160px] rounded-2xl border ${i === 0 ? 'border-amber-400/50 bg-amber-500/10' : (i === 1 ? 'border-slate-400/40 bg-slate-500/10' : 'border-amber-700/40 bg-amber-700/10')} p-4 text-center cursor-pointer hover:brightness-110 transition" onclick="gamAbrirCorretor('${c.corretor.replace(/'/g, "\\'")}')">
+                    <div class="text-3xl">${gamMedalha(i + 1)}</div>
+                    <div class="flex justify-center my-2">${gamAvatar(c.corretor, 'w-14 h-14')}</div>
+                    <p class="text-sm font-black text-white">${c.corretor}</p>
+                    <p class="text-2xl font-black tabular-nums ${c.pontos > 0 ? 'text-amber-300' : 'text-slate-600'}">${gamN(c.pontos)} <span class="text-[10px] text-slate-500 font-bold">pts</span></p>
+                </div>`).join('') : `<div class="flex-1 rounded-2xl border border-dashed border-slate-800 p-4 text-center text-xs text-slate-500"><i class="fa-solid fa-hourglass-half mr-1.5"></i>Ninguém pontuou neste dia ainda — o pódio aparece com o primeiro ponto.</div>`;
+            return `
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <button onclick="gamShiftDia(-1)" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 hover:border-brand-500/40 flex items-center justify-center"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                        <input type="date" value="${iso}" onchange="gamSetDia(this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200 outline-none focus:border-brand-500">
+                        <button onclick="gamShiftDia(1)" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 hover:border-brand-500/40 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                        ${iso !== hojeISO ? `<button onclick="gamSetDia('${hojeISO}')" class="text-[11px] font-bold text-brand-400 border border-brand-500/40 rounded-lg px-2.5 py-1.5">Hoje</button>` : '<span class="text-[11px] font-black text-emerald-400 uppercase">Hoje · atualiza sozinho</span>'}
+                    </div>
+                    <div class="text-right"><p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Pontos da equipe no dia</p><p class="text-2xl font-black text-white tabular-nums">${gamN(totalEquipe)}</p></div>
+                </div>
+                ${antes ? `<p class="text-xs text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>${gamFmtLongo(iso)} é anterior ao início da gamificação — nada pontua neste dia.</p>` : ''}
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5">
+                    <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3"><i class="fa-solid fa-trophy text-amber-400 mr-1.5"></i>Ranking do Dia — ${gamFmtLongo(iso)}</h3>
+                    <div class="flex gap-3 flex-wrap mb-4">${podio}</div>
+                    <div class="overflow-x-auto"><table class="w-full text-left border-collapse">
+                        <thead><tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                            <th class="pb-2 pl-3">#</th><th class="pb-2">Corretor</th><th class="pb-2 text-center">Ligações</th><th class="pb-2 text-center text-pink-500">Leads</th><th class="pb-2 text-center text-violet-500">Agend.</th><th class="pb-2 text-center text-cyan-500">Visitas</th><th class="pb-2 text-center text-sky-500">Análises</th><th class="pb-2 text-center text-amber-500">Aprov.</th><th class="pb-2 text-center text-emerald-500">Vendas</th><th class="pb-2 text-center text-orange-400">Presença</th><th class="pb-2 pr-3 text-right">Pontos · meta dia</th>
+                        </tr></thead>
+                        <tbody>${linhas || '<tr><td colspan="11" class="py-6 text-center text-slate-500">Nenhum corretor ativo.</td></tr>'}</tbody>
+                    </table></div>
+                    <p class="text-[10px] text-slate-600 mt-3">Leads, agendamentos, visitas, análises, aprovações e vendas vêm sozinhos do BI. Ligações e presença são lançadas em <b>Registrar Atividade</b>. Clique no corretor pra abrir a visão individual.</p>
+                </section>`;
+        }
+
+        // ---------- SEMANA ----------
+        function gamViewSemana() {
+            const n = gamSemanaSel, s = gamSemanaN(n), atualN = gamSemanaAtualN();
+            const lista = gamRanking(s.inicio, s.fim);
+            const anterior = n > 1 ? gamRanking(gamSemanaN(n - 1).inicio, gamSemanaN(n - 1).fim) : [];
+            const posAnt = {}; anterior.forEach(c => { posAnt[c.corretor] = c.pos; });
+            const totalEquipe = lista.reduce((a, c) => a + c.pontos, 0);
+            const metaEquipe = lista.reduce((a, c) => a + gamMetaDe(c.corretor, 'semana'), 0);
+            const projEquipe = lista.reduce((a, c) => a + gamProjecao(c).projecao, 0);
+            const evol = c => {
+                if (!posAnt[c.corretor]) return '<span class="text-slate-600 text-[10px]">novo</span>';
+                const d = posAnt[c.corretor] - c.pos;
+                if (d > 0) return `<span class="text-emerald-400 text-[11px] font-bold">↑ subiu ${d}</span>`;
+                if (d < 0) return `<span class="text-rose-400 text-[11px] font-bold">↓ caiu ${-d}</span>`;
+                return '<span class="text-slate-500 text-[11px]">= manteve</span>';
+            };
+            const linhas = lista.map(c => {
+                const meta = gamMetaDe(c.corretor, 'semana'); const pj = gamProjecao(c);
+                return `<tr class="border-b border-slate-800/40 hover:bg-slate-900/40 cursor-pointer ${c.pos <= 3 && c.pontos > 0 ? 'bg-amber-500/5' : ''}" onclick="gamAbrirCorretor('${c.corretor.replace(/'/g, "\\'")}')">
+                    <td class="py-2 pl-3 text-base font-black ${c.pos <= 3 && c.pontos > 0 ? 'text-amber-400' : 'text-slate-500'}">${gamMedalha(c.pos, c.pontos)}</td>
+                    <td class="py-2"><div class="flex items-center gap-2.5">${gamAvatar(c.corretor)}<div><span class="text-sm font-bold text-slate-100 whitespace-nowrap">${c.corretor}</span><div>${evol(c)}</div></div></div></td>
+                    <td class="py-2 text-right pr-2"><span class="text-lg font-black text-white tabular-nums">${gamN(c.pontos)}</span><span class="text-[10px] text-slate-500"> / ${gamN(meta)}</span><div class="w-28 ml-auto">${gamBarra(c.pontos, meta)}</div></td>
+                    <td class="py-2 text-center text-[11px]"><span class="font-black tabular-nums ${pj.projecao >= meta && meta > 0 ? 'text-emerald-400' : 'text-rose-400'}">${gamN(pj.projecao)}</span><br><span class="text-[9px] text-slate-500">${pj.media.toFixed(0)} pts/dia</span></td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-pink-400">${c.leads}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-violet-400">${c.agendamentos}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-cyan-400">${c.visitas}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-sky-400">${c.analises}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-amber-400">${c.aprovacoes}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-emerald-400">${c.vendas}</td>
+                    <td class="py-2 text-right text-xs font-bold tabular-nums text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
+                    <td class="py-2 pr-3 text-center text-sm font-bold tabular-nums text-slate-300">${c.ligacoes}</td>
+                </tr>`;
+            }).join('');
+            return `
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <button onclick="gamSetSemana(${n - 1})" ${n <= 1 ? 'disabled' : ''} class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 disabled:opacity-30 flex items-center justify-center"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                        <span class="text-sm font-black text-white">Semana ${n}</span><span class="text-xs text-slate-500">${gamFmtLongo(s.inicio)} a ${gamFmtLongo(s.fim)} (seg → dom)</span>
+                        <button onclick="gamSetSemana(${n + 1})" ${n >= Math.max(1, atualN) ? 'disabled' : ''} class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 disabled:opacity-30 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                        ${n === atualN ? '<span class="text-[10px] font-black text-emerald-400 uppercase ml-1">Semana atual</span>' : (atualN > 0 ? `<button onclick="gamSetSemana(${atualN})" class="text-[11px] font-bold text-brand-400 border border-brand-500/40 rounded-lg px-2.5 py-1.5 ml-1">Atual</button>` : '')}
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    ${[['Pontos da equipe', gamN(totalEquipe), 'text-white'], ['Meta da semana (soma)', gamN(metaEquipe), 'text-slate-300'], ['% da meta', metaEquipe > 0 ? Math.round(totalEquipe / metaEquipe * 100) + '%' : '—', totalEquipe >= metaEquipe && metaEquipe > 0 ? 'text-emerald-400' : 'text-amber-400'], ['Projeção da equipe', gamN(projEquipe), projEquipe >= metaEquipe && metaEquipe > 0 ? 'text-emerald-400' : 'text-rose-400']].map(([l, v, c]) => `<div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">${l}</p><p class="text-2xl font-black tabular-nums ${c}">${v}</p></div>`).join('')}
+                </div>
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5">
+                    <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3"><i class="fa-solid fa-ranking-star text-amber-400 mr-1.5"></i>Ranking da Semana ${n}</h3>
+                    <div class="overflow-x-auto"><table class="w-full text-left border-collapse">
+                        <thead><tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                            <th class="pb-2 pl-3">#</th><th class="pb-2">Corretor · evolução</th><th class="pb-2 text-right pr-2">Pontos / meta</th><th class="pb-2 text-center">Projeção</th><th class="pb-2 text-center text-pink-500">Leads</th><th class="pb-2 text-center text-violet-500">Agend.</th><th class="pb-2 text-center text-cyan-500">Visitas</th><th class="pb-2 text-center text-sky-500">Análises</th><th class="pb-2 text-center text-amber-500">Aprov.</th><th class="pb-2 text-center text-emerald-500">Vendas</th><th class="pb-2 text-right text-indigo-400">VGV</th><th class="pb-2 pr-3 text-center">Ligações</th>
+                        </tr></thead><tbody>${linhas}</tbody></table></div>
+                    <p class="text-[10px] text-slate-600 mt-3">Evolução = posição nesta semana comparada com a Semana ${n - 1 || '—'}. Projeção = média de pontos por dia decorrido × 7 dias.</p>
+                </section>`;
+        }
+
+        // ---------- MÊS ----------
+        function gamViewMes() {
+            const j = getJanelaMesComercial('analises');
+            const ini = gamISO(j.inicioReal), fim = gamISO(j.fimEstimado);
+            const lista = gamRanking(ini, fim);
+            const totalEquipe = lista.reduce((a, c) => a + c.pontos, 0);
+            const metaEquipe = lista.reduce((a, c) => a + gamMetaDe(c.corretor, 'mes'), 0);
+            const projEquipe = lista.reduce((a, c) => a + gamProjecao(c).projecao, 0);
+            const linhas = lista.map(c => {
+                const meta = gamMetaDe(c.corretor, 'mes'); const pj = gamProjecao(c);
+                return `<tr class="border-b border-slate-800/40 hover:bg-slate-900/40 cursor-pointer ${c.pos <= 3 && c.pontos > 0 ? 'bg-amber-500/5' : ''}" onclick="gamAbrirCorretor('${c.corretor.replace(/'/g, "\\'")}')">
+                    <td class="py-2 pl-3 text-base font-black ${c.pos <= 3 && c.pontos > 0 ? 'text-amber-400' : 'text-slate-500'}">${gamMedalha(c.pos, c.pontos)}</td>
+                    <td class="py-2"><div class="flex items-center gap-2.5">${gamAvatar(c.corretor)}<span class="text-sm font-bold text-slate-100 whitespace-nowrap">${c.corretor}</span></div></td>
+                    <td class="py-2 text-right pr-2"><span class="text-lg font-black text-white tabular-nums">${gamN(c.pontos)}</span><span class="text-[10px] text-slate-500"> / ${gamN(meta)}</span><div class="w-28 ml-auto">${gamBarra(c.pontos, meta)}</div></td>
+                    <td class="py-2 text-center text-[11px]"><span class="font-black tabular-nums ${pj.projecao >= meta && meta > 0 ? 'text-emerald-400' : 'text-rose-400'}">${gamN(pj.projecao)}</span><br>${gamStatusProjecao(pj.projecao, meta).replace('font-black', 'text-[9px] font-black')}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-sky-400">${c.analises}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-amber-400">${c.aprovacoes}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-emerald-400">${c.vendas}</td>
+                    <td class="py-2 text-right text-xs font-bold tabular-nums text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
+                    <td class="py-2 text-center text-sm font-bold tabular-nums text-cyan-400">${c.visitas}</td>
+                    <td class="py-2 pr-3 text-center text-sm font-bold tabular-nums text-violet-400">${c.agendamentos}</td>
+                </tr>`;
+            }).join('');
+            return `
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div><span class="text-sm font-black text-white">${j.mesNome}/${j.ano}</span> <span class="text-xs text-slate-500">mês comercial · ${formatDate(j.inicioReal)} a ${formatDate(j.fimEstimado)} · dia ${j.diaHoje} de ${j.diasNoMes}</span></div>
+                    <span class="text-[10px] text-slate-500">Para ver outro mês, use os pills de <b>Mês Comercial</b> nos filtros do topo.</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    ${[['Pontos da equipe', gamN(totalEquipe), 'text-white'], ['Meta do mês (soma)', gamN(metaEquipe), 'text-slate-300'], ['% da meta', metaEquipe > 0 ? Math.round(totalEquipe / metaEquipe * 100) + '%' : '—', totalEquipe >= metaEquipe && metaEquipe > 0 ? 'text-emerald-400' : 'text-amber-400'], ['Projeção da equipe', gamN(projEquipe), projEquipe >= metaEquipe && metaEquipe > 0 ? 'text-emerald-400' : 'text-rose-400']].map(([l, v, c]) => `<div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">${l}</p><p class="text-2xl font-black tabular-nums ${c}">${v}</p></div>`).join('')}
+                </div>
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5">
+                    <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3"><i class="fa-solid fa-ranking-star text-amber-400 mr-1.5"></i>Ranking do Mês</h3>
+                    <div class="overflow-x-auto"><table class="w-full text-left border-collapse">
+                        <thead><tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                            <th class="pb-2 pl-3">#</th><th class="pb-2">Corretor</th><th class="pb-2 text-right pr-2">Pontos / meta</th><th class="pb-2 text-center">Projeção</th><th class="pb-2 text-center text-sky-500">Análises</th><th class="pb-2 text-center text-amber-500">Aprov.</th><th class="pb-2 text-center text-emerald-500">Vendas</th><th class="pb-2 text-right text-indigo-400">VGV</th><th class="pb-2 text-center text-cyan-500">Visitas</th><th class="pb-2 pr-3 text-center text-violet-500">Agend.</th>
+                        </tr></thead><tbody>${linhas}</tbody></table></div>
+                </section>`;
+        }
+
+        // ---------- INDIVIDUAL ----------
+        function gamViewIndividual() {
+            const ativos = getActiveCorretores();
+            if (!gamCorretorSel || !ativos.includes(gamCorretorSel)) gamCorretorSel = ativos[0] || null;
+            const c = gamCorretorSel;
+            const sel = `<select onchange="gamAbrirCorretor(this.value)" class="bg-slate-950 border border-slate-800 text-sm rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500">${ativos.map(n => `<option ${n === c ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
+            if (!c) return `<div>${sel}</div><p class="text-slate-500 text-sm">Nenhum corretor ativo.</p>`;
+            const hojeISO = gamISO(gamHoje());
+            const semN = Math.max(1, gamSemanaAtualN()); const s = gamSemanaN(semN);
+            const j = getJanelaMesComercial('analises'); const mIni = gamISO(j.inicioReal), mFim = gamISO(j.fimEstimado);
+            const dia = gamPeriodo(c, hojeISO, hojeISO), sem = gamPeriodo(c, s.inicio, s.fim), mes = gamPeriodo(c, mIni, mFim);
+            const rkDia = gamRanking(hojeISO, hojeISO).find(x => x.corretor === c) || {}, rkSem = gamRanking(s.inicio, s.fim).find(x => x.corretor === c) || {}, rkMes = gamRanking(mIni, mFim).find(x => x.corretor === c) || {};
+            const ipc = calcularIPC(currentRefDate).porCorretor[c];
+            const card = (titulo, acc, meta, pos, extra) => { const pj = gamProjecao(acc); return `
+                <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4">
+                    <div class="flex items-center justify-between"><p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">${titulo}</p><span class="text-[10px] font-black text-amber-400">${pos ? gamMedalha(pos) + ' no ranking' : ''}</span></div>
+                    <p class="text-3xl font-black text-white tabular-nums leading-tight">${gamN(acc.pontos)} <span class="text-xs text-slate-500 font-bold">/ ${gamN(meta)} pts</span></p>
+                    ${gamBarra(acc.pontos, meta)}
+                    <p class="text-[10px] text-slate-500 mt-1.5">${extra || ''}${extra ? ' · ' : ''}projeção <b class="${pj.projecao >= meta && meta > 0 ? 'text-emerald-400' : 'text-rose-400'}">${gamN(pj.projecao)}</b> (${pj.media.toFixed(0)} pts/dia)</p>
+                </div>`; };
+            // evolução: pontos por semana desde o início
+            const atualN = gamSemanaAtualN();
+            const semanas = []; for (let n = 1; n <= atualN; n++) { const w = gamSemanaN(n); semanas.push({ n, pontos: gamPeriodo(c, w.inicio, w.fim).pontos, pos: (gamRanking(w.inicio, w.fim).find(x => x.corretor === c) || {}).pos }); }
+            const maxS = Math.max(1, ...semanas.map(x => x.pontos));
+            const evolHtml = semanas.length ? semanas.map(x => `<div class="flex-1 flex flex-col items-center gap-1 min-w-[40px]"><span class="text-[10px] font-bold text-slate-300 tabular-nums">${gamN(x.pontos)}</span><div class="w-full bg-slate-800 rounded-md overflow-hidden flex items-end" style="height:80px"><div class="w-full bg-amber-500 rounded-md" style="height:${Math.max(2, x.pontos / maxS * 100)}%"></div></div><span class="text-[9px] text-slate-500">S${x.n} · ${x.pos ? x.pos + 'º' : ''}</span></div>`).join('') : '<p class="text-xs text-slate-600">A gamificação ainda não começou.</p>';
+            // pontos por categoria no mês
+            const cats = Object.entries(mes.porCategoria).sort((a, b) => b[1] - a[1]);
+            const catLabel = k => (gamConfig.categorias[k] || {}).label || (k === 'manual' ? 'Atividades manuais' : k);
+            const catHtml = cats.length ? cats.map(([k, v]) => `<div class="flex items-center gap-2 text-xs"><span class="w-40 text-slate-400 truncate">${catLabel(k)}</span><div class="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-brand-500 rounded-full" style="width:${Math.max(2, v / Math.max(1, mes.pontos) * 100)}%"></div></div><span class="w-12 text-right font-bold tabular-nums text-slate-200">${gamN(v)}</span></div>`).join('') : '<p class="text-xs text-slate-600">Sem pontos no mês ainda.</p>';
+            // histórico do corretor (últimos 30 registros)
+            const hist = gamHistoricoLinhas({ corretor: c }).slice(0, 30);
+            return `
+                <div class="flex items-center gap-3 flex-wrap">${gamAvatar(c, 'w-12 h-12')}<div><p class="text-lg font-black text-white">${c}</p><p class="text-[11px] text-slate-500">IPC <b class="${ipc ? IPC_CORES[ipcFaixa(ipc.ipc, calcularIPC(currentRefDate).mediaEquipe)].texto : 'text-slate-500'}">${ipc ? fmtIPC(ipc.ipc) : '—'}</b> · ${ipc ? ipc.vendas3m + ' venda(s) em ' + ipcJanelaTexto(ipc.janela) : ''}</p></div><div class="ml-auto">${sel}</div></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    ${card('Hoje', dia, gamMetaDe(c, 'dia'), rkDia.pos, `${dia.analises} an · ${dia.aprovacoes} ap · ${dia.vendas} vd`)}
+                    ${card('Semana ' + semN, sem, gamMetaDe(c, 'semana'), rkSem.pos, `${sem.analises} an · ${sem.aprovacoes} ap · ${sem.vendas} vd`)}
+                    ${card('Mês ' + j.mesNome, mes, gamMetaDe(c, 'mes'), rkMes.pos, `${mes.vendas} vd · ${formatBRL(mes.vgv)}`)}
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5"><h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3">Evolução semanal (pontos · posição)</h3><div class="flex items-end gap-2">${evolHtml}</div></section>
+                    <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5"><h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3">De onde vêm os pontos do mês</h3><div class="space-y-1.5">${catHtml}</div>
+                        <div class="grid grid-cols-4 gap-2 mt-4 text-center">${[['Leads', mes.leads, 'text-pink-400'], ['Agend.', mes.agendamentos, 'text-violet-400'], ['Visitas', mes.visitas, 'text-cyan-400'], ['Ligações', mes.ligacoes, 'text-slate-300'], ['Análises', mes.analises, 'text-sky-400'], ['Aprov.', mes.aprovacoes, 'text-amber-400'], ['Vendas', mes.vendas, 'text-emerald-400'], ['Presenças', mes.presencas, 'text-orange-400']].map(([l, v, cl]) => `<div class="bg-slate-950/50 rounded-lg p-2"><p class="text-lg font-black tabular-nums ${cl}">${v}</p><p class="text-[9px] text-slate-500 uppercase font-bold">${l}</p></div>`).join('')}</div></section>
+                </div>
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5"><h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3">Histórico recente</h3>${gamTabelaHistorico(hist)}</section>`;
+        }
+
+        // ---------- HISTÓRICO ----------
+        // Linhas do histórico: AUTOMÁTICO (uma por corretor/dia/categoria com quantidade > 0) +
+        // MANUAL (lançamentos, inclusive cancelados — marcados). Ordenado do mais recente.
+        function gamHistoricoLinhas(filtro) {
+            filtro = filtro || {};
+            const out = [];
+            const mapa = gamColetarAuto();
+            const cats = gamConfig.categorias;
+            Object.keys(mapa).forEach(c => {
+                if (filtro.corretor && c !== filtro.corretor) return;
+                Object.keys(mapa[c]).forEach(iso => {
+                    const auto = gamPontosAutoDia(c, iso);
+                    Object.entries(auto).forEach(([k, v]) => {
+                        if (!v.qtd) return;
+                        out.push({ data: iso, corretor: c, atividade: cats[k].label, quantidade: k === 'vgv' ? formatBRL(v.qtd) : v.qtd, pontos: v.pontos, origem: 'AUTOMÁTICO' });
+                    });
+                });
+            });
+            gamLancamentos.forEach(l => {
+                if (filtro.corretor && l.corretor !== filtro.corretor) return;
+                out.push({ data: l.data, corretor: l.corretor === '__GESTOR__' ? `${gamConfig.gestor.nome} (gestão)` : l.corretor, atividade: l.label, quantidade: l.atividade === 'presenca' ? l.horario : (l.quantidade || 1), pontos: l.pontos, origem: 'MANUAL', autor: l.autor, criadoEm: l.criadoEm, justificativa: l.justificativa, cancelado: l.cancelado, id: l.id });
+            });
+            if (filtro.origem) return out.filter(r => r.origem === filtro.origem).sort((a, b) => b.data.localeCompare(a.data));
+            return out.sort((a, b) => b.data.localeCompare(a.data) || (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+        }
+        function gamTabelaHistorico(linhas) {
+            if (!linhas.length) return '<p class="text-xs text-slate-600">Nenhum registro.</p>';
+            return `<div class="overflow-x-auto"><table class="w-full text-left border-collapse text-xs">
+                <thead><tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider"><th class="pb-2 pl-2">Data</th><th class="pb-2">Corretor</th><th class="pb-2">Atividade</th><th class="pb-2 text-center">Qtd</th><th class="pb-2 text-right">Pontos</th><th class="pb-2 text-center">Origem</th><th class="pb-2">Auditoria</th><th class="pb-2 pr-2"></th></tr></thead>
+                <tbody>${linhas.map(r => `<tr class="border-b border-slate-800/30 ${r.cancelado ? 'opacity-50 line-through' : ''}">
+                    <td class="py-1.5 pl-2 text-slate-400 whitespace-nowrap">${gamFmtLongo(r.data)}</td>
+                    <td class="py-1.5 font-semibold text-slate-200 whitespace-nowrap">${r.corretor}</td>
+                    <td class="py-1.5 text-slate-300">${r.atividade}${r.justificativa ? `<span class="block text-[10px] text-slate-500 no-underline">“${r.justificativa}”</span>` : ''}</td>
+                    <td class="py-1.5 text-center text-slate-300 tabular-nums">${r.quantidade}</td>
+                    <td class="py-1.5 text-right font-black tabular-nums ${r.pontos >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${r.pontos >= 0 ? '+' : ''}${gamN(r.pontos)}</td>
+                    <td class="py-1.5 text-center"><span class="text-[9px] font-black px-1.5 py-0.5 rounded ${r.origem === 'MANUAL' ? 'bg-amber-500/15 text-amber-400' : 'bg-sky-500/15 text-sky-400'}">${r.origem}</span></td>
+                    <td class="py-1.5 text-[10px] text-slate-500">${r.origem === 'MANUAL' ? `${r.autor || '?'} · ${r.criadoEm ? new Date(r.criadoEm).toLocaleString('pt-BR') : ''}${r.cancelado ? `<br><span class="text-rose-400">cancelado por ${r.cancelado.por} em ${new Date(r.cancelado.em).toLocaleString('pt-BR')}: ${r.cancelado.motivo}</span>` : ''}` : 'BI/CRM'}</td>
+                    <td class="py-1.5 pr-2 text-right">${r.origem === 'MANUAL' && !r.cancelado && isDiretor ? `<button onclick="gamCancelarLancamento('${r.id}')" class="text-[10px] text-rose-400 hover:text-rose-300 font-bold">cancelar</button>` : ''}</td>
+                </tr>`).join('')}</tbody></table></div>`;
+        }
+        function gamViewHistorico() {
+            const ativos = getActiveCorretores();
+            const linhas = gamHistoricoLinhas(gamHistFiltro).slice(0, 400);
+            return `
+                <div class="flex items-center gap-2 flex-wrap">
+                    <select onchange="gamHistFiltro.corretor=this.value; renderGamificacao()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200"><option value="">Todos os corretores</option>${ativos.map(n => `<option ${gamHistFiltro.corretor === n ? 'selected' : ''}>${n}</option>`).join('')}</select>
+                    <select onchange="gamHistFiltro.origem=this.value; renderGamificacao()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200"><option value="">Automático + Manual</option><option value="AUTOMÁTICO" ${gamHistFiltro.origem === 'AUTOMÁTICO' ? 'selected' : ''}>Só automático</option><option value="MANUAL" ${gamHistFiltro.origem === 'MANUAL' ? 'selected' : ''}>Só manual</option></select>
+                    <span class="text-[10px] text-slate-500">${linhas.length} registro(s)${linhas.length >= 400 ? ' (mostrando os 400 mais recentes)' : ''}</span>
+                </div>
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5">${gamTabelaHistorico(linhas)}
+                    <p class="text-[10px] text-slate-600 mt-3">Auditoria: todo lançamento manual guarda quem lançou, data/hora e justificativa. Nada é apagado — cancelar mantém o registro riscado, com motivo, e tira os pontos.</p></section>`;
+        }
+
+        // ---------- GESTÃO ----------
+        function gamViewGestao() {
+            const g = gamConfig.gestor;
+            const semN = Math.max(1, gamSemanaAtualN()); const s = gamSemanaN(semN);
+            const j = getJanelaMesComercial('analises'); const mIni = gamISO(j.inicioReal), mFim = gamISO(j.fimEstimado);
+            const sem = gamGestorPeriodo(s.inicio, s.fim), mes = gamGestorPeriodo(mIni, mFim);
+            const regras = (g.regras || []).map(r => `<div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-800/40"><span class="${r.ativo === false ? 'text-slate-600 line-through' : 'text-slate-300'}">${r.label}${r.auto ? ' <span class="text-[9px] font-black text-sky-400 bg-sky-500/10 px-1.5 rounded">AUTO</span>' : ''}</span><span class="font-black text-emerald-400">+${r.pontos}</span></div>`).join('');
+            const hist = gamHistoricoLinhas({}).filter(r => r.corretor.endsWith('(gestão)')).slice(0, 30);
+            return `
+                <div class="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 px-5 py-4"><p class="text-sm font-black text-indigo-300"><i class="fa-solid fa-user-tie mr-1.5"></i>Gamificação da Gestão — ${g.nome}</p><p class="text-[11px] text-indigo-200/70">Pontuação própria do gestor, separada do ranking dos corretores. Reuniões, treinamentos, conteúdo e ações são lançados em <b>Registrar Atividade → Gestão</b>. "Meta semanal da equipe atingida" pontua sozinha ao fechar cada semana em que a soma dos pontos dos corretores bateu a soma das metas.</p></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    ${[['Semana ' + semN, sem, g.metas.semana], ['Mês ' + j.mesNome, mes, g.metas.mes]].map(([t, acc, meta]) => `<div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">${t}</p><p class="text-3xl font-black text-white tabular-nums">${gamN(acc.pontos)} <span class="text-xs text-slate-500 font-bold">/ ${gamN(meta)} pts</span></p>${gamBarra(acc.pontos, meta)}${acc.autos.length ? `<p class="text-[10px] text-sky-400 mt-1.5">${acc.autos.map(a => a.label + ' +' + a.pontos).join(' · ')}</p>` : ''}</div>`).join('')}
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5"><h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-2">Regras da gestão</h3>${regras}<p class="text-[10px] text-slate-600 mt-2">Edite/adicione regras em <b>Configurar → Gestão</b>.</p></section>
+                    <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5"><h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-2">Histórico da gestão</h3>${gamTabelaHistorico(hist)}</section>
+                </div>`;
+        }
+
+        // ---------- CONFIGURAR ----------
+        // Tudo editado direto no gamConfig (em memória) e salvo no botão "Salvar" (local + nuvem).
+        function gamCfgTabelaHtml(key) {
+            const cat = gamConfig.categorias[key];
+            const wq = key === 'vgv' ? 'w-24' : 'w-14';
+            const rows = (cat.tabela || []).map((r, i) => `<div class="flex items-center gap-1 whitespace-nowrap bg-slate-950/40 rounded-lg px-1.5 py-1"><input type="number" value="${r.q}" min="0" onchange="gamConfig.categorias['${key}'].tabela[${i}].q=+this.value" class="${wq} shrink-0 bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-slate-200 text-right" title="${key === 'vgv' ? 'VGV a partir de (R$)' : 'quantidade'}"><span class="text-slate-600 text-[10px] shrink-0">${key === 'vgv' ? 'R$ →' : '→'}</span><input type="number" value="${r.p}" onchange="gamConfig.categorias['${key}'].tabela[${i}].p=+this.value" class="w-14 shrink-0 bg-slate-950 border border-slate-800 rounded px-1.5 py-1 text-xs text-emerald-300 text-right font-bold"><span class="text-[10px] text-slate-600 shrink-0">pts</span><button onclick="gamConfig.categorias['${key}'].tabela.splice(${i},1); renderGamificacao()" class="text-slate-600 hover:text-rose-400 text-[10px] ml-auto shrink-0"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+            return `<div class="grid grid-cols-2 gap-1.5">${rows}</div>
+                <button onclick="(function(t){ const u=t[t.length-1]||{q:0,p:0}; const pv=t[t.length-2]; const dq=pv?u.q-pv.q:1; const dp=pv?u.p-pv.p:u.p; t.push({q:u.q+(dq||1), p:u.p+(dp||0)}); })(gamConfig.categorias['${key}'].tabela); renderGamificacao()" class="mt-2 text-[10px] font-bold text-brand-400 hover:text-brand-300"><i class="fa-solid fa-plus mr-1"></i>adicionar linha (continua o passo)</button>
+                <p class="text-[10px] text-slate-600 mt-1">Cada quantidade tem o seu valor. Acima da última linha, o sistema continua no mesmo passo da última diferença.</p>`;
+        }
+        function gamViewConfig() {
+            const cfg = gamConfig;
+            const catOrder = ['ligacoes','leads','agendamentos','visitas','compareceu','analises','aprovacoes','vendas','vgv','presenca'];
+            const cats = catOrder.map(k => {
+                const c = cfg.categorias[k]; if (!c) return '';
+                let corpo = '';
+                if (k === 'presenca') {
+                    corpo = `<div class="space-y-1.5">${(c.faixas || []).map((f, i) => `<div class="flex items-center gap-1.5 text-xs"><span class="text-slate-500 w-10">até</span><input type="time" value="${f.ate}" onchange="gamConfig.categorias.presenca.faixas[${i}].ate=this.value" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200"><span class="text-slate-600">→</span><input type="number" value="${f.p}" onchange="gamConfig.categorias.presenca.faixas[${i}].p=+this.value" class="w-16 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-right font-bold ${f.p >= 0 ? 'text-emerald-300' : 'text-rose-300'}"><span class="text-[10px] text-slate-600">pts</span><button onclick="gamConfig.categorias.presenca.faixas.splice(${i},1); renderGamificacao()" class="text-slate-600 hover:text-rose-400 text-[10px]"><i class="fa-solid fa-xmark"></i></button></div>`).join('')}</div>
+                        <button onclick="gamConfig.categorias.presenca.faixas.push({ate:'23:59',p:0}); renderGamificacao()" class="mt-2 text-[10px] font-bold text-brand-400"><i class="fa-solid fa-plus mr-1"></i>adicionar faixa</button>
+                        <p class="text-[10px] text-slate-600 mt-1">Horário de entrada lançado em Registrar Atividade (o BI ainda não captura presença sozinho). Vale a primeira faixa cujo "até" cobre o horário.</p>`;
+                } else {
+                    corpo = gamCfgTabelaHtml(k);
+                    if (k === 'leads') corpo = `<div class="flex items-center gap-2 text-xs mb-2"><span class="text-slate-400">Pontuar lead por:</span><select onchange="gamConfig.categorias.leads.criterio=this.value; gamAutoCache.chave=''; renderGamificacao()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200"><option value="cadastrado" ${c.criterio === 'cadastrado' ? 'selected' : ''}>Lead cadastrado (data de cadastro)</option><option value="trabalhado" ${c.criterio === 'trabalhado' ? 'selected' : ''}>Lead trabalhado (só com Situação preenchida)</option></select></div>` + corpo;
+                    if (k === 'compareceu') corpo = `<p class="text-[10px] text-amber-400 mb-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Na Agenda do BI, "visita realizada" e "cliente compareceu" são o MESMO status. Ligue este bônus só se quiser pontuar o comparecimento ALÉM da visita (senão duplica).</p>` + corpo;
+                    if (k === 'vgv') corpo = `<p class="text-[10px] text-slate-500 mb-2">Por venda: cada venda pontua pela faixa de VGV que ela atinge (maior "a partir de" ≤ VGV). Soma com os pontos de "Vendas".</p>` + corpo;
+                    if (k === 'ligacoes') corpo = `<p class="text-[10px] text-slate-500 mb-2">Lançamento manual da quantidade do dia (o BI ainda não integra ligações). Quando existir integração, a captura vira automática sem mudar a tabela.</p>` + corpo;
+                }
+                return `<div class="bg-slate-950/50 rounded-xl border ${c.ativo ? 'border-slate-800' : 'border-slate-800/50 opacity-70'} p-4">
+                    <div class="flex items-center justify-between mb-2"><p class="text-sm font-black ${GAM_COR[c.cor] || 'text-slate-200'}"><i class="fa-solid ${c.icon} mr-1.5"></i>${c.label} <span class="text-[9px] font-black px-1.5 py-0.5 rounded ${c.origem === 'auto' ? 'bg-sky-500/15 text-sky-400' : 'bg-amber-500/15 text-amber-400'}">${c.origem === 'auto' ? 'AUTOMÁTICO' : 'MANUAL'}</span></p>
+                    <label class="flex items-center gap-1.5 text-[11px] text-slate-400 cursor-pointer"><input type="checkbox" ${c.ativo ? 'checked' : ''} onchange="gamConfig.categorias['${k}'].ativo=this.checked; renderGamificacao()" class="accent-brand-500">ativa</label></div>${corpo}</div>`;
+            }).join('');
+            const ativos = getActiveCorretores();
+            const metasCorr = ativos.map(n => { const m = cfg.metasCorretor[n] || {}; return `<tr class="border-b border-slate-800/30"><td class="py-1 text-xs text-slate-300 whitespace-nowrap">${n}</td>${['dia','semana','mes'].map(t => `<td class="py-1 text-center"><input type="number" placeholder="${cfg.metas[t]}" value="${m[t] || ''}" onchange="(gamConfig.metasCorretor['${n.replace(/'/g, "\\'")}']=gamConfig.metasCorretor['${n.replace(/'/g, "\\'")}']||{})['${t}']=+this.value||0" class="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center"></td>`).join('')}</tr>`; }).join('');
+            const manuais = cfg.atividadesManuais.map((a, i) => `<div class="flex items-center gap-1.5 text-xs"><input type="checkbox" ${a.ativo !== false ? 'checked' : ''} onchange="gamConfig.atividadesManuais[${i}].ativo=this.checked" class="accent-brand-500"><input value="${a.label}" onchange="gamConfig.atividadesManuais[${i}].label=this.value" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200"><input type="number" value="${a.pontos}" onchange="gamConfig.atividadesManuais[${i}].pontos=+this.value" class="w-16 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-emerald-300 text-right font-bold"><span class="text-[10px] text-slate-600">pts</span><button onclick="gamConfig.atividadesManuais.splice(${i},1); renderGamificacao()" class="text-slate-600 hover:text-rose-400 text-[10px]"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+            const regras = cfg.gestor.regras.map((r, i) => `<div class="flex items-center gap-1.5 text-xs"><input type="checkbox" ${r.ativo !== false ? 'checked' : ''} onchange="gamConfig.gestor.regras[${i}].ativo=this.checked" class="accent-brand-500"><input value="${r.label}" onchange="gamConfig.gestor.regras[${i}].label=this.value" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200"><input type="number" value="${r.pontos}" onchange="gamConfig.gestor.regras[${i}].pontos=+this.value" class="w-16 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-emerald-300 text-right font-bold"><span class="text-[10px] text-slate-600">pts</span>${r.auto ? '<span class="text-[9px] font-black text-sky-400">AUTO</span>' : `<button onclick="gamConfig.gestor.regras.splice(${i},1); renderGamificacao()" class="text-slate-600 hover:text-rose-400 text-[10px]"><i class="fa-solid fa-xmark"></i></button>`}</div>`).join('');
+            return `
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <p class="text-xs text-slate-400">Nada aqui é fixo no código: tabelas, penalidades, horários, metas, atividades e regras são salvos ${isDiretor ? 'na nuvem (para todos os aparelhos)' : 'só neste navegador — <b class="text-amber-400">entre como diretor</b> para salvar na nuvem'}.</p>
+                    <div class="flex items-center gap-2">
+                        <button onclick="if(confirm('Voltar TODAS as pontuações e regras ao padrão sugerido? Os lançamentos não são apagados.')){ gamConfig = gamConfigPadrao(); gamAutoCache.chave=''; renderGamificacao(); }" class="text-xs font-bold text-slate-400 border border-slate-800 rounded-lg px-3 py-2 hover:text-slate-200">Restaurar padrão</button>
+                        <button onclick="gamSalvarConfig()" class="text-xs font-black text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg px-4 py-2 shadow"><i class="fa-solid fa-floppy-disk mr-1.5"></i>Salvar configuração</button>
+                    </div>
+                </div>
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5">
+                    <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3">Início e metas</h3>
+                    <div class="flex items-center gap-4 flex-wrap text-xs">
+                        <label class="flex items-center gap-2 text-slate-400">Início da gamificação (segunda-feira) <input type="date" value="${cfg.inicio}" onchange="gamConfig.inicio=this.value; gamAutoCache.chave=''; renderGamificacao()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200"></label>
+                        <span class="text-slate-600">|</span>
+                        <span class="text-slate-400">Meta padrão de pontos:</span>
+                        ${['dia','semana','mes'].map(t => `<label class="flex items-center gap-1 text-slate-400">${t} <input type="number" value="${cfg.metas[t]}" onchange="gamConfig.metas['${t}']=+this.value" class="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center"></label>`).join('')}
+                    </div>
+                    <p class="text-[10px] text-slate-600 mt-2">${gamDeISO(cfg.inicio).getDay() === 1 ? 'OK, é segunda-feira.' : '<span class="text-amber-400">Atenção: a data escolhida não é segunda-feira — as semanas contam a partir dela mesmo assim.</span>'}</p>
+                    <details class="mt-3"><summary class="text-[11px] font-bold text-slate-400 cursor-pointer">Metas individuais por corretor (vazio = usa a padrão)</summary>
+                        <table class="mt-2"><thead><tr class="text-[9px] text-slate-500 uppercase"><th class="text-left">Corretor</th><th class="px-2">Dia</th><th class="px-2">Semana</th><th class="px-2">Mês</th></tr></thead><tbody>${metasCorr}</tbody></table></details>
+                </section>
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5">
+                    <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3">Pontuação progressiva por categoria</h3>
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">${cats}</div>
+                </section>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                    <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5"><h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3">Atividades manuais (corretores)</h3><div class="space-y-1.5">${manuais}</div><button onclick="gamConfig.atividadesManuais.push({key:'m'+Date.now(), label:'Nova atividade', pontos:5, ativo:true}); renderGamificacao()" class="mt-2 text-[10px] font-bold text-brand-400"><i class="fa-solid fa-plus mr-1"></i>nova atividade</button></section>
+                    <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5"><h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3">Gestão</h3>
+                        <div class="flex items-center gap-2 text-xs mb-2"><span class="text-slate-400">Gestor</span><input value="${cfg.gestor.nome}" onchange="gamConfig.gestor.nome=this.value" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200"><span class="text-slate-400">meta semana</span><input type="number" value="${cfg.gestor.metas.semana}" onchange="gamConfig.gestor.metas.semana=+this.value" class="w-16 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center"><span class="text-slate-400">mês</span><input type="number" value="${cfg.gestor.metas.mes}" onchange="gamConfig.gestor.metas.mes=+this.value" class="w-16 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 text-center"></div>
+                        <div class="space-y-1.5">${regras}</div><button onclick="gamConfig.gestor.regras.push({key:'g'+Date.now(), label:'Nova regra', pontos:5, auto:false, ativo:true}); renderGamificacao()" class="mt-2 text-[10px] font-bold text-brand-400"><i class="fa-solid fa-plus mr-1"></i>nova regra</button></section>
+                </div>`;
+        }
+        function gamSalvarConfig() {
+            // normaliza tabelas (tira linhas vazias, ordena)
+            Object.values(gamConfig.categorias).forEach(c => { if (Array.isArray(c.tabela)) c.tabela = c.tabela.filter(r => isFinite(r.q) && isFinite(r.p)).sort((a, b) => a.q - b.q); });
+            gamAutoCache.chave = '';
+            saveGamificacao();
+            showToast(isDiretor ? 'Configuração da gamificação salva na nuvem.' : 'Configuração salva neste navegador (entre como diretor para sincronizar).');
+            renderGamificacao();
+        }
+
+        // ---------- REGISTRAR ATIVIDADE (modal) ----------
+        function gamAbrirLancamento() {
+            if (!isDiretor) { showToast('Entre como diretor para registrar atividades.', true); return; }
+            const m = document.getElementById('gamModal');
+            const ativos = getActiveCorretores();
+            const hojeISO = gamISO(gamHoje());
+            document.getElementById('gamModalBody').innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2 text-xs">
+                        <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="gamTipo" value="corretor" checked onchange="gamModalAtualizarAtividades()" class="accent-brand-500">Corretor</label>
+                        <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="gamTipo" value="gestor" onchange="gamModalAtualizarAtividades()" class="accent-brand-500">Gestão (${gamConfig.gestor.nome})</label>
+                    </div>
+                    <div id="gamModalCorretorWrap"><label class="text-[10px] font-bold text-slate-500 uppercase">Corretor</label><select id="gamModalCorretor" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">${ativos.map(n => `<option>${n}</option>`).join('')}</select></div>
+                    <div><label class="text-[10px] font-bold text-slate-500 uppercase">Atividade</label><select id="gamModalAtividade" onchange="gamModalAtualizarCampos()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></select></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div id="gamModalQtdWrap"><label class="text-[10px] font-bold text-slate-500 uppercase" id="gamModalQtdLabel">Quantidade</label><input type="number" id="gamModalQtd" value="1" min="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div>
+                        <div id="gamModalHoraWrap" class="hidden"><label class="text-[10px] font-bold text-slate-500 uppercase">Horário de entrada</label><input type="time" id="gamModalHora" value="09:00" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div>
+                        <div><label class="text-[10px] font-bold text-slate-500 uppercase">Data</label><input type="date" id="gamModalData" value="${hojeISO}" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div>
+                    </div>
+                    <div><label class="text-[10px] font-bold text-slate-500 uppercase">Justificativa (obrigatória — fica na auditoria)</label><input id="gamModalJust" placeholder="ex.: relatório do discador de 13/09" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div>
+                    <p id="gamModalPreview" class="text-xs text-slate-400"></p>
+                </div>`;
+            m.classList.remove('hidden');
+            gamModalAtualizarAtividades();
+        }
+        function gamModalAtualizarAtividades() {
+            const tipo = document.querySelector('input[name="gamTipo"]:checked').value;
+            document.getElementById('gamModalCorretorWrap').classList.toggle('hidden', tipo === 'gestor');
+            const sel = document.getElementById('gamModalAtividade');
+            let ops = [];
+            if (tipo === 'corretor') {
+                if (gamConfig.categorias.ligacoes.ativo) ops.push(['ligacoes', 'Ligações realizadas no dia (quantidade)']);
+                if (gamConfig.categorias.presenca.ativo) ops.push(['presenca', 'Presença — horário de entrada']);
+                gamConfig.atividadesManuais.filter(a => a.ativo !== false).forEach(a => ops.push([a.key, `${a.label} (+${a.pontos})`]));
+            } else {
+                gamConfig.gestor.regras.filter(r => r.ativo !== false && !r.auto).forEach(r => ops.push([r.key, `${r.label} (+${r.pontos})`]));
+            }
+            sel.innerHTML = ops.map(([k, l]) => `<option value="${k}">${l}</option>`).join('');
+            gamModalAtualizarCampos();
+        }
+        function gamModalAtualizarCampos() {
+            const k = document.getElementById('gamModalAtividade').value;
+            document.getElementById('gamModalQtdWrap').classList.toggle('hidden', k === 'presenca');
+            document.getElementById('gamModalHoraWrap').classList.toggle('hidden', k !== 'presenca');
+            document.getElementById('gamModalQtdLabel').textContent = k === 'ligacoes' ? 'Ligações no dia' : 'Quantidade (vezes)';
+            const p = gamModalCalcular();
+            document.getElementById('gamModalPreview').innerHTML = p ? `Vai registrar <b class="text-white">${p.label}</b> → <b class="${p.pontos >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${p.pontos >= 0 ? '+' : ''}${p.pontos} pts</b>` : '';
+        }
+        function gamModalCalcular() {
+            const tipo = document.querySelector('input[name="gamTipo"]:checked').value;
+            const k = document.getElementById('gamModalAtividade').value;
+            const qtd = +document.getElementById('gamModalQtd').value || 0;
+            const hora = document.getElementById('gamModalHora').value;
+            if (!k) return null;
+            if (tipo === 'gestor') { const r = gamConfig.gestor.regras.find(x => x.key === k); return r ? { label: r.label, pontos: (+r.pontos || 0) * Math.max(1, qtd), quantidade: Math.max(1, qtd) } : null; }
+            if (k === 'ligacoes') return { label: 'Ligações', pontos: gamPontosProgressivo(gamConfig.categorias.ligacoes.tabela, qtd), quantidade: qtd };
+            if (k === 'presenca') return { label: 'Presença (entrada ' + hora + ')', pontos: gamPontosPresenca(hora), horario: hora, quantidade: 1 };
+            const a = gamConfig.atividadesManuais.find(x => x.key === k);
+            return a ? { label: a.label, pontos: (+a.pontos || 0) * Math.max(1, qtd), quantidade: Math.max(1, qtd) } : null;
+        }
+        function gamSalvarLancamento() {
+            if (!isDiretor) return;
+            const tipo = document.querySelector('input[name="gamTipo"]:checked').value;
+            const k = document.getElementById('gamModalAtividade').value;
+            const data = document.getElementById('gamModalData').value;
+            const just = (document.getElementById('gamModalJust').value || '').trim();
+            const corretor = tipo === 'gestor' ? '__GESTOR__' : document.getElementById('gamModalCorretor').value;
+            const calc = gamModalCalcular();
+            if (!calc || !data) { showToast('Preencha atividade e data.', true); return; }
+            if (!just) { showToast('A justificativa é obrigatória (auditoria).', true); return; }
+            if (data < gamConfig.inicio) { showToast(`A gamificação começa em ${gamFmtLongo(gamConfig.inicio)} — não dá pra lançar antes.`, true); return; }
+            // Presença: 1 por corretor/dia — substitui (cancelando o anterior com motivo).
+            if (k === 'presenca') {
+                gamLancamentos.filter(l => !l.cancelado && l.corretor === corretor && l.data === data && l.atividade === 'presenca')
+                    .forEach(l => { l.cancelado = { por: gamUsuarioAtual(), em: new Date().toISOString(), motivo: 'substituído por novo horário' }; });
+            }
+            gamLancamentos.push({ id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6), tipo: 'manual', corretor, data, atividade: k, label: calc.label, quantidade: calc.quantidade, horario: calc.horario || null, pontos: calc.pontos, justificativa: just, autor: gamUsuarioAtual(), criadoEm: new Date().toISOString() });
+            saveGamificacao();
+            gamFecharModal();
+            showToast(`Registrado: ${calc.label} (${calc.pontos >= 0 ? '+' : ''}${calc.pontos} pts).`);
+            renderGamificacao();
+        }
+        // Cancelar = NÃO apaga: marca cancelado com quem/quando/motivo e tira os pontos (auditoria).
+        function gamCancelarLancamento(id) {
+            if (!isDiretor) return;
+            const l = gamLancamentos.find(x => x.id === id);
+            if (!l || l.cancelado) return;
+            const m = document.getElementById('gamModal');
+            document.getElementById('gamModalBody').innerHTML = `
+                <div class="space-y-3">
+                    <p class="text-sm text-slate-200">Cancelar <b>${l.label}</b> de <b>${l.corretor === '__GESTOR__' ? gamConfig.gestor.nome : l.corretor}</b> em ${gamFmtLongo(l.data)} (${l.pontos >= 0 ? '+' : ''}${l.pontos} pts)?</p>
+                    <p class="text-[11px] text-slate-500">O registro continua no histórico, riscado, com o motivo e quem cancelou. Os pontos deixam de contar.</p>
+                    <div><label class="text-[10px] font-bold text-slate-500 uppercase">Motivo (obrigatório)</label><input id="gamModalMotivo" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200" placeholder="ex.: lançado em duplicidade"></div>
+                </div>`;
+            document.getElementById('gamModalTitulo').textContent = 'Cancelar lançamento';
+            const btn = document.getElementById('gamModalSalvar');
+            btn.textContent = 'Confirmar cancelamento';
+            btn.className = 'text-xs font-black text-white bg-rose-600 hover:bg-rose-500 rounded-lg px-4 py-2';
+            btn.onclick = () => {
+                const motivo = (document.getElementById('gamModalMotivo').value || '').trim();
+                if (!motivo) { showToast('Informe o motivo.', true); return; }
+                l.cancelado = { por: gamUsuarioAtual(), em: new Date().toISOString(), motivo };
+                saveGamificacao();
+                gamFecharModal();
+                renderGamificacao();
+            };
+            m.classList.remove('hidden');
+        }
+        function gamFecharModal() {
+            document.getElementById('gamModal').classList.add('hidden');
+            // devolve o botão ao estado "Registrar"
+            const btn = document.getElementById('gamModalSalvar');
+            btn.textContent = 'Registrar';
+            btn.className = 'text-xs font-black text-white bg-brand-500 hover:bg-brand-400 rounded-lg px-4 py-2';
+            btn.onclick = gamSalvarLancamento;
+            document.getElementById('gamModalTitulo').textContent = 'Registrar atividade';
+        }
+
         // ===================== TELA (MODO TV) =====================
         // Visão de exibição pra monitor/TV da equipe: tudo numa tela só, sem rolagem, fonte grande.
         //   1. FUNIL DO MÊS   — as 6 etapas com meta, % e ritmo (mesmos números do Funil de Vendas)
@@ -4369,12 +5239,14 @@
             const linkCorretor = document.getElementById('navLinkCorretor');
             const linkPlantoes = document.getElementById('navLinkPlantoes');
             const linkTela = document.getElementById('navLinkTela');
+            const linkGam = document.getElementById('navLinkGamificacao');
             if (linkDashboard) linkDashboard.className = viewName === 'dashboard' ? onCls : offCls;
             if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
             if (linkRankings) linkRankings.className = viewName === 'rankings' ? onCls : offCls;
             if (linkCorretor) linkCorretor.className = viewName === 'corretor' ? onCls : offCls;
             if (linkPlantoes) linkPlantoes.className = viewName === 'plantoes' ? onCls : offCls;
             if (linkTela) linkTela.className = viewName === 'tela' ? onCls : offCls;
+            if (linkGam) linkGam.className = viewName === 'gamificacao' ? onCls : offCls;
 
             // "Rankings", "Corretor" e "Plantões" são telas dedicadas (escondem todo o resto do
             // Painel — Hero, KPIs, Funil, Calendário — que hoje é inline aqui dentro — e mostram só a
@@ -4385,13 +5257,15 @@
             const corretorSection = document.getElementById('corretorSection');
             const plantoesSection = document.getElementById('plantoesSection');
             const telaSection = document.getElementById('telaSection');
-            const secoesDedicadas = ['rankings', 'corretor', 'plantoes', 'tela'];
+            const gamSection = document.getElementById('gamificacaoSection');
+            const secoesDedicadas = ['rankings', 'corretor', 'plantoes', 'tela', 'gamificacao'];
             if (dashboardViewEl) {
                 Array.from(dashboardViewEl.children).forEach(child => {
                     if (child === quickSection) { child.classList.toggle('hidden', viewName !== 'rankings'); return; }
                     if (child === corretorSection) { child.classList.toggle('hidden', viewName !== 'corretor'); return; }
                     if (child === plantoesSection) { child.classList.toggle('hidden', viewName !== 'plantoes'); return; }
                     if (child === telaSection) { child.classList.toggle('hidden', viewName !== 'tela'); return; }
+                    if (child === gamSection) { child.classList.toggle('hidden', viewName !== 'gamificacao'); return; }
                     child.classList.toggle('hidden', secoesDedicadas.includes(viewName));
                 });
             }
@@ -4401,6 +5275,7 @@
             if (viewName === 'corretor') renderCorretorCards();
             if (viewName === 'plantoes') renderPlantoes();
             if (viewName === 'tela') renderTela();
+            if (viewName === 'gamificacao') renderGamificacao();
             // Entrando nos Rankings: redesenha se algo mudou enquanto a aba estava fechada
             // (drawQuickRankings marca `quickRankingsPendente` em vez de renderizar à toa).
             if (viewName === 'rankings' && quickRankingsPendente) drawQuickRankings();
@@ -4416,7 +5291,7 @@
                 }
             }
 
-            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : (viewName === 'corretor' ? 'corretorSection' : (viewName === 'plantoes' ? 'plantoesSection' : (viewName === 'tela' ? 'telaSection' : 'dashboardView'))));
+            const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : (viewName === 'corretor' ? 'corretorSection' : (viewName === 'plantoes' ? 'plantoesSection' : (viewName === 'tela' ? 'telaSection' : (viewName === 'gamificacao' ? 'gamificacaoSection' : 'dashboardView')))));
             const target = document.getElementById(targetId);
             // Tela (TV) rola instantâneo dentro de ajustarEscalaTela() — o smooth aqui brigaria com ela.
             if (target && viewName !== 'tela') target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -4824,6 +5699,7 @@
             loadVagasPorEscala();
             loadPlantaoInfoEscala();
             loadIpcMesesCustom();
+            loadGamificacao();
             // TV bootando direto na Tela: abra o BI com ?tela=1 ou #tela e ele já entra no modo
             // de exibição (os dados chegam depois e o applyFilters redesenha a Tela sozinho).
             try {
@@ -5041,6 +5917,12 @@
                 if (data.escalasPlantao && typeof data.escalasPlantao === 'object') { escalasPlantao = Object.assign({ diamond: {}, roleta: {}, represados: {} }, data.escalasPlantao); localStorage.setItem(`${appId}-escalas-plantao`, JSON.stringify(escalasPlantao)); }
                 if (data.vagasPorEscala && typeof data.vagasPorEscala === 'object') { vagasPorEscala = Object.assign({ diamond: 3, roleta: 2, represados: 1 }, data.vagasPorEscala); localStorage.setItem(`${appId}-vagas-por-escala`, JSON.stringify(vagasPorEscala)); }
                 if (data.plantaoInfoEscala && typeof data.plantaoInfoEscala === 'object') { plantaoInfoEscala = Object.assign({ diamond: '', roleta: '', represados: '' }, data.plantaoInfoEscala); localStorage.setItem(`${appId}-plantao-info-escala`, JSON.stringify(plantaoInfoEscala)); }
+                if (data.gamificacao && typeof data.gamificacao === 'object') {
+                    gamConfig = gamMesclarConfig(data.gamificacao.config);
+                    if (Array.isArray(data.gamificacao.lancamentos)) gamLancamentos = data.gamificacao.lancamentos;
+                    try { localStorage.setItem(GAM_LS_CONFIG, JSON.stringify(gamConfig)); localStorage.setItem(GAM_LS_LANC, JSON.stringify(gamLancamentos)); } catch (e) {}
+                    gamAutoCache.chave = '';
+                }
                 if (data.prospeccaoPorMes && typeof data.prospeccaoPorMes === 'object') {
                     const cloudMeses = data.prospeccaoPorMes;
                     // Remove localmente os meses que não existem mais na nuvem (outro dispositivo
@@ -5116,6 +5998,7 @@
                     escalasPlantao: escalasPlantao,
                     vagasPorEscala: vagasPorEscala,
                     plantaoInfoEscala: plantaoInfoEscala,
+                    gamificacao: { config: gamConfig, lancamentos: gamLancamentos },
                     _updatedAt: Date.now()
                 };
                 // Prospecção (todos os meses juntos) só entra na sincronização se couber com
@@ -6002,6 +6885,7 @@
             instalarNavegadorPainel();
             // Tela (TV): só redesenha se estiver aberta — é o que mantém a TV viva a cada auto-refresh.
             if (activeView === 'tela') renderTela();
+            if (activeView === 'gamificacao') { gamAutoCache.chave = ''; renderGamificacao(); }
         }
 
         function checkPeriodMatch(rowDateStr, period, referenceDate) {
