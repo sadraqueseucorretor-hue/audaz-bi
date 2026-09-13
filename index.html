@@ -3859,34 +3859,64 @@
                 { key: 'aprovacoes',   label: 'Aprovações',   icon: 'fa-circle-check',        cor: 'amber',  real: kpiValues.approvals || 0,    meta: metasMensais.aprovacoes || 0,   jan: getJanelaMesComercial('aprovacoes') },
                 { key: 'vendas',       label: 'Vendas',       icon: 'fa-house-circle-check',  cor: 'emerald', real: kpiValues.salesView ?? kpiValues.sales ?? 0, meta: metasMensais.vendas || 0, jan: getJanelaMesComercial('vendas') }
             ];
-            const funilHtml = etapas.map(e => {
-                const ideal = idealPorDiaUtil(e.meta, e.jan);
-                const pctMeta = e.meta > 0 ? Math.min(100, (e.real / e.meta) * 100) : 0;
-                const ritmo = ideal > 0 ? e.real / ideal : (e.real > 0 ? 1 : 0);
-                const corRitmo = ritmo >= 1 ? 'text-emerald-400' : (ritmo >= 0.8 ? 'text-amber-400' : 'text-rose-400');
-                const tagRitmo = ritmo >= 1 ? 'No ritmo' : (ritmo >= 0.8 ? 'Perto' : 'Abaixo');
-                return `
-                <div class="flex items-center gap-4 py-1.5 border-b border-slate-800/50 last:border-0">
-                    <div class="w-9 h-9 rounded-xl bg-${e.cor}-500/15 text-${e.cor}-400 flex items-center justify-center text-base shrink-0"><i class="fa-solid ${e.icon}"></i></div>
-                    <div class="w-40 shrink-0">
-                        <p class="text-sm font-bold text-slate-300 uppercase tracking-wider">${e.label}</p>
-                        <p class="text-xs text-slate-500">ideal hoje <span class="text-slate-400 font-semibold">${Math.round(ideal)}</span></p>
+            // Funil VISUAL — o MESMO desenho do Painel (buildFunilSVG: bandas afuniladas em SVG),
+            // nos 2 ramos do funil da AUDAZ: Documentação (Prospecção → Análises → Aprovações →
+            // Vendas) e Agendamento & Visita (Prospecção → Agendamento → Visita → Vendas). Os SVGs
+            // são preenchidos DEPOIS do innerHTML (buildFunilSVG procura o <svg> no DOM).
+            const E = {}; etapas.forEach(e => { E[e.key] = e; });
+            const pct = (a, b) => b > 0 ? (a / b) * 100 : 0;
+            const metaConvTela = (ma, ms) => ma > 0 ? (ms / ma) * 100 : 0;
+            const banda = (key, label, color, convReal, convMeta) => ({
+                metrica: key, label, color, realizado: E[key].real, meta: Math.round(E[key].meta),
+                ideal: Math.round(idealPorDiaUtil(E[key].meta, E[key].jan)), convReal, convMeta
+            });
+            const telaEtapasDoc = [
+                banda('prospeccao', 'Prospecção', 'pink',    pct(E.analises.real, E.prospeccao.real),   metaConvTela(E.prospeccao.meta, E.analises.meta)),
+                banda('analises',   'Análises',   'blue',    pct(E.aprovacoes.real, E.analises.real),   metaConvTela(E.analises.meta, E.aprovacoes.meta)),
+                banda('aprovacoes', 'Aprovações', 'amber',   pct(E.vendas.real, E.aprovacoes.real),     metaConvTela(E.aprovacoes.meta, E.vendas.meta)),
+                banda('vendas',     'Vendas',     'emerald', null, null)
+            ];
+            const telaEtapasAg = [
+                banda('prospeccao',   'Prospecção',  'pink',    pct(E.agendamentos.real, E.prospeccao.real), metaConvTela(E.prospeccao.meta, E.agendamentos.meta)),
+                banda('agendamentos', 'Agendamento', 'violet',  pct(E.compareceu.real, E.agendamentos.real), metaConvTela(E.agendamentos.meta, E.compareceu.meta)),
+                banda('compareceu',   'Visita',      'cyan',    pct(E.vendas.real, E.compareceu.real),       metaConvTela(E.compareceu.meta, E.vendas.meta)),
+                banda('vendas',       'Vendas',      'emerald', null, null)
+            ];
+            // Faixa "real / meta · ritmo" embaixo de cada funil — 1 célula por etapa.
+            const CORES_TXT = { pink: 'text-pink-400', blue: 'text-sky-400', amber: 'text-amber-400', emerald: 'text-emerald-400', violet: 'text-violet-400', cyan: 'text-cyan-400' };
+            const stripMeta = bands => `<div class="grid grid-cols-4 gap-1.5 mt-1">` + bands.map(bd => {
+                const ritmo = bd.ideal > 0 ? bd.realizado / bd.ideal : (bd.realizado > 0 ? 1 : 0);
+                const corR = ritmo >= 1 ? 'text-emerald-400' : (ritmo >= 0.8 ? 'text-amber-400' : 'text-rose-400');
+                return `<div class="rounded-lg bg-slate-950/50 border border-slate-800/60 px-2 py-1 text-center">
+                    <p class="text-[9px] font-bold uppercase tracking-wider ${CORES_TXT[bd.color] || 'text-slate-400'}">${bd.label}</p>
+                    <p class="text-sm font-black text-white tabular-nums leading-tight">${bd.realizado}<span class="text-[10px] text-slate-500 font-semibold"> / ${bd.meta}</span></p>
+                    <p class="text-[10px] font-bold tabular-nums ${corR}">${bd.meta > 0 ? Math.round(pct(bd.realizado, bd.meta)) : 0}% <span class="text-slate-600 font-semibold">· ideal ${bd.ideal}</span></p>
+                </div>`;
+            }).join('') + `</div>`;
+            // Conversões entre etapas numa linha horizontal embaixo do funil (3 células).
+            const stripConv = bands => `<div class="grid grid-cols-3 gap-1.5 mt-1.5">` + bands.slice(0, 3).map((bd, i) => {
+                const prox = bands[i + 1].label;
+                const up = (bd.convReal - bd.convMeta) >= 0;
+                return `<div class="text-center rounded-lg bg-slate-950/40 px-1 py-1">
+                    <p class="text-lg font-black tabular-nums leading-tight ${up ? 'text-emerald-400' : 'text-rose-400'}">${bd.convReal.toFixed(1)}%</p>
+                    <p class="text-[9px] text-slate-500 font-semibold whitespace-nowrap">${bd.label} → ${prox}</p>
+                </div>`;
+            }).join('') + `</div>`;
+            const funilHtml = `
+                <div class="grid grid-cols-2 gap-5">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1"><i class="fa-solid fa-file-invoice-dollar text-sky-400 mr-1"></i>Documentação</p>
+                        <svg id="telaFunilDoc" viewBox="0 0 400 208" class="w-full block"></svg>
+                        ${stripConv(telaEtapasDoc)}
+                        ${stripMeta(telaEtapasDoc)}
                     </div>
-                    <div class="w-36 shrink-0 text-right">
-                        <span class="text-3xl font-black text-white tabular-nums leading-none">${e.real}</span>
-                        <span class="text-base text-slate-500 font-semibold">/ ${e.meta}</span>
-                    </div>
-                    <div class="flex-1 min-w-[80px]">
-                        <div class="h-3 rounded-full bg-slate-800/80 overflow-hidden">
-                            <div class="h-full rounded-full bg-${e.cor}-500" style="width:${pctMeta}%"></div>
-                        </div>
-                    </div>
-                    <div class="w-28 shrink-0 text-right">
-                        <span class="text-xl font-extrabold tabular-nums ${corRitmo}">${e.meta > 0 ? Math.round((e.real / e.meta) * 100) : 0}%</span>
-                        <p class="text-[11px] font-bold uppercase ${corRitmo}">${tagRitmo}</p>
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1"><i class="fa-solid fa-calendar-check text-violet-400 mr-1"></i>Agendamento &amp; Visita</p>
+                        <svg id="telaFunilAg" viewBox="0 0 400 208" class="w-full block"></svg>
+                        ${stripConv(telaEtapasAg)}
+                        ${stripMeta(telaEtapasAg)}
                     </div>
                 </div>`;
-            }).join('');
 
             // ---------- 2. FEITO HOJE ----------
             // Garante que a conta de "hoje" está fresca (a mesma da faixa do funil).
@@ -3939,7 +3969,12 @@
             const linhas = lista.map((c, i) => `
                 <tr class="border-b border-slate-800/40 ${i % 2 ? 'bg-slate-950/30' : ''}">
                     <td class="py-1.5 pl-3 text-lg font-black text-slate-500 w-14">${medalha(i)}</td>
-                    <td class="py-1.5 text-lg font-bold text-slate-100 whitespace-nowrap">${c.nome}</td>
+                    <td class="py-1.5 whitespace-nowrap">
+                        <div class="flex items-center gap-2.5">
+                            ${corretorAvatarInner(c.nome, 'w-9 h-9', 'text-xs', 'shrink-0 ring-2 ring-slate-800')}
+                            <span class="text-lg font-bold text-slate-100">${c.nome}</span>
+                        </div>
+                    </td>
                     <td class="py-1.5 text-center">
                         <span class="inline-block min-w-[3rem] px-2 py-0.5 rounded-lg text-xl font-black tabular-nums ${c.docsHoje > 0 ? 'bg-sky-500/15 text-sky-300' : 'text-slate-600'}">${c.docsHoje}</span>
                     </td>
@@ -3981,11 +4016,11 @@
                 </div>
 
                 <!-- Linha 1: Funil do mês + Feito hoje -->
-                <div class="grid grid-cols-1 xl:grid-cols-5 gap-3">
-                    <section class="xl:col-span-3 bg-slate-900/50 rounded-2xl border border-slate-800 px-5 py-3">
+                <div class="grid grid-cols-1 xl:grid-cols-6 gap-3">
+                    <section class="xl:col-span-4 bg-slate-900/50 rounded-2xl border border-slate-800 px-5 py-3">
                         <div class="flex items-center justify-between mb-1">
                             <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-filter text-brand-400"></i> Funil do Mês</h3>
-                            <span class="text-[11px] text-slate-500 font-semibold">real / meta · % da meta · ritmo vs ideal de hoje</span>
+                            <span class="text-[11px] text-slate-500 font-semibold">os 2 ramos do funil · conversão entre etapas · real / meta · ritmo vs ideal de hoje</span>
                         </div>
                         ${funilHtml}
                     </section>
@@ -3994,7 +4029,7 @@
                             <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-bolt text-amber-400"></i> Feito Hoje</h3>
                             <span class="text-[11px] text-slate-500 font-semibold">${formatDate(hoje)}</span>
                         </div>
-                        <div class="grid grid-cols-3 gap-2.5 flex-1">${hojeTiles}</div>
+                        <div class="grid grid-cols-2 gap-2.5 flex-1">${hojeTiles}</div>
                     </section>
                 </div>
 
@@ -4025,6 +4060,9 @@
                         </table>
                     </div>
                 </section>`;
+            // Desenha os 2 funis (SVG) e as conversões — mesmas funções do Painel.
+            buildFunilSVG('telaFunilDoc', telaEtapasDoc);
+            buildFunilSVG('telaFunilAg', telaEtapasAg);
             ajustarEscalaTela();
         }
 
@@ -4041,9 +4079,16 @@
             if (sec) window.scrollTo(0, Math.max(0, sec.getBoundingClientRect().top + window.scrollY - 12));
             const top = root.getBoundingClientRect().top;
             const disponivel = window.innerHeight - top - 16;
-            const natural = root.scrollHeight;
-            if (natural > disponivel && disponivel > 200) {
-                root.style.zoom = String(Math.max(0.55, disponivel / natural));
+            if (disponivel <= 200) return;
+            // Iterativo: reduzir o zoom ALARGA o layout em px CSS, e os funis (SVG que escala pela
+            // largura) ficam mais altos, anulando parte da redução. Então mede → aplica → mede de
+            // novo, até a altura VISUAL (getBoundingClientRect, já com o zoom) caber. Converge em 2-3.
+            let z = 1;
+            for (let i = 0; i < 4; i++) {
+                const visual = root.getBoundingClientRect().height;
+                if (visual <= disponivel + 1) break;
+                z = Math.max(0.5, z * (disponivel / visual));
+                root.style.zoom = String(z);
             }
         }
         let telaResizeTimer = null;
