@@ -4004,7 +4004,7 @@
                         <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-users text-sky-400"></i> Corretores — Hoje · Mês · IPC</h3>
                         <div class="flex items-center gap-4 text-[11px] text-slate-500 font-semibold">
                             <span>Ordem: análises do mês</span>
-                            <span>IPC = ${ipc.modo === 'manual' ? `vendas ${ipcJanelaTexto(ipc.janelaManual)}` : 'vendas nos 3 meses até a última venda de cada corretor'} ÷ ${ipc.divisor} · média da equipe <b class="text-brand-400">${fmtIPC(ipc.mediaEquipe)}</b></span>
+                            <span>IPC = ${ipc.modo === 'manual' ? `vendas ${ipcJanelaTexto(ipc.janelaManual)}` : 'média dos 3 meses (mês atual entra pra quem vendeu nele)'} ÷ ${ipc.divisor} · média da equipe <b class="text-brand-400">${fmtIPC(ipc.mediaEquipe)}</b></span>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -6754,22 +6754,23 @@
         //   IPC = vendas do corretor numa JANELA DE 3 MESES ÷ 3  (média mensal de vendas)
         //   3 vendas → 1,00 · 2 → 0,67 · 1 → 0,33 · 0 → 0,00 · 5 → 1,67
         //
-        // ⚠️ REGRA VIGENTE (definida pelo usuário em 13/09/2026 — substitui a versão anterior, que
-        // ancorava a janela no mês em foco e era igual pra todo mundo):
+        // ⚠️ REGRA DEFINITIVA (definida pelo usuário em 13/09/2026 — substitui INTEGRALMENTE as duas
+        // versões anteriores: a que ancorava no mês em foco igual pra todos, e a que ancorava na
+        // última venda de cada corretor. Esta última NÃO DEVE EXISTIR mais.)
         //
-        //   A JANELA É INDIVIDUAL, ANCORADA NA ÚLTIMA VENDA DE CADA CORRETOR.
-        //   Mês de referência = mês (Mês Ganho) da última venda do corretor.
-        //   Janela = mês de referência + os 2 meses anteriores.
+        //   A JANELA É MÓVEL E VINCULADA AO MÊS ATUAL DA OPERAÇÃO, com o mês atual entrando
+        //   INDIVIDUALMENTE só pra quem tem resultado nele:
+        //     • corretor SEM venda no mês atual → os 3 meses ANTERIORES (ex.: em setembro, Jun+Jul+Ago)
+        //     • corretor COM venda no mês atual → mês atual + 2 anteriores (ex.: Jul+Ago+Set)
+        //   IPC = média dos 3 meses = soma das vendas da janela ÷ 3.
         //
-        //   Ex.: última venda em setembro → Set + Ago + Jul. Última venda em agosto (sem venda em
-        //   setembro) → Ago + Jul + Jun. Quando o corretor vende no mês atual, o mês atual entra e o
-        //   mais antigo sai — a janela se recalcula sozinha a cada venda registrada.
-        //   Cada corretor pode ter um mês de referência diferente. Quem nunca vendeu não tem
-        //   referência: janela "—" e IPC 0,00.
+        //   Ex. (estamos em setembro): corretor que vendeu pela última vez em julho → Jun+Jul+Ago
+        //   (NÃO Mai+Jun+Jul). Se vender em setembro → Jul+Ago+Set. Em outubro a janela de todo
+        //   mundo anda: quem não vendeu em outubro → Jul+Ago+Set; quem vendeu → Ago+Set+Out.
+        //   Assim o IPC DECAI naturalmente pra quem para de vender — nunca fica congelado.
         //
-        // Consequência da regra (deixada explícita pro gestor, não é bug): quem parou de vender fica
-        // com o IPC congelado na última janela em que vendeu — ele NÃO cai com o tempo. Por isso a
-        // tabela mostra a ÚLTIMA VENDA de cada um em destaque.
+        //   "Mês atual" = mês comercial em foco no BI (currentRefDate: o corrente, ou o selecionado
+        //   nos pills), pra continuar coerente com o resto do painel.
         //
         // MODO MANUAL (opcional, pedido anterior do usuário): escolhendo meses nos chips, a janela
         // passa a ser ESSES meses pra TODOS (comparação num período fixo) e o divisor acompanha a
@@ -6838,11 +6839,11 @@
             const auto = ipcModoAutomatico();
             const manual = getJanelaIPCManual();
 
-            const btnAuto = `<button type="button" onclick="ipcUsarAutomatico()" title="Regra oficial: janela individual — os 3 meses até a ÚLTIMA VENDA de cada corretor"
+            const btnAuto = `<button type="button" onclick="ipcUsarAutomatico()" title="Regra oficial: janela móvel do mês atual — 3 meses anteriores; o mês atual entra pra quem tem venda nele"
                 class="px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${auto
                     ? 'bg-emerald-600 border-emerald-500 text-white'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200'}">
-                <i class="fa-solid fa-bolt-lightning mr-1" style="font-size:9px"></i>Automático · última venda</button>
+                <i class="fa-solid fa-bolt-lightning mr-1" style="font-size:9px"></i>Automático · mês atual</button>
                 <span class="h-4 w-px bg-slate-800 mx-0.5"></span>
                 <span class="text-[9px] font-bold text-slate-600 uppercase tracking-wider">ou fixar meses:</span>`;
 
@@ -6860,7 +6861,7 @@
             const aviso = document.getElementById('ipcMesesAviso');
             if (aviso) {
                 aviso.textContent = auto
-                    ? 'Automático: cada corretor tem a própria janela — o mês da última venda dele + os 2 anteriores. Vendeu no mês atual? O mês entra e o mais antigo sai.'
+                    ? 'Automático: janela dos 3 meses anteriores ao mês atual. Quem tem venda no mês atual usa mês atual + 2 anteriores (o mês atual entra, o mais antigo sai).'
                     : (manual && manual.length === 1
                         ? 'Meses fixados a mão: 1 mês, o mesmo pra todos, dividindo por 1.'
                         : `Meses fixados a mão: ${manual ? manual.length : 0} meses, os mesmos pra todos, dividindo por ${manual ? manual.length : 1}.`);
@@ -6940,18 +6941,23 @@
                 (vendasPor[c] = vendasPor[c] || []).push({ row, m, data: parseDate(row['Data Ganho']) });
             });
 
+            // Mês ATUAL da operação = mês comercial em foco no BI. Mês anterior = âncora de quem
+            // não tem resultado no atual.
+            const base = refDate || currentRefDate || new Date();
+            const mesAtual = { nome: getMesName(base.getMonth() + 1), ano: base.getFullYear(), idx: base.getMonth() };
+            const dAnt = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+            const mesAnterior = { nome: getMesName(dAnt.getMonth() + 1), ano: dAnt.getFullYear(), idx: dAnt.getMonth() };
+            const chaveAtual = ipcChaveMes(mesAtual);
+
             // 2) Janela de cada corretor + contagem dentro dela.
             Object.values(mapa).forEach(c => {
                 const vendas = vendasPor[c.corretor] || [];
-                // Última venda (data real) e mês de referência (Mês Ganho mais recente) — sempre
-                // calculados, mesmo no modo manual, pra tabela mostrar.
-                let ref = null;
-                vendas.forEach(v => {
-                    if (!ref || v.m.ano > ref.ano || (v.m.ano === ref.ano && v.m.idx > ref.idx)) ref = v.m;
-                    if (v.data && (!c.ultimaVenda || v.data > c.ultimaVenda)) c.ultimaVenda = v.data;
-                });
-                c.mesReferencia = ref;
-                c.janela = modo === 'manual' ? janelaManual : (ref ? ipcJanelaAteMes(ref) : null);
+                // Última venda (data real): só informação pra tabela — NÃO é a âncora da janela.
+                vendas.forEach(v => { if (v.data && (!c.ultimaVenda || v.data > c.ultimaVenda)) c.ultimaVenda = v.data; });
+                // Tem resultado no mês atual? Então o mês atual entra na janela e o mais antigo sai.
+                c.temNoMesAtual = vendas.some(v => ipcChaveMes(v.m) === chaveAtual);
+                c.mesReferencia = c.temNoMesAtual ? mesAtual : mesAnterior;
+                c.janela = modo === 'manual' ? janelaManual : ipcJanelaAteMes(c.mesReferencia);
                 if (c.janela) {
                     c.janela.forEach(m => { c.porMes[ipcChaveMes(m)] = 0; });
                     vendas.forEach(v => {
@@ -6991,11 +6997,11 @@
             const divisor = snap.divisor || IPC_MESES_JANELA;
 
             const hint = document.getElementById('ipcJanelaHint');
-            if (hint) hint.textContent = auto ? 'Janela individual por corretor.' : 'Janela fixa: ' + ipcJanelaTexto(snap.janelaManual);
+            if (hint) hint.textContent = auto ? 'Janela móvel do mês atual, individual por corretor.' : 'Janela fixa: ' + ipcJanelaTexto(snap.janelaManual);
             const formula = document.getElementById('ipcFormulaHint');
             if (formula) {
                 formula.textContent = auto
-                    ? 'Vendas nos 3 meses até a última venda do corretor ÷ 3 = média de vendas por mês.'
+                    ? 'Média dos 3 meses: os 3 anteriores ao mês atual — ou mês atual + 2 anteriores pra quem vendeu neste mês. Vendas ÷ 3.'
                     : (divisor === 1
                         ? 'Vendas do mês fixado ÷ 1 = média de vendas por mês.'
                         : `Vendas dos ${divisor} meses fixados ÷ ${divisor} = média de vendas por mês.`);
@@ -7009,7 +7015,7 @@
             if (thJanela) {
                 thJanela.textContent = `Vendas ${divisor}M`;
                 thJanela.title = auto
-                    ? 'Vendas nos 3 meses até a última venda de cada corretor (janela individual do IPC — independente do período filtrado acima)'
+                    ? 'Vendas na janela do IPC: 3 meses anteriores ao atual, ou mês atual + 2 anteriores se o corretor vendeu neste mês (independente do período filtrado acima)'
                     : `Vendas em ${ipcJanelaTexto(snap.janelaManual)} — janela fixa do IPC, independente do período filtrado acima`;
             }
             setTxt('ipcAcimaCount', snap.lista.filter(c => c.ipc >= media && media > 0).length);
@@ -7025,8 +7031,7 @@
             const hojeIPC = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             hojeIPC.setHours(0, 0, 0, 0);
 
-            // Mês 1 = mês de referência (o mais recente), Mês 2 = anterior, Mês 3 = o mais antigo —
-            // a ordem que o usuário definiu na regra.
+            // Mês 1 = mês de referência (o mais recente da janela), Mês 2 = anterior, Mês 3 = o mais antigo.
             const celMes = (c, k) => {
                 const m = c.janela ? c.janela[c.janela.length - 1 - k] : null;
                 if (!m) return `<td class="py-2 text-center text-slate-700">—</td>`;
@@ -7042,7 +7047,7 @@
                 const cor = IPC_CORES[ipcFaixa(c.ipc, media)];
                 const pct = c.ipc > 0 ? Math.max(2, (c.ipc / maxIpc) * 100) : 0;
                 const diasDesde = c.ultimaVenda ? Math.round((hojeIPC - c.ultimaVenda) / 86400000) : null;
-                // Última venda antiga (mais de 90 dias) = IPC congelado numa janela velha — destaque.
+                // Última venda antiga (>45/>90 dias) em destaque: informação de gestão (a janela NÃO depende dela).
                 const corUltima = diasDesde === null ? 'text-slate-600' : (diasDesde > 90 ? 'text-rose-400' : (diasDesde > 45 ? 'text-amber-400' : 'text-slate-200'));
                 const ultimaTxt = c.ultimaVenda ? formatDate(c.ultimaVenda) : 'nunca';
                 const ultimaSub = diasDesde === null ? '' : `<span class="block text-[9px] text-slate-500">há ${diasDesde} dia${diasDesde === 1 ? '' : 's'}</span>`;
@@ -7068,7 +7073,7 @@
             }).join('');
 
             const thMeses = Array.from({ length: colsMes }, (_, k) =>
-                `<th class="pb-2 text-center" title="${k === 0 ? 'Mês de referência (última venda)' : (k + 1) + 'º mês anterior'}">Mês ${k + 1}</th>`).join('');
+                `<th class="pb-2 text-center" title="${k === 0 ? 'Mês de referência (o mais recente da janela)' : k + ' mês(es) antes da referência'}">Mês ${k + 1}</th>`).join('');
 
             box.innerHTML = `
             <div class="overflow-x-auto">
@@ -7077,8 +7082,8 @@
                         <tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
                             <th class="pb-2 pl-2">Rank</th>
                             <th class="pb-2">Corretor</th>
-                            <th class="pb-2 text-center" title="Data Ganho da venda mais recente do corretor">Última venda</th>
-                            <th class="pb-2 text-center" title="Mês Ganho da última venda — o mês que ancora a janela">Mês ref.</th>
+                            <th class="pb-2 text-center" title="Data Ganho da venda mais recente — só informação, NÃO é a âncora da janela">Última venda</th>
+                            <th class="pb-2 text-center" title="Mês que fecha a janela: o mês atual se o corretor vendeu nele, senão o mês anterior">Mês ref.</th>
                             ${thMeses}
                             <th class="pb-2 text-center">Vendas ${divisor}M</th>
                             <th class="pb-2 pr-2 w-[26%]">IPC ${divisor}M · vs média da equipa</th>
