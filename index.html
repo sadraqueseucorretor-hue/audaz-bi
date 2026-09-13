@@ -4004,7 +4004,7 @@
                         <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-users text-sky-400"></i> Corretores — Hoje · Mês · IPC</h3>
                         <div class="flex items-center gap-4 text-[11px] text-slate-500 font-semibold">
                             <span>Ordem: análises do mês</span>
-                            <span>IPC = vendas ${ipcJanelaTexto(ipc.janela)} ÷ ${ipc.divisor} · média da equipe <b class="text-brand-400">${fmtIPC(ipc.mediaEquipe)}</b></span>
+                            <span>IPC = ${ipc.modo === 'manual' ? `vendas ${ipcJanelaTexto(ipc.janelaManual)}` : 'vendas nos 3 meses até a última venda de cada corretor'} ÷ ${ipc.divisor} · média da equipe <b class="text-brand-400">${fmtIPC(ipc.mediaEquipe)}</b></span>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -6751,35 +6751,39 @@
 
         // ===================== IPC — ÍNDICE DE PRODUTIVIDADE DO CORRETOR =====================
         // KPI oficial de produtividade comercial da AUDAZ.
-        //   IPC = vendas do corretor nos ÚLTIMOS 3 MESES COMERCIAIS ÷ 3
-        // Ou seja: a MÉDIA MENSAL de vendas do corretor no trimestre corrente (3 vendas → 1,00;
-        // 2 → 0,67; 1 → 0,33; 0 → 0,00; 5 → 1,67...).
+        //   IPC = vendas do corretor numa JANELA DE 3 MESES ÷ 3  (média mensal de vendas)
+        //   3 vendas → 1,00 · 2 → 0,67 · 1 → 0,33 · 0 → 0,00 · 5 → 1,67
         //
-        // JANELA MÓVEL: são sempre os 3 meses que TERMINAM no mês comercial em foco — em setembro
-        // é jul+ago+set; em outubro passa a ago+set+out. Meses anteriores à janela nunca entram.
+        // ⚠️ REGRA VIGENTE (definida pelo usuário em 13/09/2026 — substitui a versão anterior, que
+        // ancorava a janela no mês em foco e era igual pra todo mundo):
         //
-        // Como isto "respeita o filtro de mês": o filtro define a ÂNCORA da janela, não o recorte.
-        // Se recortasse (só o mês selecionado), o IPC deixaria de ser um índice de 3 meses e viraria
-        // outro contador de vendas do mês — o dashboard já tem esse. Então: selecionou Agosto nos
-        // pills → janela jun+jul+ago; sem seleção → mês comercial corrente do BI e os 2 anteriores.
-        // Vários meses selecionados (modo comparativo) → ancora no mais recente deles.
+        //   A JANELA É INDIVIDUAL, ANCORADA NA ÚLTIMA VENDA DE CADA CORRETOR.
+        //   Mês de referência = mês (Mês Ganho) da última venda do corretor.
+        //   Janela = mês de referência + os 2 meses anteriores.
         //
-        // Demais filtros são respeitados na íntegra: corretor, equipa, construtora e empreendimento
-        // vêm de filteredDataset; a situação da venda vem de isVendaModo() (toggle Gerais x
-        // Finalizadas). O filtro de SEMANA é deliberadamente ignorado — uma janela de 7 dias não tem
-        // significado dentro de um índice trimestral.
+        //   Ex.: última venda em setembro → Set + Ago + Jul. Última venda em agosto (sem venda em
+        //   setembro) → Ago + Jul + Jun. Quando o corretor vende no mês atual, o mês atual entra e o
+        //   mais antigo sai — a janela se recalcula sozinha a cada venda registrada.
+        //   Cada corretor pode ter um mês de referência diferente. Quem nunca vendeu não tem
+        //   referência: janela "—" e IPC 0,00.
         //
-        // Não altera nenhuma regra existente de Vendas, VGV ou Comissão: só LÊ as mesmas funções.
+        // Consequência da regra (deixada explícita pro gestor, não é bug): quem parou de vender fica
+        // com o IPC congelado na última janela em que vendeu — ele NÃO cai com o tempo. Por isso a
+        // tabela mostra a ÚLTIMA VENDA de cada um em destaque.
+        //
+        // MODO MANUAL (opcional, pedido anterior do usuário): escolhendo meses nos chips, a janela
+        // passa a ser ESSES meses pra TODOS (comparação num período fixo) e o divisor acompanha a
+        // quantidade escolhida. Chips vazios = regra automática por última venda (padrão).
+        //
+        // Filtros respeitados: corretor, equipa, construtora, empreendimento (filteredDataset) e a
+        // situação da venda (isVendaModo — toggle Gerais x Finalizadas). Só conta GANHO/VENDA, por
+        // Mês Ganho. O filtro de SEMANA é ignorado de propósito (7 dias não têm significado aqui).
+        // Não altera nenhuma regra existente de Vendas/VGV/Comissão: só LÊ as mesmas funções.
         const IPC_MESES_JANELA = 3;
 
-        // ===== SELEÇÃO MANUAL DE MESES (pedido do usuário) =====
-        // Lista vazia = modo AUTOMÁTICO: os últimos 3 meses comerciais, janela móvel (a regra oficial
-        // do KPI). Com meses escolhidos a mão, a janela passa a ser exatamente esses meses e o
-        // DIVISOR acompanha a quantidade escolhida — 2 meses → ÷2, 6 meses → ÷6. Isso é essencial:
-        // o IPC é uma MÉDIA MENSAL de vendas, então dividir sempre por 3 com outra quantidade de
-        // meses devolveria um número sem significado.
+        // ===== SELEÇÃO MANUAL DE MESES =====
         const IPC_MESES_LS_KEY = 'audaz-bi-v1-ipc-meses';
-        let ipcMesesCustom = [];   // ex.: ['junho/2026','julho/2026']
+        let ipcMesesCustom = [];   // ex.: ['junho/2026','julho/2026']; vazio = automático
 
         function loadIpcMesesCustom() {
             try {
@@ -6793,7 +6797,7 @@
         }
         function ipcModoAutomatico() { return ipcMesesCustom.length === 0; }
 
-        // Converte 'junho/2026' no formato interno da janela.
+        // Converte 'junho/2026' no formato interno { nome, ano, idx }.
         function ipcMesStrParaObj(mesStr) {
             const nome = normalizeMes(mesStr);
             const ano = getMesAno(mesStr);
@@ -6801,27 +6805,28 @@
             if (idx === undefined || ano === null) return null;
             return { nome, ano, idx };
         }
+        const ipcChaveMes = m => `${m.nome}/${m.ano}`;
 
-        // Os meses comerciais da janela, do mais antigo ao mais recente.
-        function getJanelaIPC(refDate) {
-            if (!ipcModoAutomatico()) {
-                const meses = ipcMesesCustom.map(ipcMesStrParaObj).filter(Boolean)
-                    .sort((a, b) => (a.ano - b.ano) || (a.idx - b.idx));
-                if (meses.length) return meses;
-                // Seleção inválida (ex.: mês que sumiu dos dados) → cai no automático.
-            }
-            const base = refDate || currentRefDate || new Date();
+        // Janela de 3 meses que TERMINA no mês dado (mais antigo → mais recente).
+        function ipcJanelaAteMes(ref) {
             const meses = [];
             for (let i = IPC_MESES_JANELA - 1; i >= 0; i--) {
-                const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+                const d = new Date(ref.ano, ref.idx - i, 1);
                 meses.push({ nome: getMesName(d.getMonth() + 1), ano: d.getFullYear(), idx: d.getMonth() });
             }
             return meses;
         }
 
-        // Monta os chips de mês do IPC a partir da MESMA lista de meses comerciais dos filtros do
-        // topo (#filterMes, que já reúne Mês Cadastro + Mês Ganho), pra não existirem duas noções
-        // diferentes de "meses disponíveis" no BI.
+        // Janela MANUAL (a mesma pra todos), ou null no modo automático.
+        function getJanelaIPCManual() {
+            if (ipcModoAutomatico()) return null;
+            const meses = ipcMesesCustom.map(ipcMesStrParaObj).filter(Boolean)
+                .sort((a, b) => (a.ano - b.ano) || (a.idx - b.idx));
+            return meses.length ? meses : null;   // seleção inválida → cai no automático
+        }
+
+        // Monta os chips de mês a partir da MESMA lista de meses comerciais dos filtros do topo
+        // (#filterMes reúne Mês Cadastro + Mês Ganho) — uma única noção de "meses disponíveis".
         function renderIpcMesesPicker() {
             const box = document.getElementById('ipcMesesPicker');
             if (!box) return;
@@ -6830,26 +6835,22 @@
             const opts = Array.from(select.options).map(o => o.value).filter(Boolean)
                 .map(v => ({ v, o: ipcMesStrParaObj(v) })).filter(x => x.o)
                 .sort((a, b) => (b.o.ano - a.o.ano) || (b.o.idx - a.o.idx));   // mais recentes primeiro
-
-            const janelaAtual = getJanelaIPC(currentRefDate);
-            const chaveJanela = new Set(janelaAtual.map(m => m.nome + '/' + m.ano));
             const auto = ipcModoAutomatico();
+            const manual = getJanelaIPCManual();
 
-            const btnAuto = `<button type="button" onclick="ipcUsarAutomatico()" title="Voltar à regra oficial: os 3 meses comerciais mais recentes, deslizando sozinho a cada mês"
+            const btnAuto = `<button type="button" onclick="ipcUsarAutomatico()" title="Regra oficial: janela individual — os 3 meses até a ÚLTIMA VENDA de cada corretor"
                 class="px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${auto
                     ? 'bg-emerald-600 border-emerald-500 text-white'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200'}">
-                <i class="fa-solid fa-bolt-lightning mr-1" style="font-size:9px"></i>Últimos 3 (auto)</button>`;
+                <i class="fa-solid fa-bolt-lightning mr-1" style="font-size:9px"></i>Automático · última venda</button>
+                <span class="h-4 w-px bg-slate-800 mx-0.5"></span>
+                <span class="text-[9px] font-bold text-slate-600 uppercase tracking-wider">ou fixar meses:</span>`;
 
-            const chips = opts.map(({ v, o }) => {
-                const chave = o.nome + '/' + o.ano;
+            const chips = opts.map(({ v }) => {
                 const escolhido = !auto && ipcMesesCustom.includes(v);
-                const naJanelaAuto = auto && chaveJanela.has(chave);
                 const cls = escolhido
                     ? 'bg-brand-600 border-brand-500 text-white'
-                    : (naJanelaAuto
-                        ? 'bg-emerald-500/15 border-emerald-600/50 text-emerald-300'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200');
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-200';
                 return `<button type="button" onclick="ipcToggleMes('${v.replace(/'/g, "\\'")}')"
                     class="px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${cls}">${mesLabelAbbrev(v)}</button>`;
             }).join('');
@@ -6859,47 +6860,24 @@
             const aviso = document.getElementById('ipcMesesAviso');
             if (aviso) {
                 aviso.textContent = auto
-                    ? 'Modo automático: os 3 meses mais recentes, deslizando sozinho a cada mês novo.'
-                    : (janelaAtual.length === 1
-                        ? 'Mês escolhido a mão: 1 mês, dividindo por 1.'
-                        : `Meses escolhidos a mão: ${janelaAtual.length} meses, dividindo por ${janelaAtual.length}.`);
-                aviso.className = auto
-                    ? 'text-[10px] text-emerald-500/80'
-                    : 'text-[10px] text-brand-400 font-semibold';
+                    ? 'Automático: cada corretor tem a própria janela — o mês da última venda dele + os 2 anteriores. Vendeu no mês atual? O mês entra e o mais antigo sai.'
+                    : (manual && manual.length === 1
+                        ? 'Meses fixados a mão: 1 mês, o mesmo pra todos, dividindo por 1.'
+                        : `Meses fixados a mão: ${manual ? manual.length : 0} meses, os mesmos pra todos, dividindo por ${manual ? manual.length : 1}.`);
+                aviso.className = auto ? 'text-[10px] text-emerald-500/80' : 'text-[10px] text-brand-400 font-semibold';
             }
         }
 
         function ipcToggleMes(mesStr) {
-            // Sair do automático clicando num mês: começa da janela automática que estava visível,
-            // pra escolha manual nascer do que o gestor já estava vendo, não de uma lista vazia.
-            if (ipcModoAutomatico()) {
-                ipcMesesCustom = getJanelaIPC(currentRefDate).map(m => {
-                    const select = document.getElementById('filterMes');
-                    const alvo = Array.from(select.options).map(o => o.value)
-                        .find(v => { const o = ipcMesStrParaObj(v); return o && o.nome === m.nome && o.ano === m.ano; });
-                    return alvo || null;
-                }).filter(Boolean);
-            }
             const i = ipcMesesCustom.indexOf(mesStr);
             if (i >= 0) ipcMesesCustom.splice(i, 1); else ipcMesesCustom.push(mesStr);
-            if (ipcMesesCustom.length === 0) ipcMesesCustom = []; // nenhum mês = volta ao automático
             saveIpcMesesCustom();
             drawTables();
         }
-
         function ipcUsarAutomatico() {
             ipcMesesCustom = [];
             saveIpcMesesCustom();
             drawTables();
-        }
-
-        // A venda pertence à janela? Sempre por MÊS GANHO (faturamento), a mesma coluna que o resto
-        // do BI usa pra Vendas/VGV — nunca por safra/cadastro.
-        function rowNaJanelaIPC(row, janela) {
-            const nome = normalizeMes(row['Mês Ganho']);
-            if (!nome) return false;
-            const ano = getMesAno(row['Mês Ganho']);
-            return janela.some(m => m.nome === nome && (ano === null || ano === m.ano));
         }
 
         function fmtIPC(v) {
@@ -6909,14 +6887,13 @@
         // Rótulo curto da janela, ex.: "Jul + Ago + Set/2026"
         function ipcJanelaTexto(janela) {
             if (!janela || !janela.length) return '—';
-            const abrev = m => m.nome.slice(0, 3);
-            return janela.map(abrev).join(' + ') + '/' + janela[janela.length - 1].ano;
+            return janela.map(m => m.nome.slice(0, 3)).join(' + ') + '/' + janela[janela.length - 1].ano;
         }
+        const ipcMesCurto = m => m ? `${m.nome.slice(0, 3)}/${String(m.ano).slice(-2)}` : '—';
 
-        // Faixa do corretor em relação à média da equipa — a MESMA escala usada pela cor da barra do
-        // comparativo e pelo badge da tabela, pra legenda e números nunca se contradizerem.
-        // IPC 0,00 (nenhuma venda no trimestre) é classificado como CRÍTICO, não como "neutro":
-        // num KPI de produtividade, zero é a informação mais forte que existe.
+        // Faixa do corretor em relação à média da equipa — a MESMA escala na barra, no badge e na
+        // legenda. IPC 0,00 é CRÍTICO, não "neutro": num KPI de produtividade, zero é a informação
+        // mais forte que existe.
         function ipcFaixa(ipc, media) {
             if (media > 0 && ipc >= media * 1.25) return 'otimo';
             if (media > 0 && ipc >= media) return 'bom';
@@ -6933,116 +6910,183 @@
             return IPC_CORES[ipcFaixa(ipc, media)].badge;
         }
 
-        // Snapshot do IPC do render atual — calculado uma vez em drawTables() e reaproveitado pela
-        // tabela e pelo comparativo visual, pra não varrer o dataset duas vezes.
-        let ipcSnapshot = { janela: [], lista: [], porCorretor: {}, mediaEquipe: 0, totalVendas: 0 };
+        // Snapshot do render atual — calculado uma vez em drawTables() e reaproveitado pela tabela do
+        // Ranking Geral, pela seção do IPC e pela Tela (TV).
+        let ipcSnapshot = { modo: 'auto', janelaManual: null, divisor: 3, lista: [], porCorretor: {}, mediaEquipe: 0, totalVendas: 0 };
 
         function calcularIPC(refDate) {
-            const janela = getJanelaIPC(refDate);
+            const janelaManual = getJanelaIPCManual();
+            const modo = janelaManual ? 'manual' : 'auto';
+            const novo = nome => ({ corretor: nome, ativo: true, vendas3m: 0, vgv3m: 0, ipc: 0, porMes: {},
+                                    ultimaVenda: null, mesReferencia: null, janela: null, divisor: IPC_MESES_JANELA });
             const mapa = {};
-            // Roster: SÓ corretores ATIVOS, pré-cadastrados com IPC 0,00 — produtividade zero num
-            // trimestre é justamente a informação que o gestor precisa ver, não um vazio.
-            //
-            // ⚠️ EXCEÇÃO à regra "DESATIVAR ≠ EXCLUIR" (pedido explícito do usuário em 09/09/2026,
-            // mesma exceção já aplicada ao Mapa de Calor Operacional): o corretor desativado NÃO
-            // aparece no IPC, mesmo tendo vendido dentro da janela. Motivo: o IPC é um KPI de
-            // produtividade da EQUIPE ATUAL — serve pra cobrar, comparar e definir meta de quem está
-            // na casa hoje. Manter quem saiu distorceria a média da equipe (que é a régua da
-            // comparação visual) e cobraria produtividade de quem não vende mais.
-            // O histórico dele segue intacto em todo o resto: Análises, Aprovações, Vendas, VGV,
-            // comissões e rankings dos períodos em que produziu.
-            getActiveCorretores().forEach(nome => {
-                mapa[nome] = { corretor: nome, vendas3m: 0, vgv3m: 0, ipc: 0, porMes: {}, ativo: true };
-            });
+            // Roster: SÓ corretores ATIVOS, pré-cadastrados com IPC 0,00 — produtividade zero é
+            // informação de gestão, não um vazio.
+            // ⚠️ EXCEÇÃO à regra "DESATIVAR ≠ EXCLUIR" (pedido do usuário em 09/09/2026, mesma do Mapa
+            // de Calor): o desativado NÃO entra no IPC mesmo tendo vendido — o IPC é KPI da equipe
+            // ATUAL; manter quem saiu distorceria a média e cobraria produtividade de quem não vende
+            // mais. O histórico dele segue intacto em todo o resto do BI.
+            getActiveCorretores().forEach(nome => { mapa[nome] = novo(nome); });
+
+            // 1) Coleta as vendas de cada corretor ativo (só GANHO/VENDA, por Mês Ganho).
+            const vendasPor = {};
             (filteredDataset || []).forEach(row => {
                 const c = row.Corretor;
-                if (!c) return;
-                if (!isCorretorActive(c)) return;          // inativo fica fora do IPC (ver comentário acima)
-                if (!isVendaModo(row)) return;             // só GANHO/VENDA — nunca lead, visita, análise ou proposta
-                if (!rowNaJanelaIPC(row, janela)) return;
-                if (!mapa[c]) mapa[c] = { corretor: c, vendas3m: 0, vgv3m: 0, ipc: 0, porMes: {}, ativo: true };
-                mapa[c].vendas3m++;
-                mapa[c].vgv3m += getVGV(row);
-                const k = normalizeMes(row['Mês Ganho']);
-                mapa[c].porMes[k] = (mapa[c].porMes[k] || 0) + 1;
+                if (!c || !isCorretorActive(c)) return;
+                if (!isVendaModo(row)) return;             // nunca lead, visita, análise ou proposta
+                const m = ipcMesStrParaObj(row['Mês Ganho']);
+                if (!m) return;
+                if (!mapa[c]) mapa[c] = novo(c);
+                (vendasPor[c] = vendasPor[c] || []).push({ row, m, data: parseDate(row['Data Ganho']) });
             });
-            const lista = Object.values(mapa);
-            // Divisor = QUANTIDADE DE MESES DA JANELA (3 no modo automático; o que o gestor escolher
-            // no modo manual). O IPC é média mensal — dividir por 3 uma janela de 2 ou 6 meses daria
-            // um número sem significado.
-            const divisor = Math.max(1, janela.length);
-            lista.forEach(c => { c.ipc = c.vendas3m / divisor; });
-            lista.sort((a, b) => (b.ipc - a.ipc) || (b.vgv3m - a.vgv3m) || a.corretor.localeCompare(b.corretor));
+
+            // 2) Janela de cada corretor + contagem dentro dela.
+            Object.values(mapa).forEach(c => {
+                const vendas = vendasPor[c.corretor] || [];
+                // Última venda (data real) e mês de referência (Mês Ganho mais recente) — sempre
+                // calculados, mesmo no modo manual, pra tabela mostrar.
+                let ref = null;
+                vendas.forEach(v => {
+                    if (!ref || v.m.ano > ref.ano || (v.m.ano === ref.ano && v.m.idx > ref.idx)) ref = v.m;
+                    if (v.data && (!c.ultimaVenda || v.data > c.ultimaVenda)) c.ultimaVenda = v.data;
+                });
+                c.mesReferencia = ref;
+                c.janela = modo === 'manual' ? janelaManual : (ref ? ipcJanelaAteMes(ref) : null);
+                if (c.janela) {
+                    c.janela.forEach(m => { c.porMes[ipcChaveMes(m)] = 0; });
+                    vendas.forEach(v => {
+                        const k = ipcChaveMes(v.m);
+                        if (k in c.porMes) { c.porMes[k]++; c.vendas3m++; c.vgv3m += getVGV(v.row); }
+                    });
+                }
+                // Divisor = quantidade de meses da janela (3 no automático; o escolhido no manual).
+                // O IPC é média mensal — dividir por 3 uma janela de 2 ou 6 meses não teria sentido.
+                c.divisor = Math.max(1, c.janela ? c.janela.length : IPC_MESES_JANELA);
+                c.ipc = c.vendas3m / c.divisor;
+            });
+
+            const lista = Object.values(mapa).sort((a, b) =>
+                (b.ipc - a.ipc) || (b.vgv3m - a.vgv3m) ||
+                ((b.ultimaVenda ? b.ultimaVenda.getTime() : 0) - (a.ultimaVenda ? a.ultimaVenda.getTime() : 0)) ||
+                a.corretor.localeCompare(b.corretor));
+            lista.forEach((c, i) => { c.posicao = i + 1; });
             const totalVendas = lista.reduce((s, c) => s + c.vendas3m, 0);
-            // Média da equipa = IPC médio entre os corretores listados (base da comparação visual).
-            const mediaEquipe = lista.length ? (totalVendas / divisor) / lista.length : 0;
+            // Média da equipa = IPC médio entre os corretores listados (régua da comparação visual).
+            const mediaEquipe = lista.length ? lista.reduce((s, c) => s + c.ipc, 0) / lista.length : 0;
             const porCorretor = {};
             lista.forEach(c => { porCorretor[c.corretor] = c; });
-            return { janela, divisor, lista, porCorretor, mediaEquipe, totalVendas };
+            const divisor = janelaManual ? Math.max(1, janelaManual.length) : IPC_MESES_JANELA;
+            return { modo, janelaManual, divisor, lista, porCorretor, mediaEquipe, totalVendas };
         }
 
-        // Comparativo visual do IPC: barras horizontais por corretor com a média da equipa marcada,
-        // pra bater o olho e ver quem está acima/abaixo da produtividade média. Lê o ipcSnapshot já
-        // calculado em drawTables() — não varre o dataset de novo.
+        // Tabela do IPC (o que o usuário pediu pra ver): Ranking · Corretor · Última venda · Mês de
+        // referência · Mês 1/2/3 (com as vendas de cada um) · Vendas 3M · IPC com barra comparativa
+        // contra a média da equipa. Lê o ipcSnapshot já calculado em drawTables().
         function renderIPCComparativo() {
-            const lista = document.getElementById('ipcRankingList');
-            if (!lista) return;
-            const snap = ipcSnapshot || { lista: [], janela: [], mediaEquipe: 0, totalVendas: 0 };
+            const box = document.getElementById('ipcRankingList');
+            if (!box) return;
+            const snap = ipcSnapshot || { lista: [], mediaEquipe: 0, totalVendas: 0, divisor: 3, modo: 'auto' };
             const media = snap.mediaEquipe || 0;
+            const auto = snap.modo !== 'manual';
+            const divisor = snap.divisor || IPC_MESES_JANELA;
 
-            const divisor = snap.divisor || Math.max(1, (snap.janela || []).length);
             const hint = document.getElementById('ipcJanelaHint');
-            if (hint) hint.textContent = 'Janela: ' + ipcJanelaTexto(snap.janela);
+            if (hint) hint.textContent = auto ? 'Janela individual por corretor.' : 'Janela fixa: ' + ipcJanelaTexto(snap.janelaManual);
             const formula = document.getElementById('ipcFormulaHint');
             if (formula) {
-                formula.textContent = ipcModoAutomatico()
-                    ? `Vendas dos últimos ${divisor} meses comerciais ÷ ${divisor} = média de vendas por mês.`
+                formula.textContent = auto
+                    ? 'Vendas nos 3 meses até a última venda do corretor ÷ 3 = média de vendas por mês.'
                     : (divisor === 1
-                        ? 'Vendas do mês escolhido ÷ 1 = média de vendas por mês.'
-                        : `Vendas dos ${divisor} meses escolhidos ÷ ${divisor} = média de vendas por mês.`);
+                        ? 'Vendas do mês fixado ÷ 1 = média de vendas por mês.'
+                        : `Vendas dos ${divisor} meses fixados ÷ ${divisor} = média de vendas por mês.`);
             }
             renderIpcMesesPicker();
             const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
             setTxt('ipcMediaEquipe', fmtIPC(media));
             setTxt('ipcTotalVendas', snap.totalVendas || 0);
-            // Rótulos que citam a quantidade de meses acompanham a janela escolhida.
             setTxt('ipcTotalVendasLabel', `Vendas ${divisor}M`);
             const thJanela = document.getElementById('thVendasJanelaIPC');
             if (thJanela) {
                 thJanela.textContent = `Vendas ${divisor}M`;
-                thJanela.title = `Vendas em ${ipcJanelaTexto(snap.janela)} — janela do IPC, independente do período filtrado acima`;
+                thJanela.title = auto
+                    ? 'Vendas nos 3 meses até a última venda de cada corretor (janela individual do IPC — independente do período filtrado acima)'
+                    : `Vendas em ${ipcJanelaTexto(snap.janelaManual)} — janela fixa do IPC, independente do período filtrado acima`;
             }
             setTxt('ipcAcimaCount', snap.lista.filter(c => c.ipc >= media && media > 0).length);
             setTxt('ipcAbaixoCount', snap.lista.filter(c => c.ipc < media).length);
 
             if (!snap.lista.length) {
-                lista.innerHTML = `<p class="text-center py-6 text-slate-500 text-xs">Sem corretores para calcular o IPC neste recorte.</p>`;
+                box.innerHTML = `<p class="text-center py-6 text-slate-500 text-xs">Sem corretores para calcular o IPC neste recorte.</p>`;
                 return;
             }
-            // Escala das barras: o maior IPC ocupa 100%. Piso de 1,00 pra não inflar visualmente um
-            // trimestre fraco (se todo mundo tem 0,33, a barra não deve parecer "cheia").
+            // Escala das barras: o maior IPC ocupa 100%, piso 1,00 pra não inflar um trimestre fraco.
             const maxIpc = Math.max(1, ...snap.lista.map(c => c.ipc));
             const pctMedia = (media / maxIpc) * 100;
-            const janelaTxt = ipcJanelaTexto(snap.janela);
+            const hojeIPC = isMockDataActive ? new Date(2026, 5, 9) : new Date();
+            hojeIPC.setHours(0, 0, 0, 0);
 
-            lista.innerHTML = snap.lista.map((c, i) => {
+            // Mês 1 = mês de referência (o mais recente), Mês 2 = anterior, Mês 3 = o mais antigo —
+            // a ordem que o usuário definiu na regra.
+            const celMes = (c, k) => {
+                const m = c.janela ? c.janela[c.janela.length - 1 - k] : null;
+                if (!m) return `<td class="py-2 text-center text-slate-700">—</td>`;
+                const v = c.porMes[ipcChaveMes(m)] || 0;
+                return `<td class="py-2 text-center whitespace-nowrap">
+                    <span class="text-[10px] text-slate-500">${ipcMesCurto(m)}</span>
+                    <span class="ml-1 font-extrabold tabular-nums ${v > 0 ? 'text-emerald-400' : 'text-slate-600'}">${v}</span>
+                </td>`;
+            };
+            const colsMes = auto ? 3 : Math.max(1, divisor);
+
+            const linhas = snap.lista.map(c => {
                 const cor = IPC_CORES[ipcFaixa(c.ipc, media)];
-                const pct = c.ipc > 0 ? Math.max(2, (c.ipc / maxIpc) * 100) : 0; // barra vazia = zero venda, sem maquiar
-                const inativo = c.ativo === false
-                    ? ' <span class="text-[9px] font-bold text-slate-500 uppercase">(inativo)</span>' : '';
-                const detalhe = snap.janela.map(m => `${m.nome.slice(0,3)}: ${c.porMes[m.nome] || 0}`).join('  ·  ');
+                const pct = c.ipc > 0 ? Math.max(2, (c.ipc / maxIpc) * 100) : 0;
+                const diasDesde = c.ultimaVenda ? Math.round((hojeIPC - c.ultimaVenda) / 86400000) : null;
+                // Última venda antiga (mais de 90 dias) = IPC congelado numa janela velha — destaque.
+                const corUltima = diasDesde === null ? 'text-slate-600' : (diasDesde > 90 ? 'text-rose-400' : (diasDesde > 45 ? 'text-amber-400' : 'text-slate-200'));
+                const ultimaTxt = c.ultimaVenda ? formatDate(c.ultimaVenda) : 'nunca';
+                const ultimaSub = diasDesde === null ? '' : `<span class="block text-[9px] text-slate-500">há ${diasDesde} dia${diasDesde === 1 ? '' : 's'}</span>`;
+                const mesesTds = Array.from({ length: colsMes }, (_, k) => celMes(c, k)).join('');
                 return `
-                <div class="flex items-center gap-2.5 group" title="${c.corretor} — ${c.vendas3m} venda(s) em ${janelaTxt} ÷ 3 = IPC ${fmtIPC(c.ipc)}&#10;${detalhe}">
-                    <span class="w-6 text-[10px] font-bold text-slate-600 text-right shrink-0">${i + 1}º</span>
-                    <span class="w-40 sm:w-52 text-[11px] font-semibold text-slate-300 truncate shrink-0">${c.corretor}${inativo}</span>
-                    <div class="flex-1 h-5 bg-slate-950/70 rounded-md relative overflow-hidden border border-slate-800/60 min-w-[80px]">
-                        <div class="h-full ${cor.barra} rounded-md transition-all duration-500 group-hover:brightness-110" style="width:${pct}%"></div>
-                        ${media > 0 ? `<div class="absolute top-0 bottom-0 w-px bg-white/70" style="left:${Math.min(99.5, pctMedia)}%"></div>` : ''}
-                    </div>
-                    <span class="w-11 text-right text-[11px] font-extrabold tabular-nums shrink-0 ${cor.texto}">${fmtIPC(c.ipc)}</span>
-                    <span class="w-14 text-right text-[10px] text-slate-500 tabular-nums shrink-0 hidden sm:block">${c.vendas3m} vd</span>
-                </div>`;
+                <tr class="border-b border-slate-800/40 hover:bg-slate-900/40 transition">
+                    <td class="py-2 pl-2 text-[11px] font-black ${c.posicao <= 3 ? 'text-amber-400' : 'text-slate-500'}">${c.posicao}º</td>
+                    <td class="py-2 text-[11px] font-semibold text-slate-200 whitespace-nowrap">${c.corretor}</td>
+                    <td class="py-2 text-center text-[11px] font-bold tabular-nums ${corUltima}">${ultimaTxt}${ultimaSub}</td>
+                    <td class="py-2 text-center text-[11px] font-bold text-slate-300">${ipcMesCurto(c.mesReferencia)}</td>
+                    ${mesesTds}
+                    <td class="py-2 text-center text-[11px] font-extrabold text-slate-300 tabular-nums">${c.vendas3m}</td>
+                    <td class="py-2 pr-2">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 h-4 bg-slate-950/70 rounded-md relative overflow-hidden border border-slate-800/60 min-w-[70px]">
+                                <div class="h-full ${cor.barra} rounded-md transition-all duration-500" style="width:${pct}%"></div>
+                                ${media > 0 ? `<div class="absolute top-0 bottom-0 w-px bg-white/70" style="left:${Math.min(99.5, pctMedia)}%"></div>` : ''}
+                            </div>
+                            <span class="w-11 text-right text-[12px] font-black tabular-nums ${cor.texto}">${fmtIPC(c.ipc)}</span>
+                        </div>
+                    </td>
+                </tr>`;
             }).join('');
+
+            const thMeses = Array.from({ length: colsMes }, (_, k) =>
+                `<th class="pb-2 text-center" title="${k === 0 ? 'Mês de referência (última venda)' : (k + 1) + 'º mês anterior'}">Mês ${k + 1}</th>`).join('');
+
+            box.innerHTML = `
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                            <th class="pb-2 pl-2">Rank</th>
+                            <th class="pb-2">Corretor</th>
+                            <th class="pb-2 text-center" title="Data Ganho da venda mais recente do corretor">Última venda</th>
+                            <th class="pb-2 text-center" title="Mês Ganho da última venda — o mês que ancora a janela">Mês ref.</th>
+                            ${thMeses}
+                            <th class="pb-2 text-center">Vendas ${divisor}M</th>
+                            <th class="pb-2 pr-2 w-[26%]">IPC ${divisor}M · vs média da equipa</th>
+                        </tr>
+                    </thead>
+                    <tbody>${linhas}</tbody>
+                </table>
+            </div>`;
         }
 
         // Ordenação dos rankings (corretores e equipas)
@@ -7146,11 +7190,12 @@
             // cada corretor da tabela. Repare que é uma janela DIFERENTE da das colunas Análises/
             // Aprovações/Vendas (que seguem o período filtrado): o IPC é sempre trimestral.
             ipcSnapshot = calcularIPC(refDateTables);
-            const ipcJanelaLabel = ipcJanelaTexto(ipcSnapshot.janela);
             Object.values(corretoresMap).forEach(c => {
                 const ipcRow = ipcSnapshot.porCorretor[c.corretor];
                 c.vendas3m = ipcRow ? ipcRow.vendas3m : 0;
                 c.ipc = ipcRow ? ipcRow.ipc : 0;
+                c.ipcJanelaTxt = ipcRow ? ipcJanelaTexto(ipcRow.janela) : '—';
+                c.ipcDivisor = ipcRow ? ipcRow.divisor : IPC_MESES_JANELA;
                 // O corretor desativado continua na tabela pelo histórico (Análises/Aprovações/
                 // Vendas/VGV), mas o IPC não se aplica a ele — mostrar "0,00" seria mentira, pois
                 // ele pode ter vendido dentro da janela. Marca pra renderizar "—".
@@ -7187,7 +7232,7 @@
                             <td class="py-3 text-center">
                                 ${c.ipcNaoSeAplica
                                     ? `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded text-slate-600" title="Corretor desativado — o IPC mede a produtividade da equipa atual e não se aplica a ele. O histórico dele segue nas demais colunas.">—</span>`
-                                    : `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${ipcJanelaLabel} ÷ ${ipcSnapshot.divisor} — média da equipa: ${fmtIPC(ipcSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>`}
+                                    : `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${c.ipcJanelaTxt} ÷ ${c.ipcDivisor} — média da equipa: ${fmtIPC(ipcSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>`}
                             </td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
                         </tr>
