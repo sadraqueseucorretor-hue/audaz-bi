@@ -1071,6 +1071,10 @@
                      (pra deixar a TV bootando direto nela). Renderizada por renderTela(). -->
                 <div id="telaSection" class="hidden">
                     <div id="telaRoot" class="min-h-[calc(100vh-4.5rem)] flex flex-col gap-3 select-none"></div>
+                    <!-- Abaixo da 1ª tela (rolando): resultado da equipe por semana + de cada corretor
+                         por semana. Fica FORA do #telaRoot de propósito: a auto-escala só ajusta a 1ª
+                         tela pra caber sem rolagem; esta parte fica em tamanho natural. -->
+                    <div id="telaExtra" class="mt-8 space-y-6 select-none"></div>
                 </div>
 
                 <!-- CALENDÁRIO DE PRODUÇÃO / MAPA DE CALOR OPERACIONAL (inline no painel, sempre visível) -->
@@ -4064,6 +4068,162 @@
             buildFunilSVG('telaFunilDoc', telaEtapasDoc);
             buildFunilSVG('telaFunilAg', telaEtapasAg);
             ajustarEscalaTela();
+            renderTelaSemanas();
+        }
+
+        // ===== TELA — parte de baixo (rolando): RESULTADO POR SEMANA =====
+        // Bloco 4: a EQUIPE, semana a semana do mês comercial — 6 etapas × semanas, cada célula
+        // realizado / meta semanal (rankingsMetas.*Sem, a mesma de "Editar metas") com cor de ritmo.
+        // Bloco 5: CADA CORRETOR, semana a semana — foto + nome, e por semana An · Ap · Vd em
+        // destaque e Pr · Ag · Vi embaixo, mais a coluna Total do mês.
+        // Mesma divisão de semanas (getSemanasMesComercial) e mesmos critérios de contagem da
+        // "Evolução Semanal do Mês" (cada métrica pela SUA coluna de data e SEU mês de referência).
+        // Semanas FUTURAS aparecem como "—", não como zero — zero pareceria queda de produção.
+        function renderTelaSemanas() {
+            const box = document.getElementById('telaExtra');
+            if (!box) return;
+            if (!Array.isArray(dataset) || !dataset.length) { box.innerHTML = ''; return; }
+
+            const { inicioReal, diasNoMes, diaHoje, mesNome, ano } = getJanelaMesComercial('analises');
+            const semanas = getSemanasMesComercial(inicioReal, diasNoMes);
+            const nSem = semanas.length;
+            const diaParaSemana = new Array(diasNoMes + 1).fill(0);
+            semanas.forEach((s, wi) => s.dias.forEach(x => { diaParaSemana[x.d] = wi; }));
+            const semanaHojeIdx = Math.max(0, Math.min(nSem - 1, diaParaSemana[Math.max(1, Math.min(diasNoMes, diaHoje))]));
+            const lbl = s => `${s.idx}ª SEM<br><span class="font-semibold text-slate-600">${String(s.inicio.getDate()).padStart(2,'0')}–${String(s.fim.getDate()).padStart(2,'0')}</span>`;
+
+            // contagens[etapa][semana] (equipe) e porCorretor[nome][etapa][semana]
+            const ativos = getActiveCorretores();
+            const ativoSet = new Set(ativos);
+            const zeros = () => new Array(nSem).fill(0);
+            const equipe = {}; FUNIL_ETAPAS.forEach(e => { equipe[e.key] = zeros(); });
+            const porCorretor = {};
+            ativos.forEach(n => { porCorretor[n] = {}; FUNIL_ETAPAS.forEach(e => { porCorretor[n][e.key] = zeros(); }); });
+            const somar = (dataStr, key, corretor) => {
+                const d = parseDate(dataStr);
+                if (!d) return;
+                const diaIdx = Math.floor((d - inicioReal) / 86400000) + 1;
+                if (diaIdx < 1 || diaIdx > diasNoMes) return;
+                const wi = diaParaSemana[diaIdx];
+                equipe[key][wi]++;
+                if (corretor && ativoSet.has(corretor)) porCorretor[corretor][key][wi]++;
+            };
+            filteredProspeccaoDataset.forEach(row => {
+                if (metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', currentRefDateProspeccao)) somar(row['Cadastro'], 'prospeccao', row.Corretor);
+            });
+            filteredAgendaDataset.forEach(row => {
+                if (!agendaMatchesRef(row, currentRefDateAgenda)) return;
+                somar(row['Data'], 'agendamentos', row.Corretor);
+                if (isCompareceu(row)) somar(row['Data'], 'compareceu', row.Corretor);
+            });
+            filteredDataset.forEach(row => {
+                if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', currentRefDate)) somar(row['Data Cadastro'], 'analises', row.Corretor);
+                if (isAprovadoNoPeriodo(row, currentRefDate)) somar(dataAprovacaoEfetiva(row), 'aprovacoes', row.Corretor);
+                if (isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', currentRefDate)) somar(row['Data Ganho'], 'vendas', row.Corretor);
+            });
+
+            // ---------- Bloco 4: EQUIPE por semana ----------
+            const METAS_SEM = { prospeccao: 'prSem', agendamentos: 'agSem', compareceu: 'coSem', analises: 'anSem', aprovacoes: 'apSem', vendas: 'vdSem' };
+            const metaSem = key => Math.round((rankingsMetas && rankingsMetas[METAS_SEM[key]]) || 0);
+            const corPct = (real, meta, futura) => {
+                if (futura) return 'text-slate-700';
+                if (meta <= 0) return real > 0 ? 'text-slate-200' : 'text-slate-600';
+                const p = real / meta;
+                return p >= 1 ? 'text-emerald-400' : (p >= 0.8 ? 'text-amber-400' : (real > 0 ? 'text-rose-400' : 'text-slate-600'));
+            };
+            const linhasEquipe = FUNIL_ETAPAS.map(e => {
+                const meta = metaSem(e.key);
+                const cl = FUNIL_CORES[e.color] || FUNIL_CORES.sky;
+                const cels = semanas.map((s, wi) => {
+                    const futura = wi > semanaHojeIdx;
+                    const v = equipe[e.key][wi];
+                    // Semana futura: "—" se vazia; se já tem algo lançado pra frente (ex.: visita
+                    // agendada pra semana que vem), mostra o número esmaecido, sem meta/%.
+                    if (futura) return `<td class="py-2.5 text-center text-xl font-black ${v > 0 ? 'text-slate-500' : 'text-slate-700'}" title="Semana ainda não começou">${v > 0 ? v : '—'}</td>`;
+                    const pct = meta > 0 ? Math.round((v / meta) * 100) : null;
+                    return `<td class="py-2.5 text-center ${wi === semanaHojeIdx ? 'bg-brand-500/5' : ''}">
+                        <span class="text-2xl font-black tabular-nums ${corPct(v, meta, false)}">${v}</span>
+                        ${meta > 0 ? `<span class="text-xs text-slate-500 font-semibold"> / ${meta}</span><span class="block text-[10px] font-bold tabular-nums ${corPct(v, meta, false)}">${pct}%</span>` : ''}
+                    </td>`;
+                }).join('');
+                const total = equipe[e.key].reduce((a, b) => a + b, 0);
+                return `<tr class="border-b border-slate-800/40">
+                    <td class="py-2.5 pl-3 whitespace-nowrap">
+                        <span class="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider ${cl.text}"><i class="fa-solid ${e.icon}"></i>${e.label}</span>
+                        ${meta > 0 ? `<span class="block text-[10px] text-slate-500 pl-6">meta ${meta}/sem</span>` : ''}
+                    </td>
+                    ${cels}
+                    <td class="py-2.5 pr-3 text-center text-2xl font-black text-white tabular-nums bg-slate-950/40">${total}</td>
+                </tr>`;
+            }).join('');
+
+            // ---------- Bloco 5: CADA CORRETOR por semana ----------
+            const mini = (n, cor, titulo) => `<span title="${titulo}" class="tabular-nums ${n > 0 ? cor : 'text-slate-700'}">${n}</span>`;
+            const celCorretor = (c, wi, futura) => {
+                const g = porCorretor[c];
+                if (futura) {
+                    const tem = FUNIL_ETAPAS.some(e => g[e.key][wi] > 0);
+                    if (!tem) return `<td class="py-2 text-center text-slate-700 text-lg" title="Semana ainda não começou">—</td>`;
+                }
+                return `<td class="py-2 text-center ${wi === semanaHojeIdx ? 'bg-brand-500/5' : ''} ${futura ? 'opacity-50' : ''}">
+                    <div class="text-lg font-black leading-tight space-x-2">${mini(g.analises[wi], 'text-sky-400', 'Análises')}${mini(g.aprovacoes[wi], 'text-amber-400', 'Aprovações')}${mini(g.vendas[wi], 'text-emerald-400', 'Vendas')}</div>
+                    <div class="text-[11px] font-bold leading-tight space-x-1.5 mt-0.5">${mini(g.prospeccao[wi], 'text-pink-400', 'Prospecção')}<span class="text-slate-700">·</span>${mini(g.agendamentos[wi], 'text-violet-400', 'Agendamentos')}<span class="text-slate-700">·</span>${mini(g.compareceu[wi], 'text-cyan-400', 'Compareceu')}</div>
+                </td>`;
+            };
+            const totalDe = (c, key) => porCorretor[c][key].reduce((a, b) => a + b, 0);
+            const ordem = ativos.slice().sort((a, b) => (totalDe(b, 'analises') - totalDe(a, 'analises')) || (totalDe(b, 'vendas') - totalDe(a, 'vendas')) || a.localeCompare(b));
+            const linhasCorretor = ordem.map((c, i) => {
+                const cels = semanas.map((s, wi) => celCorretor(c, wi, wi > semanaHojeIdx)).join('');
+                return `<tr class="border-b border-slate-800/40 ${i % 2 ? 'bg-slate-950/30' : ''}">
+                    <td class="py-2 pl-3 whitespace-nowrap">
+                        <div class="flex items-center gap-2.5">
+                            ${corretorAvatarInner(c, 'w-9 h-9', 'text-xs', 'shrink-0 ring-2 ring-slate-800')}
+                            <span class="text-base font-bold text-slate-100">${c}</span>
+                        </div>
+                    </td>
+                    ${cels}
+                    <td class="py-2 pr-3 text-center bg-slate-950/40">
+                        <div class="text-lg font-black leading-tight space-x-2">${mini(totalDe(c,'analises'), 'text-sky-400', 'Análises')}${mini(totalDe(c,'aprovacoes'), 'text-amber-400', 'Aprovações')}${mini(totalDe(c,'vendas'), 'text-emerald-400', 'Vendas')}</div>
+                        <div class="text-[11px] font-bold leading-tight space-x-1.5 mt-0.5">${mini(totalDe(c,'prospeccao'), 'text-pink-400', 'Prospecção')}<span class="text-slate-700">·</span>${mini(totalDe(c,'agendamentos'), 'text-violet-400', 'Agendamentos')}<span class="text-slate-700">·</span>${mini(totalDe(c,'compareceu'), 'text-cyan-400', 'Compareceu')}</div>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            const thSemanas = semanas.map((s, wi) => `<th class="pb-2 text-center ${wi === semanaHojeIdx ? 'text-brand-400' : (wi > semanaHojeIdx ? 'text-slate-700' : 'text-slate-500')}">${lbl(s)}${wi === semanaHojeIdx ? '<br><span class="text-[9px] font-black text-brand-400">ATUAL</span>' : ''}</th>`).join('');
+            const legendaCorretor = `<span class="text-sky-400">Análises</span> · <span class="text-amber-400">Aprovações</span> · <span class="text-emerald-400">Vendas</span> &nbsp;<span class="text-slate-600">/</span>&nbsp; <span class="text-pink-400">Prospecção</span> · <span class="text-violet-400">Agendamentos</span> · <span class="text-cyan-400">Compareceu</span>`;
+
+            box.innerHTML = `
+                <div class="flex items-center justify-center gap-2 text-[11px] text-slate-600 font-bold uppercase tracking-widest -mb-2"><i class="fa-solid fa-chevron-down"></i> Resultado por semana · ${mesNome}/${ano} <i class="fa-solid fa-chevron-down"></i></div>
+
+                <section class="bg-slate-900/50 rounded-2xl border border-slate-800 px-5 py-4">
+                    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-people-group text-brand-400"></i> Resultado da Equipe por Semana</h3>
+                        <span class="text-[11px] text-slate-500 font-semibold">realizado / meta semanal · semana futura: "—" (ou o que já foi lançado pra frente, esmaecido)</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead><tr class="border-b-2 border-slate-800 text-[11px] font-black uppercase tracking-widest">
+                                <th class="pb-2 pl-3 text-slate-500">Etapa</th>${thSemanas}<th class="pb-2 pr-3 text-center text-slate-300">Total mês</th>
+                            </tr></thead>
+                            <tbody>${linhasEquipe}</tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="bg-slate-900/50 rounded-2xl border border-slate-800 px-5 py-4">
+                    <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase flex items-center gap-2"><i class="fa-solid fa-user-group text-sky-400"></i> Resultado de Cada Corretor por Semana</h3>
+                        <span class="text-[11px] font-semibold">${legendaCorretor}</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead><tr class="border-b-2 border-slate-800 text-[11px] font-black uppercase tracking-widest">
+                                <th class="pb-2 pl-3 text-slate-500">Corretor</th>${thSemanas}<th class="pb-2 pr-3 text-center text-slate-300">Total mês</th>
+                            </tr></thead>
+                            <tbody>${linhasCorretor || `<tr><td colspan="${nSem + 2}" class="py-6 text-center text-slate-500">Nenhum corretor ativo.</td></tr>`}</tbody>
+                        </table>
+                    </div>
+                </section>`;
         }
 
         // Faz a Tela caber SEMPRE sem rolagem, em qualquer TV e com qualquer quantidade de
