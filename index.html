@@ -1649,7 +1649,7 @@
     <!-- MODAL: METAS POR CORRETOR (dia/semana/mês, por parâmetro dos Rankings Rápidos) -->
     <!-- Modal da Gamificação: Registrar atividade / Cancelar lançamento -->
     <div id="gamModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onclick="if(event.target===this) gamFecharModal()">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[92vh] overflow-y-auto">
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
                 <h3 id="gamModalTitulo" class="text-sm font-black text-white uppercase tracking-wider"><i class="fa-solid fa-trophy text-amber-400 mr-1.5"></i>Registrar atividade</h3>
                 <button onclick="gamFecharModal()" class="text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
@@ -4346,7 +4346,6 @@
                     <div class="flex items-center gap-2 flex-wrap">
                         <button onclick="gamAbrirProducao()" class="text-xs font-black text-white bg-brand-500 hover:bg-brand-400 rounded-xl px-4 py-2.5 transition shadow-lg shadow-brand-500/20 flex items-center gap-2 disabled:opacity-40" ${isDiretor ? '' : 'disabled title="Entre como diretor"'}><i class="fa-solid fa-plus"></i> Registrar produção</button>
                         <button onclick="gamView='hoje'; gamGradeAberta=true; renderGamificacao(); setTimeout(()=>{ const g=document.getElementById('gamGradeSec'); if(g) g.scrollIntoView({behavior:'smooth',block:'start'}); },50)" class="text-xs font-black text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl px-4 py-2.5 transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-40" ${isDiretor ? '' : 'disabled title="Entre como diretor"'}><i class="fa-solid fa-table-list"></i> Preencher equipe</button>
-                        <button onclick="gamAbrirLancamento('corretor')" class="text-xs font-black text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 rounded-xl px-4 py-2.5 transition flex items-center gap-2 disabled:opacity-40" ${isDiretor ? '' : 'disabled title="Entre como diretor"'}><i class="fa-solid fa-bolt"></i> Atividade do corretor</button>
                         <button onclick="gamAbrirLancamento('gestor')" class="text-xs font-black text-indigo-200 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 rounded-xl px-4 py-2.5 transition flex items-center gap-2 disabled:opacity-40" ${isDiretor ? '' : 'disabled title="Entre como diretor"'}><i class="fa-solid fa-user-tie"></i> Minha atividade</button>
                     </div>
                 </div>
@@ -4418,7 +4417,7 @@
                         </tr></thead>
                         <tbody>${linhas || '<tr><td colspan="14" class="py-6 text-center text-slate-500">Nenhum corretor ativo.</td></tr>'}</tbody>
                     </table></div>
-                    <p class="text-[10px] text-slate-600 mt-3">Agendamentos, visitas, análises, aprovações e vendas vêm sozinhos do BI. Ligações, atendidas, conectadas, desconectadas e presença: <b>+ Registrar produção</b> (um corretor) ou <b>+ Preencher equipe</b> (todos de uma vez). Clique no corretor pra abrir a visão individual.</p>
+                    <p class="text-[10px] text-slate-600 mt-3">Agendamentos, visitas, análises, aprovações e vendas vêm sozinhos do BI. Entrada, ligações e atividades do dia: <b>Registrar produção</b> (um corretor, tudo num formulário) ou <b>Preencher equipe</b> (todos de uma vez). Clique no corretor pra abrir a visão individual.</p>
                 </section>`;
         }
 
@@ -4454,7 +4453,7 @@
             return `<section class="bg-slate-900/40 rounded-2xl border border-brand-500/30 p-5" id="gamGradeSec">
                 <div class="flex items-center justify-between gap-3 flex-wrap mb-2">
                     <h3 class="text-xs font-black tracking-widest text-brand-300 uppercase"><i class="fa-solid fa-table-list mr-1.5"></i>Preencher equipe — ${gamFmtLongo(iso)}</h3>
-                    <div class="flex items-center gap-3"><span class="text-[10px] text-slate-500">Já lançou? Os números aparecem aqui e você só edita. Atividades (conteúdo, treinamento…) também pelo botão <b>Atividade do corretor</b>.</span><button onclick="gamToggleGrade()" class="text-[11px] font-bold text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark mr-1"></i>fechar</button></div>
+                    <div class="flex items-center gap-3"><span class="text-[10px] text-slate-500">Já lançou? Os números aparecem aqui e você só edita. Atividades (conteúdo, treinamento…) com quantidade: pelo <b>Registrar produção</b>.</span><button onclick="gamToggleGrade()" class="text-[11px] font-bold text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark mr-1"></i>fechar</button></div>
                 </div>
                 <div class="overflow-x-auto"><table class="w-full text-left border-collapse">
                     <thead><tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider"><th class="pb-2 pl-3">Corretor</th><th class="pb-2 text-center">Ligações</th><th class="pb-2 text-center text-teal-500">Atendidas</th><th class="pb-2 text-center text-emerald-500">Conectadas</th><th class="pb-2 text-center text-rose-400">Desconectadas</th>${temPres ? '<th class="pb-2 text-center text-orange-400">Entrada</th>' : ''}<th class="pb-2 text-center">Extra (opcional)</th><th class="pb-2 pr-3 text-right">Pontos</th></tr></thead>
@@ -4516,26 +4515,33 @@
             renderGamificacao();
         }
 
-        // ---------- REGISTRAR PRODUÇÃO (1 corretor, janela compacta) ----------
+        // ---------- REGISTRAR PRODUÇÃO (1 corretor — TUDO do dia num formulário só) ----------
+        // Entrada · Ligações (4 números) · Atividades do dia (catálogo com quantidade) · Salvar.
+        // É EDIÇÃO do dia: abrir de novo carrega o que já foi lançado; salvar sincroniza (o que
+        // mudou substitui, com o anterior cancelado no histórico) — nunca duplica.
         let gamProdForcar = false;
         function gamAbrirProducao(corretorPre) {
             if (!isDiretor) { showToast('Entre como diretor para registrar produção.', true); return; }
             const ativos = getActiveCorretores();
             const hojeISO = gamISO(gamHoje());
             const dataPre = (gamDiaSel && gamDiaSel >= gamConfig.inicio) ? gamDiaSel : (hojeISO >= gamConfig.inicio ? hojeISO : gamConfig.inicio);
-            document.getElementById('gamModalTitulo').innerHTML = '<i class="fa-solid fa-phone text-brand-400 mr-1.5"></i>Registrar produção';
+            const extras = gamConfig.atividadesManuais.filter(a => a.ativo !== false);
+            const sec = (titulo, icone, corpo) => `<div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3"><p class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2"><i class="fa-solid ${icone} mr-1.5"></i>${titulo}</p>${corpo}</div>`;
+            document.getElementById('gamModalTitulo').innerHTML = '<i class="fa-solid fa-clipboard-check text-brand-400 mr-1.5"></i>Registrar produção do dia';
             document.getElementById('gamModalBody').innerHTML = `
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3">
-                        <div><label class="text-[10px] font-bold text-slate-500 uppercase">Corretor</label><select id="gamProdCorretor" onchange="gamProdPrefill()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">${ativos.map(n => `<option ${n === corretorPre ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+                        <div><label class="text-[10px] font-bold text-slate-500 uppercase">Corretor</label><select id="gamProdCorretor" onchange="gamProdPrefill()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-bold text-slate-100">${ativos.map(n => `<option ${n === corretorPre ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
                         <div><label class="text-[10px] font-bold text-slate-500 uppercase">Data</label><input type="date" id="gamProdData" value="${dataPre}" min="${gamConfig.inicio}" onchange="gamProdPrefill()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div>
                     </div>
-                    <div class="grid grid-cols-4 gap-2">
-                        ${[['gamProdLig','Ligações','text-slate-100'],['gamProdAt','Atendidas','text-teal-300'],['gamProdCon','Conectadas','text-emerald-300'],['gamProdDesc','Desconectadas','text-rose-300']].map(([id, l, cl]) => `<div><label class="text-[10px] font-bold text-slate-500 uppercase">${l}</label><input type="number" min="0" id="${id}" placeholder="0" oninput="gamProdPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-2.5 text-lg font-black text-center ${cl} focus:border-brand-500 outline-none"></div>`).join('')}
+                    ${gamConfig.categorias.presenca.ativo ? sec('Entrada', 'fa-clock', `<div class="flex items-center gap-3"><input type="time" id="gamProdHora" oninput="gamProdPreview()" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-lg font-black text-slate-100"><span id="gamProdHoraTxt" class="text-xs text-slate-500">sem entrada registrada</span></div>`) : '<input type="hidden" id="gamProdHora">'}
+                    ${sec('Ligações', 'fa-phone', `<div class="grid grid-cols-4 gap-2">${[['gamProdLig','Ligações','text-slate-100'],['gamProdAt','Atendidas','text-teal-300'],['gamProdCon','Conectadas','text-emerald-300'],['gamProdDesc','Desconectadas','text-rose-300']].map(([id, l, cl]) => `<div><label class="text-[9px] font-bold text-slate-500 uppercase">${l}</label><input type="number" min="0" id="${id}" placeholder="0" oninput="gamProdPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-2 text-xl font-black text-center ${cl} focus:border-brand-500 outline-none"></div>`).join('')}</div><div id="gamProdAviso" class="hidden mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300"></div>`)}
+                    ${sec('Atividades do dia', 'fa-bolt', extras.length ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">${extras.map(a => `<div class="flex items-center justify-between gap-2 bg-slate-950/60 rounded-lg px-2.5 py-1.5"><div class="min-w-0"><p class="text-xs font-bold text-slate-200 truncate">${a.label}</p><p class="text-[9px] text-slate-500">+${a.pontos} cada</p></div><div class="flex items-center gap-1 shrink-0"><button type="button" onclick="gamProdStep('${a.key}',-1)" class="h-7 w-7 rounded-md border border-slate-700 text-slate-300 hover:border-brand-500/50 text-xs font-black">−</button><input type="number" min="0" id="gamProdAtv_${a.key}" value="0" oninput="gamProdPreview()" class="w-11 bg-slate-950 border border-slate-800 rounded-md px-1 py-1 text-sm font-black text-center text-slate-100"><button type="button" onclick="gamProdStep('${a.key}',1)" class="h-7 w-7 rounded-md bg-brand-500/20 border border-brand-500/40 text-brand-300 hover:bg-brand-500/30 text-xs font-black">+</button></div></div>`).join('')}</div>` : '<p class="text-xs text-slate-600">Nenhuma atividade cadastrada — crie em Configurar → Atividades manuais.</p>')}
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <input id="gamProdObs" placeholder="Observação (opcional)" class="flex-1 min-w-[180px] bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+                        <div class="text-right"><p class="text-[9px] text-slate-500 uppercase font-bold">Pontos deste formulário</p><p id="gamProdTotal" class="text-2xl font-black tabular-nums text-white leading-tight">0</p></div>
                     </div>
-                    ${gamConfig.categorias.presenca.ativo ? `<div class="grid grid-cols-2 gap-3"><div><label class="text-[10px] font-bold text-slate-500 uppercase">Entrada (opcional)</label><input type="time" id="gamProdHora" oninput="gamProdPreview()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div><div><label class="text-[10px] font-bold text-slate-500 uppercase">Observação (opcional)</label><input id="gamProdObs" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div></div>` : `<div><label class="text-[10px] font-bold text-slate-500 uppercase">Observação (opcional)</label><input id="gamProdObs" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div>`}
-                    <div id="gamProdAviso" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300"></div>
-                    <p id="gamProdPreview" class="text-xs text-slate-400"></p>
+                    <p id="gamProdPreview" class="text-[11px] text-slate-400"></p>
                 </div>`;
             const btn = document.getElementById('gamModalSalvar');
             btn.textContent = 'Salvar';
@@ -4544,6 +4550,16 @@
             gamProdForcar = false;
             document.getElementById('gamModal').classList.remove('hidden');
             gamProdPrefill();
+        }
+        function gamProdStep(key, delta) {
+            const el = document.getElementById('gamProdAtv_' + key); if (!el) return;
+            el.value = Math.max(0, (+el.value || 0) + delta);
+            gamProdPreview();
+        }
+        function gamProdAtividadesDoDia(corretor, iso) {   // { key: quantidade } dos lançamentos válidos do dia
+            const q = {};
+            gamManuaisDia(corretor, iso).filter(m => m.atividade !== 'presenca' && m.atividade !== 'ligacoes').forEach(m => { q[m.atividade] = (q[m.atividade] || 0) + (+m.quantidade || 1); });
+            return q;
         }
         function gamProdPrefill() {
             const c = document.getElementById('gamProdCorretor').value, iso = document.getElementById('gamProdData').value;
@@ -4554,16 +4570,29 @@
             document.getElementById('gamProdDesc').value = pr.desconectadas || '';
             const h = document.getElementById('gamProdHora');
             if (h) h.value = (gamManuaisDia(c, iso).find(m => m.atividade === 'presenca') || {}).horario || '';
+            const atv = gamProdAtividadesDoDia(c, iso);
+            gamConfig.atividadesManuais.forEach(a => { const el = document.getElementById('gamProdAtv_' + a.key); if (el) el.value = atv[a.key] || 0; });
             const o = document.getElementById('gamProdObs'); if (o) o.value = pr.obs || '';
             document.getElementById('gamProdAviso').classList.add('hidden');
             gamProdForcar = false;
-            gamProdPreview(pr.id ? 'Editando a produção já lançada deste dia.' : '');
+            const jaTem = pr.id || h && h.value || Object.keys(atv).length;
+            gamProdPreview(jaTem ? 'Editando o que já foi lançado neste dia — altere e salve.' : '');
+        }
+        function gamProdCalcular() {
+            const lig = +document.getElementById('gamProdLig').value || 0, at = +document.getElementById('gamProdAt').value || 0, con = +document.getElementById('gamProdCon').value || 0;
+            const ptsLig = gamPontosProgressivo(gamConfig.categorias.ligacoes.tabela, lig);
+            const h = document.getElementById('gamProdHora'); const hora = h && h.value ? h.value : '';
+            const ptsHora = hora ? gamPontosPresenca(hora) : 0;
+            let ptsAtv = 0; const atvs = [];
+            gamConfig.atividadesManuais.forEach(a => { const el = document.getElementById('gamProdAtv_' + a.key); const q = el ? Math.max(0, +el.value || 0) : 0; if (q > 0) { ptsAtv += (+a.pontos || 0) * q; atvs.push({ a, q }); } });
+            return { lig, at, con, ptsLig, hora, ptsHora, ptsAtv, atvs, total: ptsLig + ptsHora + ptsAtv };
         }
         function gamProdPreview(nota) {
-            const lig = +document.getElementById('gamProdLig').value || 0, at = +document.getElementById('gamProdAt').value || 0, con = +document.getElementById('gamProdCon').value || 0;
-            const pts = gamPontosProgressivo(gamConfig.categorias.ligacoes.tabela, lig);
-            const h = document.getElementById('gamProdHora'); const hp = h && h.value ? gamPontosPresenca(h.value) : null;
-            document.getElementById('gamProdPreview').innerHTML = `${nota ? `<span class="text-brand-400 font-bold">${nota}</span><br>` : ''}Ligações → <b class="text-emerald-400">+${pts} pts</b>${hp !== null ? ` · Entrada → <b class="${hp >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${hp >= 0 ? '+' : ''}${hp} pts</b>` : ''} · atendimento <b class="text-slate-200">${gamTaxaTxt(at, lig)}</b> · conexão <b class="text-slate-200">${gamTaxaTxt(con, lig)}</b>`;
+            const r = gamProdCalcular();
+            const ht = document.getElementById('gamProdHoraTxt');
+            if (ht) { if (r.hora) { const pt = gamPontualidade(r.hora); ht.innerHTML = `<b class="${pt.cls}">${pt.cor} ${pt.txt}</b> · ${pt.p >= 0 ? '+' : ''}${pt.p} pts`; } else ht.textContent = 'sem entrada registrada'; }
+            document.getElementById('gamProdTotal').textContent = gamN(r.total);
+            document.getElementById('gamProdPreview').innerHTML = `${nota ? `<span class="text-brand-400 font-bold">${nota}</span><br>` : ''}Ligações <b class="text-emerald-400">+${r.ptsLig}</b>${r.hora ? ` · Entrada <b class="${r.ptsHora >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${r.ptsHora >= 0 ? '+' : ''}${r.ptsHora}</b>` : ''}${r.atvs.length ? ` · Atividades <b class="text-emerald-400">+${r.ptsAtv}</b> (${r.atvs.map(x => `${x.q}× ${x.a.label}`).join(', ')})` : ''} · atendimento <b class="text-slate-200">${gamTaxaTxt(r.at, r.lig)}</b> · conexão <b class="text-slate-200">${gamTaxaTxt(r.con, r.lig)}</b>`;
         }
         function gamSalvarProducaoModal() {
             if (!isDiretor) return;
@@ -4576,19 +4605,28 @@
                 box.innerHTML = `<b>Confira:</b><br>${avisos.join('<br>')}<br><span class="text-amber-200/70">Se estiver certo, clique em "Salvar mesmo assim".</span>`;
                 box.classList.remove('hidden'); btn.textContent = 'Salvar mesmo assim'; gamProdForcar = true; return;
             }
-            const obs = (document.getElementById('gamProdObs') || {}).value || '';
-            let n = gamUpsertProducao(c, iso, v, obs.trim()) ? 1 : 0;
+            const obs = ((document.getElementById('gamProdObs') || {}).value || '').trim();
+            const autor = gamUsuarioAtual(), agora = new Date().toISOString();
+            const cancelar = (l, motivo) => { l.cancelado = { por: autor, em: agora, motivo }; };
+            const novo = (atividade, label, quantidade, pontos, horario) => gamLancamentos.push({ id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6), tipo: 'manual', corretor: c, data: iso, atividade, label, quantidade, horario: horario || null, pontos, justificativa: obs || 'Registrar produção', autor, criadoEm: agora });
+            let n = gamUpsertProducao(c, iso, v, obs) ? 1 : 0;
+            // Entrada
             const h = document.getElementById('gamProdHora');
             if (h) {
                 const hora = h.value || '';
                 const atual = gamManuaisDia(c, iso).find(m => m.atividade === 'presenca');
-                if ((atual ? atual.horario : '') !== hora) {
-                    const autor = gamUsuarioAtual(), agora = new Date().toISOString();
-                    if (atual) atual.cancelado = { por: autor, em: agora, motivo: 'atualizado em Registrar produção' };
-                    if (hora) gamLancamentos.push({ id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6), tipo: 'manual', corretor: c, data: iso, atividade: 'presenca', label: 'Presença (entrada ' + hora + ')', quantidade: 1, horario: hora, pontos: gamPontosPresenca(hora), justificativa: obs.trim() || 'Registrar produção', autor, criadoEm: agora });
-                    n++;
-                }
+                if ((atual ? atual.horario : '') !== hora) { if (atual) cancelar(atual, 'atualizado em Registrar produção'); if (hora) novo('presenca', 'Presença (entrada ' + hora + ')', 1, gamPontosPresenca(hora), hora); n++; }
             }
+            // Atividades: quantidade desejada substitui a existente (sem duplicar)
+            const atuais = gamProdAtividadesDoDia(c, iso);
+            gamConfig.atividadesManuais.forEach(a => {
+                const el = document.getElementById('gamProdAtv_' + a.key); if (!el) return;
+                const q = Math.max(0, +el.value || 0);
+                if ((atuais[a.key] || 0) === q) return;
+                gamManuaisDia(c, iso).filter(m => m.atividade === a.key).forEach(l => cancelar(l, 'atualizado em Registrar produção'));
+                if (q > 0) novo(a.key, a.label, q, (+a.pontos || 0) * q);
+                n++;
+            });
             if (!n) { showToast('Nada mudou.'); gamFecharModal(); return; }
             saveGamificacao();
             gamFecharModal();
@@ -4725,7 +4763,7 @@
             const hist = gamHistoricoLinhas({ corretor: c }).slice(0, 30);
             return `
                 <div class="flex items-center gap-3 flex-wrap">${gamAvatar(c, 'w-12 h-12')}<div><p class="text-lg font-black text-white">${c}</p><p class="text-[11px] text-slate-500">IPC <b class="${ipc ? IPC_CORES[ipcFaixa(ipc.ipc, ipcSnap.mediaEquipe)].texto : 'text-slate-500'}">${ipc ? fmtIPC(ipc.ipc) : '—'}</b>${ipc ? ' · ' + ipc.vendas3m + ' venda(s) em ' + ipcJanelaTexto(ipc.janela) : ''} · presença hoje <b class="text-slate-300">${dia.ultimaEntrada ? dia.ultimaEntrada.hora : '—'}</b> · ${mes.presencas} presença(s) no mês${mes.ultimaEntrada ? ' · última entrada ' + gamFmt(mes.ultimaEntrada.data) + ' ' + mes.ultimaEntrada.hora : ''}</p></div>
-                    <div class="ml-auto flex items-center gap-2">${isDiretor ? `<button onclick="gamAbrirLancamento('corretor','${c.replace(/'/g, "\\'")}')" class="text-[11px] font-black text-amber-200 bg-amber-500/15 border border-amber-500/40 hover:bg-amber-500/25 rounded-lg px-3 py-2"><i class="fa-solid fa-bolt mr-1"></i>Atividade</button><button onclick="gamAbrirProducao('${c.replace(/'/g, "\\'")}')" class="text-[11px] font-black text-white bg-brand-500 hover:bg-brand-400 rounded-lg px-3 py-2"><i class="fa-solid fa-phone mr-1"></i>Produção</button>` : ''}${sel}</div></div>
+                    <div class="ml-auto flex items-center gap-2">${isDiretor ? `<button onclick="gamAbrirProducao('${c.replace(/'/g, "\\'")}')" class="text-[11px] font-black text-white bg-brand-500 hover:bg-brand-400 rounded-lg px-3 py-2"><i class="fa-solid fa-pen mr-1"></i>Registrar produção</button>` : ''}${sel}</div></div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     ${card('Hoje', dia, gamMetaDe(c, 'dia'), rkDia.pos, `${dia.ligacoes} lig · ${dia.analises} an · ${dia.aprovacoes} ap · ${dia.vendas} vd`)}
                     ${card('Semana ' + s.n, sem, gamMetaDe(c, 'semana'), rkSem.pos, `${sem.ligacoes} lig · ${sem.analises} an · ${sem.aprovacoes} ap · ${sem.vendas} vd`)}
@@ -4933,7 +4971,7 @@
                         <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Entrada</p><p class="text-sm font-black ${pt ? pt.cls : 'text-slate-600'}">${pt ? `${pt.cor} ${entrada} — ${pt.txt}` : '—'}</p></div>
                         <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Ritmo do dia</p><span class="text-[11px] font-black px-2 py-0.5 rounded-lg border ${ritmo.cls}">${ritmo.cor} ${ritmo.txt}</span></div>
                         ${semMov ? '<span class="text-[11px] font-black text-rose-300 bg-rose-500/15 border border-rose-500/40 rounded-lg px-2 py-1">⚠️ SEM MOVIMENTAÇÃO</span>' : ''}
-                        <div class="ml-auto flex items-center gap-2">${isDiretor ? `<button onclick="event.stopPropagation(); gamAbrirLancamento('corretor','${c.replace(/'/g, "\\'")}')" title="Registrar atividade de ${c} neste dia" class="text-[11px] font-bold text-amber-300 border border-amber-500/40 rounded-lg px-2 py-1 hover:bg-amber-500/10"><i class="fa-solid fa-bolt mr-1"></i>atividade</button><button onclick="event.stopPropagation(); gamAbrirProducao('${c.replace(/'/g, "\\'")}')" title="Registrar produção de ${c}" class="text-[11px] font-bold text-brand-300 border border-brand-500/40 rounded-lg px-2 py-1 hover:bg-brand-500/10"><i class="fa-solid fa-phone mr-1"></i>produção</button>` : ''}<div class="w-28">${gamBarra(d.pontos, meta)}</div><i class="fa-solid fa-chevron-${aberto ? 'up' : 'down'} text-slate-500 text-xs"></i></div>
+                        <div class="ml-auto flex items-center gap-2">${isDiretor ? `<button onclick="event.stopPropagation(); gamAbrirProducao('${c.replace(/'/g, "\\'")}')" title="Registrar o dia de ${c}: entrada, ligações e atividades" class="text-[11px] font-black text-white bg-brand-500 hover:bg-brand-400 rounded-lg px-2.5 py-1"><i class="fa-solid fa-pen mr-1"></i>registrar</button>` : ''}<div class="w-28">${gamBarra(d.pontos, meta)}</div><i class="fa-solid fa-chevron-${aberto ? 'up' : 'down'} text-slate-500 text-xs"></i></div>
                     </div>
                     ${aberto ? `<div class="px-4 pb-4 space-y-3 border-t border-slate-800/60 pt-3">
                         ${gamResumoDiaHtml(c, iso)}
