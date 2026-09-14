@@ -4295,6 +4295,7 @@
         // ---------- UI: helpers ----------
         const GAM_COR = { slate: 'text-slate-300', pink: 'text-pink-400', violet: 'text-violet-400', cyan: 'text-cyan-400', teal: 'text-teal-400', sky: 'text-sky-400', amber: 'text-amber-400', emerald: 'text-emerald-400', indigo: 'text-indigo-400', orange: 'text-orange-400' };
         const gamN = n => (+n || 0).toLocaleString('pt-BR');
+        const DIAS_SEM_ABREV = ['D','S','T','Q','Q','S','S'];
         // Medalha só pra quem PONTUOU — com todo mundo zerado a ordem é alfabética e medalha enganaria.
         const gamMedalha = (i, pontos) => (pontos === undefined || pontos > 0) ? (i === 1 ? '🥇' : (i === 2 ? '🥈' : (i === 3 ? '🥉' : `${i}º`))) : `${i}º`;
         function gamBarra(v, meta, cor) {
@@ -4330,7 +4331,7 @@
             if (gamMigrarLigacoesLegado() && isDiretor) saveGamificacao();
             if (!gamDiaSel) gamDiaSel = gamISO(gamHoje());
             const semAtual = gamSemanaAtualN();
-            const tabs = [['hoje','Hoje','fa-sun'],['semana','Semana','fa-calendar-week'],['mes','Mês','fa-calendar'],['individual','Individual','fa-user'],['historico','Histórico','fa-clock-rotate-left'],['gestao','Gestão','fa-user-tie'],['config','Configurar','fa-sliders']];
+            const tabs = [['hoje','Hoje','fa-sun'],['acompanhar','Acompanhar o dia','fa-stream'],['semana','Semana','fa-calendar-week'],['mes','Mês','fa-calendar'],['individual','Individual','fa-user'],['historico','Histórico','fa-clock-rotate-left'],['gestao','Gestão','fa-user-tie'],['config','Configurar','fa-sliders']];
             const semC = gamSemanaComercialAtual();
             const sem = semAtual > 0 ? semC : null;
             const cab = `
@@ -4354,7 +4355,7 @@
                 ${gamAntesInicioAviso()}`;
             let corpo = '';
             try {
-                corpo = { hoje: gamViewHoje, semana: gamViewSemana, mes: gamViewMes, individual: gamViewIndividual, historico: gamViewHistorico, gestao: gamViewGestao, config: gamViewConfig }[gamView]();
+                corpo = { hoje: gamViewHoje, acompanhar: gamViewAcompanhar, semana: gamViewSemana, mes: gamViewMes, individual: gamViewIndividual, historico: gamViewHistorico, gestao: gamViewGestao, config: gamViewConfig }[gamView]();
             } catch (e) { console.error(e); corpo = `<p class="text-rose-400 text-sm">Erro ao montar a tela: ${e.message}</p>`; }
             root.innerHTML = `<div class="space-y-4">${cab}${corpo}</div>`;
         }
@@ -4375,13 +4376,17 @@
                 const pres = d.contagens.presenca;
                 const presPts = d.manuais.filter(m => m.atividade === 'presenca').reduce((s, m) => s + (+m.pontos || 0), 0);
                 const top = c.pos <= 3 && c.pontos > 0;
-                return `<tr class="border-b border-slate-800/40 hover:bg-slate-900/40 transition cursor-pointer ${top ? 'bg-amber-500/5' : ''}" onclick="gamAbrirCorretor('${c.corretor.replace(/'/g, "\\'")}')">
+                const evsDia = gamEventosDia(c.corretor, iso);
+                const ultima = gamUltimaAtividade(evsDia);
+                const nomeEsc = c.corretor.replace(/'/g, "\\'");
+                return `<tr class="border-b border-slate-800/40 hover:bg-slate-900/40 transition ${top ? 'bg-amber-500/5' : ''}">
                     <td class="py-2 pl-3 text-base font-black ${top ? 'text-amber-400' : 'text-slate-500'}">${gamMedalha(c.pos, c.pontos)}</td>
-                    <td class="py-2"><div class="flex items-center gap-2.5">${gamAvatar(c.corretor)}<span class="text-sm font-bold text-slate-100 whitespace-nowrap">${c.corretor}</span></div></td>
+                    <td class="py-2 cursor-pointer" onclick="gamAbrirCorretor('${nomeEsc}')"><div class="flex items-center gap-2.5">${gamAvatar(c.corretor)}<div><span class="text-sm font-bold text-slate-100 whitespace-nowrap">${c.corretor}</span><p class="text-[10px] ${ultima === 'nenhuma' ? 'text-rose-400 font-bold' : 'text-slate-500'}">${ultima === 'nenhuma' ? '⚠️ sem movimentação' : 'última: ' + ultima}</p></div></div></td>
                     ${num(c.ligacoes, 'text-slate-100')}${num(c.atendidas, 'text-teal-400')}${num(c.conectadas, 'text-emerald-300')}${num(c.desconectadas, 'text-rose-300')}
                     ${num(c.agendamentos, 'text-violet-400')}${num(c.visitas, 'text-cyan-400')}${num(c.analises, 'text-sky-400')}${num(c.aprovacoes, 'text-amber-400')}${num(c.vendas, 'text-emerald-400')}
                     <td class="py-2 text-center text-xs font-bold tabular-nums ${pres ? (presPts > 0 ? 'text-emerald-400' : (presPts < 0 ? 'text-rose-400' : 'text-amber-400')) : 'text-slate-700'}">${pres ? `${pres} <span class="text-[10px]">(${presPts >= 0 ? '+' : ''}${presPts})</span>` : '—'}</td>
-                    <td class="py-2 pr-3 text-right"><span class="text-lg font-black tabular-nums ${c.pontos > 0 ? 'text-white' : 'text-slate-600'}">${gamN(c.pontos)}</span><div class="w-24 ml-auto">${gamBarra(c.pontos, meta)}</div></td>
+                    <td class="py-2 text-right"><span class="text-lg font-black tabular-nums ${c.pontos > 0 ? 'text-white' : 'text-slate-600'}">${gamN(c.pontos)}</span><div class="w-24 ml-auto">${gamBarra(c.pontos, meta)}</div></td>
+                    <td class="py-2 pr-3 text-center"><button onclick="gamVerDia('${nomeEsc}')" title="Ver o dia: linha do tempo de ${c.corretor}" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 hover:text-brand-400 hover:border-brand-500/50 transition"><i class="fa-solid fa-eye"></i></button></td>
                 </tr>`;
             }).join('');
             const podio = lista[0] && lista[0].pontos > 0 ? lista.slice(0, 3).filter(c => c.pontos > 0).map((c, i) => `
@@ -4408,9 +4413,9 @@
                     <div class="flex gap-3 flex-wrap mb-4">${podio}</div>
                     <div class="overflow-x-auto"><table class="w-full text-left border-collapse">
                         <thead><tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                            <th class="pb-2 pl-3">#</th><th class="pb-2">Corretor</th><th class="pb-2 text-center">Ligações</th><th class="pb-2 text-center text-teal-500">Atend.</th><th class="pb-2 text-center text-emerald-500">Conect.</th><th class="pb-2 text-center text-rose-400">Desc.</th><th class="pb-2 text-center text-violet-500">Agend.</th><th class="pb-2 text-center text-cyan-500">Visitas</th><th class="pb-2 text-center text-sky-500" title="Análises = documentação enviada">Análises (docs)</th><th class="pb-2 text-center text-amber-500">Aprov.</th><th class="pb-2 text-center text-emerald-500">Vendas</th><th class="pb-2 text-center text-orange-400">Presença</th><th class="pb-2 pr-3 text-right">Pontos · meta dia</th>
+                            <th class="pb-2 pl-3">#</th><th class="pb-2">Corretor</th><th class="pb-2 text-center">Ligações</th><th class="pb-2 text-center text-teal-500">Atend.</th><th class="pb-2 text-center text-emerald-500">Conect.</th><th class="pb-2 text-center text-rose-400">Desc.</th><th class="pb-2 text-center text-violet-500">Agend.</th><th class="pb-2 text-center text-cyan-500">Visitas</th><th class="pb-2 text-center text-sky-500" title="Análises = documentação enviada">Análises (docs)</th><th class="pb-2 text-center text-amber-500">Aprov.</th><th class="pb-2 text-center text-emerald-500">Vendas</th><th class="pb-2 text-center text-orange-400">Presença</th><th class="pb-2 text-right">Pontos · meta dia</th><th class="pb-2 pr-3 text-center">Ver dia</th>
                         </tr></thead>
-                        <tbody>${linhas || '<tr><td colspan="13" class="py-6 text-center text-slate-500">Nenhum corretor ativo.</td></tr>'}</tbody>
+                        <tbody>${linhas || '<tr><td colspan="14" class="py-6 text-center text-slate-500">Nenhum corretor ativo.</td></tr>'}</tbody>
                     </table></div>
                     <p class="text-[10px] text-slate-600 mt-3">Agendamentos, visitas, análises, aprovações e vendas vêm sozinhos do BI. Ligações, atendidas, conectadas, desconectadas e presença: <b>+ Registrar produção</b> (um corretor) ou <b>+ Preencher equipe</b> (todos de uma vez). Clique no corretor pra abrir a visão individual.</p>
                 </section>`;
@@ -4618,6 +4623,7 @@
                     <td class="py-2 pl-3 text-base font-black ${c.pos <= 3 && c.pontos > 0 ? 'text-amber-400' : 'text-slate-500'}">${gamMedalha(c.pos, c.pontos)}</td>
                     <td class="py-2"><div class="flex items-center gap-2.5">${gamAvatar(c.corretor)}<div><span class="text-sm font-bold text-slate-100 whitespace-nowrap">${c.corretor}</span><div>${evol(c)}</div></div></div></td>
                     <td class="py-2 text-right pr-2"><span class="text-lg font-black text-white tabular-nums">${gamN(c.pontos)}</span><span class="text-[10px] text-slate-500"> / ${gamN(meta)}</span><div class="w-28 ml-auto">${gamBarra(c.pontos, meta)}</div></td>
+                    <td class="py-2 text-center"><div class="flex items-end justify-center gap-1" title="Pontos por dia (${DIAS_SEM_ABREV.join(' ')})">${gamDiasISO(s.inicio, s.fim).map(iso => { const v = c.porDia[iso] || 0; const futuro = iso > gamISO(gamHoje()); return `<div class="text-center"><span class="block text-[10px] font-bold tabular-nums ${futuro ? 'text-slate-700' : (v ? 'text-slate-200' : 'text-slate-600')}">${futuro ? '·' : v}</span><span class="block text-[8px] text-slate-600">${DIAS_SEM_ABREV[gamDeISO(iso).getDay()]}</span></div>`; }).join('')}</div></td>
                     <td class="py-2 text-center text-[11px]"><span class="font-black tabular-nums ${pj.projecao >= meta && meta > 0 ? 'text-emerald-400' : 'text-rose-400'}">${gamN(pj.projecao)}</span><br><span class="text-[9px] text-slate-500">${pj.media.toFixed(0)} pts/dia</span></td>
                     ${num(c.ligacoes, 'text-slate-100')}${num(c.atendidas, 'text-teal-400')}${num(c.conectadas, 'text-emerald-300')}
                     ${num(c.agendamentos, 'text-violet-400')}${num(c.visitas, 'text-cyan-400')}${num(c.analises, 'text-sky-400')}${num(c.aprovacoes, 'text-amber-400')}${num(c.vendas, 'text-emerald-400')}
@@ -4638,7 +4644,7 @@
                     <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3"><i class="fa-solid fa-ranking-star text-amber-400 mr-1.5"></i>Ranking da Semana ${s.n} — ${gamFmtLongo(s.inicio)} a ${gamFmtLongo(s.fim)}</h3>
                     <div class="overflow-x-auto"><table class="w-full text-left border-collapse">
                         <thead><tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                            <th class="pb-2 pl-3">#</th><th class="pb-2">Corretor · evolução</th><th class="pb-2 text-right pr-2">Pontos / meta</th><th class="pb-2 text-center">Projeção</th><th class="pb-2 text-center">Ligações</th><th class="pb-2 text-center text-teal-500">Atend.</th><th class="pb-2 text-center text-emerald-500">Conect.</th><th class="pb-2 text-center text-violet-500">Agend.</th><th class="pb-2 text-center text-cyan-500">Visitas</th><th class="pb-2 text-center text-sky-500">Análises</th><th class="pb-2 text-center text-amber-500">Aprov.</th><th class="pb-2 text-center text-emerald-500">Vendas</th><th class="pb-2 pr-3 text-right text-indigo-400">VGV</th>
+                            <th class="pb-2 pl-3">#</th><th class="pb-2">Corretor · evolução</th><th class="pb-2 text-right pr-2">Pontos / meta</th><th class="pb-2 text-center">Dia a dia</th><th class="pb-2 text-center">Projeção</th><th class="pb-2 text-center">Ligações</th><th class="pb-2 text-center text-teal-500">Atend.</th><th class="pb-2 text-center text-emerald-500">Conect.</th><th class="pb-2 text-center text-violet-500">Agend.</th><th class="pb-2 text-center text-cyan-500">Visitas</th><th class="pb-2 text-center text-sky-500">Análises</th><th class="pb-2 text-center text-amber-500">Aprov.</th><th class="pb-2 text-center text-emerald-500">Vendas</th><th class="pb-2 pr-3 text-right text-indigo-400">VGV</th>
                         </tr></thead><tbody>${linhas}</tbody></table></div>
                     <p class="text-[10px] text-slate-600 mt-3">Evolução = posição nesta semana comparada com a Semana ${s.n - 1 || '—'}. Projeção = média de pontos por dia decorrido × dias da semana.</p>
                 </section>`;
@@ -4731,6 +4737,213 @@
                         <div class="grid grid-cols-4 gap-2 mt-4 text-center">${[['Agend.', mes.agendamentos, 'text-violet-400'], ['Visitas', mes.visitas, 'text-cyan-400'], ['Análises (docs)', mes.analises, 'text-sky-400'], ['Aprov.', mes.aprovacoes, 'text-amber-400'], ['Vendas', mes.vendas, 'text-emerald-400'], ['VGV', formatBRL(mes.vgv), 'text-indigo-400'], ['Presenças', mes.presencas, 'text-orange-400'], ['Ligações', mes.ligacoes, 'text-slate-200']].map(([l, v, cl]) => `<div class="bg-slate-950/50 rounded-lg p-2"><p class="text-sm font-black tabular-nums ${cl}">${v}</p><p class="text-[9px] text-slate-500 uppercase font-bold">${l}</p></div>`).join('')}</div></section>
                 </div>
                 <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5"><h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-3">Histórico recente</h3>${gamTabelaHistorico(hist)}</section>`;
+        }
+
+        // ---------- ACOMPANHAMENTO DO DIA (linha do tempo operacional) ----------
+        // Responde "o que esse corretor fez pra chegar nesse resultado?": cada evento do dia com
+        // horário, tipo, quantidade, resultado, pontos gerados e origem. Regra de honestidade:
+        //   • horário REAL só onde o BI tem: entrada/produção/atividades manuais (hora do lançamento),
+        //     agendamento (hora do cadastro na Agenda) e visita (Horário da visita);
+        //   • análises, aprovações e vendas: a planilha registra SÓ A DATA → entram como "durante o
+        //     dia (sem horário no CRM)", nunca com hora inventada.
+        // Pontos por evento = diferença MARGINAL da tabela progressiva (o 3º agendamento do dia
+        // vale pts(3)−pts(2)); a soma dos eventos bate exatamente com o total do dia.
+        const GAM_TIPOS = {
+            presenca:     { label: 'Presença',     icon: '🟢' },
+            ligacoes:     { label: 'Ligações',     icon: '📞' },
+            agendamentos: { label: 'Agendamentos', icon: '📅' },
+            visitas:      { label: 'Visitas',      icon: '🏠' },
+            analises:     { label: 'Análises',     icon: '📋' },
+            aprovacoes:   { label: 'Aprovações',   icon: '✅' },
+            vendas:       { label: 'Vendas',       icon: '💰' },
+            manual:       { label: 'Atividades manuais', icon: '🎥' }
+        };
+        function gamParseDataHora(str) {   // "dd/mm/aaaa HH:MM" → Date (ou null)
+            const m = /^\s*(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/.exec(String(str || ''));
+            if (!m) return null;
+            return new Date(+m[3], +m[2] - 1, +m[1], m[4] !== undefined ? +m[4] : 0, m[5] !== undefined ? +m[5] : 0, 0, 0);
+        }
+        const gamHHMM = d => d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : null;
+        function gamPontualidade(hora) {
+            const p = gamPontosPresenca(hora);
+            return p > 0 ? { cor: '🟢', txt: 'Pontual', cls: 'text-emerald-400', p } : (p === 0 ? { cor: '🟡', txt: 'Atenção', cls: 'text-amber-400', p } : { cor: '🔴', txt: 'Atraso', cls: 'text-rose-400', p });
+        }
+        function gamEventosDia(corretor, iso) {
+            const ev = [];
+            const cats = gamConfig.categorias;
+            const prog = (key, k) => (cats[key] && cats[key].ativo) ? gamPontosProgressivo(cats[key].tabela, k) : 0;
+            const marginal = (key, k) => prog(key, k) - prog(key, k - 1);
+            const d = gamDeISO(iso);
+            const mesmoDia = x => !!x && x.getFullYear() === d.getFullYear() && x.getMonth() === d.getMonth() && x.getDate() === d.getDate();
+            const man = gamManuaisDia(corretor, iso);
+            // Entrada
+            man.filter(m => m.atividade === 'presenca').forEach(m => {
+                const pt = gamPontualidade(m.horario);
+                ev.push({ hora: m.horario, tipo: 'presenca', titulo: 'Entrada registrada', quantidade: 1, resultado: `${pt.cor} ${pt.txt}`, pontos: +m.pontos || 0, origem: 'manual', autor: m.autor, lancadoEm: m.criadoEm });
+            });
+            // Produção de ligações (hora = quando foi lançada)
+            const pr = gamProducaoDe(corretor, iso);
+            if (pr) {
+                const pts = prog('ligacoes', +pr.ligacoes || 0);
+                ev.push({ hora: gamHHMM(pr.atualizadoEm ? new Date(pr.atualizadoEm) : null), horaEhLancamento: true, tipo: 'ligacoes', titulo: 'Produção registrada', quantidade: +pr.ligacoes || 0, resultado: `${pr.ligacoes} ligações · ${pr.atendidas} atendidas · ${pr.conectadas} conectadas · ${pr.desconectadas} desconectadas${(pr.alteracoes || []).length ? ` (editado ${pr.alteracoes.length}x)` : ''}`, pontos: pts, origem: 'manual', autor: pr.autor, lancadoEm: pr.atualizadoEm });
+            } else {
+                man.filter(m => m.atividade === 'ligacoes').forEach(m => ev.push({ hora: gamHHMM(new Date(m.criadoEm)), horaEhLancamento: true, tipo: 'ligacoes', titulo: 'Ligações registradas', quantidade: +m.quantidade || 0, resultado: `${m.quantidade} ligações`, pontos: +m.pontos || 0, origem: 'manual', autor: m.autor, lancadoEm: m.criadoEm }));
+            }
+            // Agenda: agendamento (hora do cadastro) e visita realizada (Horário da visita)
+            let kAg = 0, kVi = 0;
+            (agendaDataset || []).filter(r => r.Corretor === corretor).forEach(r => {
+                const dc = gamParseDataHora(r['Data de Cadastro']);
+                if (mesmoDia(dc)) { kAg++; ev.push({ hora: /\d{1,2}:\d{2}/.test(String(r['Data de Cadastro'] || '')) ? gamHHMM(dc) : null, tipo: 'agendamentos', titulo: 'Agendamento realizado', quantidade: 1, resultado: `${r.Cliente || ''} · visita ${formatDate(parseDate(r['Data']) || new Date())}${r['Horário'] ? ' às ' + r['Horário'] : ''}${r.Empreendimento ? ' · ' + r.Empreendimento : ''}`, pontos: marginal('agendamentos', kAg), origem: 'automático' }); }
+                if (isCompareceu(r) && mesmoDia(parseDate(r['Data']))) {
+                    kVi++;
+                    const bonus = (cats.compareceu && cats.compareceu.ativo) ? marginal('compareceu', kVi) : 0;
+                    ev.push({ hora: /^\d{1,2}:\d{2}/.test(String(r['Horário'] || '')) ? String(r['Horário']).slice(0, 5).padStart(5, '0') : null, tipo: 'visitas', titulo: 'Visita realizada', quantidade: 1, resultado: `cliente compareceu · ${r.Cliente || ''}${r.Empreendimento ? ' · ' + r.Empreendimento : ''}`, pontos: marginal('visitas', kVi) + bonus, origem: 'automático' });
+                }
+            });
+            // Planilha principal: análise enviada, aprovação, venda — SÓ DATA (sem horário)
+            let kAn = 0, kAp = 0, kVd = 0;
+            (dataset || []).filter(r => r.Corretor === corretor).forEach(r => {
+                if (mesmoDia(parseDate(r['Data Cadastro']))) { kAn++; ev.push({ hora: null, tipo: 'analises', titulo: 'Análise enviada (documentação)', quantidade: 1, resultado: `enviada · ${r.Cliente || ''}${r.Empreendimento ? ' · ' + r.Empreendimento : ''}`, pontos: marginal('analises', kAn), origem: 'automático' }); }
+                if (isAprovado(r['Situação - Analise']) && mesmoDia(parseDate(dataAprovacaoEfetiva(r)))) { kAp++; ev.push({ hora: null, tipo: 'aprovacoes', titulo: 'Cliente aprovado', quantidade: 1, resultado: `${r['Situação - Analise']} · ${r.Cliente || ''}`, pontos: marginal('aprovacoes', kAp), origem: 'automático' }); }
+                if (isVendaGanhaReal(r) && mesmoDia(parseDate(r['Data Ganho']))) { kVd++; const vgvP = (cats.vgv && cats.vgv.ativo) ? gamPontosProgressivo(cats.vgv.tabela, getVGV(r)) : 0; ev.push({ hora: null, tipo: 'vendas', titulo: 'Venda realizada', quantidade: 1, resultado: `${r['Situação - Ganho'] || 'ganho'} · ${r.Cliente || ''} · ${formatBRL(getVGV(r))}${vgvP ? ` (VGV +${vgvP})` : ''}`, pontos: marginal('vendas', kVd) + vgvP, origem: 'automático' }); }
+            });
+            // Outras atividades manuais (hora = do lançamento)
+            man.filter(m => m.atividade !== 'presenca' && m.atividade !== 'ligacoes').forEach(m => ev.push({ hora: gamHHMM(new Date(m.criadoEm)), horaEhLancamento: true, tipo: 'manual', titulo: m.label, quantidade: +m.quantidade || 1, resultado: `${m.quantidade || 1}x${m.justificativa && m.justificativa !== 'Lançado manualmente' ? ' · ' + m.justificativa : ''}`, pontos: +m.pontos || 0, origem: 'manual', autor: m.autor, lancadoEm: m.criadoEm }));
+            // ordem: com horário (cronológico) primeiro; sem horário por último
+            ev.sort((a, b) => (a.hora === null) - (b.hora === null) || String(a.hora || '').localeCompare(String(b.hora || '')));
+            return ev;
+        }
+        // Ritmo do dia: pontos vs. meta diária proporcional ao expediente (09h–18h) já decorrido.
+        function gamRitmoDia(pontos, meta, iso, nEventos) {
+            if (!nEventos) return { cor: '⚠️', txt: 'Sem movimentação', cls: 'text-rose-400 bg-rose-500/10 border-rose-500/30' };
+            const hojeISO = gamISO(gamHoje());
+            let frac = 1;
+            if (iso === hojeISO) { const h = new Date(); const dec = (h.getHours() + h.getMinutes() / 60 - 9) / 9; frac = Math.max(0.15, Math.min(1, dec)); }
+            const esperado = meta * frac;
+            if (meta <= 0) return { cor: '⚪', txt: 'Sem meta', cls: 'text-slate-400 bg-slate-800/40 border-slate-700' };
+            if (pontos >= esperado * 0.9) return { cor: '🟢', txt: 'Excelente', cls: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' };
+            if (pontos >= esperado * 0.5) return { cor: '🟡', txt: 'Regular', cls: 'text-amber-400 bg-amber-500/10 border-amber-500/30' };
+            return { cor: '🔴', txt: 'Baixo', cls: 'text-rose-400 bg-rose-500/10 border-rose-500/30' };
+        }
+        function gamUltimaAtividade(eventos) {
+            const comHora = eventos.filter(e => e.hora);
+            if (comHora.length) { const u = comHora[comHora.length - 1]; return `${u.hora} — ${GAM_TIPOS[u.tipo].label.replace('Atividades manuais', 'Atividade')}`; }
+            const sem = eventos.filter(e => !e.hora);
+            if (sem.length) return `${GAM_TIPOS[sem[sem.length - 1].tipo].label} (sem horário)`;
+            return 'nenhuma';
+        }
+        // Filtros do acompanhamento
+        let gamAcomp = { modo: 'corretores', corretor: '', periodo: 'dia', de: '09:00', ate: '12:00', tipo: '', expandidos: {} };
+        function gamAcompSet(k, v) { gamAcomp[k] = v; renderGamificacao(); }
+        function gamAcompToggle(nome) { gamAcomp.expandidos[nome] = !gamAcomp.expandidos[nome]; renderGamificacao(); }
+        function gamVerDia(nome) { gamView = 'acompanhar'; gamAcomp.modo = 'corretores'; gamAcomp.corretor = nome; gamAcomp.expandidos[nome] = true; renderGamificacao(); setTimeout(() => { const el = document.getElementById('gamAcomp_' + btoa(unescape(encodeURIComponent(nome))).replace(/[^a-z0-9]/gi, '')); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); }
+        function gamAcompFiltraEventos(evs) {
+            let [de, ate] = ['00:00', '23:59'];
+            if (gamAcomp.periodo === 'manha') [de, ate] = ['00:00', '11:59'];
+            if (gamAcomp.periodo === 'tarde') [de, ate] = ['12:00', '23:59'];
+            if (gamAcomp.periodo === 'custom') [de, ate] = [gamAcomp.de || '00:00', gamAcomp.ate || '23:59'];
+            return evs.filter(e => {
+                if (gamAcomp.tipo && e.tipo !== gamAcomp.tipo) return false;
+                if (gamAcomp.periodo === 'dia') return true;
+                if (!e.hora) return false;   // sem horário não dá pra situar num intervalo
+                return e.hora >= de && e.hora <= ate;
+            });
+        }
+        function gamEventoHtml(e) {
+            const t = GAM_TIPOS[e.tipo] || { icon: '•', label: e.tipo };
+            return `<div class="flex items-start gap-3 py-2 border-b border-slate-800/40">
+                <div class="w-14 shrink-0 text-right"><span class="text-sm font-black tabular-nums ${e.hora ? 'text-slate-100' : 'text-slate-600'}">${e.hora || '— —'}</span>${e.horaEhLancamento ? '<span class="block text-[8px] text-slate-600 leading-tight">hora do lançamento</span>' : (!e.hora ? '<span class="block text-[8px] text-slate-600 leading-tight">sem horário no CRM</span>' : '')}</div>
+                <div class="text-lg leading-none shrink-0">${t.icon}</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-slate-100">${e.titulo}</p>
+                    <p class="text-[11px] text-slate-400">${e.resultado}</p>
+                    <p class="text-[10px] text-slate-600">qtd ${e.quantidade} · <span class="${e.origem === 'manual' ? 'text-amber-400' : 'text-sky-400'} font-bold">${e.origem === 'manual' ? 'lançamento manual' : 'automático'}</span>${e.autor ? ` · por ${e.autor}` : ''}${e.lancadoEm ? ` · ${new Date(e.lancadoEm).toLocaleString('pt-BR')}` : ''}</p>
+                </div>
+                <div class="shrink-0 text-right"><span class="text-base font-black tabular-nums ${e.pontos > 0 ? 'text-emerald-400' : (e.pontos < 0 ? 'text-rose-400' : 'text-slate-600')}">${e.pontos > 0 ? '+' : ''}${e.pontos}</span></div>
+            </div>`;
+        }
+        function gamResumoDiaHtml(c, iso) {
+            const d = gamDia(c, iso); const k = d.contagens;
+            const itens = [['Ligações', k.ligacoes, 'text-slate-100'], ['Atendidas', k.atendidas, 'text-teal-400'], ['Conectadas', k.conectadas, 'text-emerald-300'], ['Agend.', k.agendamentos, 'text-violet-400'], ['Visitas', k.visitas, 'text-cyan-400'], ['Análises (docs)', k.analises, 'text-sky-400'], ['Aprovados', k.aprovacoes, 'text-amber-400'], ['Vendas', k.vendas, 'text-emerald-400']];
+            return `<div class="grid grid-cols-4 md:grid-cols-8 gap-1.5">${itens.map(([l, v, cl]) => `<div class="bg-slate-950/50 rounded-lg p-2 text-center"><p class="text-lg font-black tabular-nums ${v ? cl : 'text-slate-700'}">${v}</p><p class="text-[9px] text-slate-500 uppercase font-bold">${l}</p></div>`).join('')}</div>`;
+        }
+        function gamOrigemPontosHtml(evs, total) {
+            const por = {};
+            evs.forEach(e => { const k = e.tipo === 'presenca' ? 'Pontualidade' : (e.tipo === 'ligacoes' ? `${e.quantidade} ligações` : (e.tipo === 'manual' ? e.titulo : GAM_TIPOS[e.tipo].label)); por[k] = (por[k] || 0) + e.pontos; });
+            const linhas = Object.entries(por).filter(([, v]) => v !== 0).sort((a, b) => b[1] - a[1]);
+            const soma = evs.reduce((s, e) => s + e.pontos, 0);
+            return `<div class="bg-slate-950/50 rounded-xl p-3"><p class="text-[9px] text-slate-500 uppercase font-bold mb-1">De onde vieram os pontos</p>${linhas.length ? linhas.map(([l, v]) => `<div class="flex justify-between text-xs py-0.5"><span class="text-slate-300">${l}</span><span class="font-black tabular-nums ${v > 0 ? 'text-emerald-400' : 'text-rose-400'}">${v > 0 ? '+' : ''}${v}</span></div>`).join('') : '<p class="text-xs text-slate-600">nenhum ponto</p>'}<div class="flex justify-between text-sm pt-1 mt-1 border-t border-slate-800"><span class="font-bold text-slate-200">Total</span><span class="font-black tabular-nums text-white">${gamN(soma)}</span></div>${soma !== total ? `<p class="text-[9px] text-amber-400 mt-1">filtro ativo — total do dia: ${gamN(total)}</p>` : ''}</div>`;
+        }
+        function gamViewAcompanhar() {
+            const iso = gamDiaSel; const hojeISO = gamISO(gamHoje());
+            const ativos = getActiveCorretores();
+            const agora = new Date();
+            const controles = `
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="flex items-center gap-1 bg-slate-950/60 border border-slate-800 rounded-xl p-1">
+                            <button onclick="gamAcompSet('modo','corretores')" class="text-[11px] font-bold px-3 py-1.5 rounded-lg ${gamAcomp.modo === 'corretores' ? 'bg-slate-800 text-white' : 'text-slate-400'}"><i class="fa-solid fa-user mr-1"></i>Por corretor</button>
+                            <button onclick="gamAcompSet('modo','equipe')" class="text-[11px] font-bold px-3 py-1.5 rounded-lg ${gamAcomp.modo === 'equipe' ? 'bg-slate-800 text-white' : 'text-slate-400'}"><i class="fa-solid fa-people-group mr-1"></i>O que a equipe fez</button>
+                        </div>
+                        <button onclick="gamShiftDia(-1)" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                        <input type="date" value="${iso}" onchange="gamSetDia(this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200">
+                        <button onclick="gamShiftDia(1)" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                        ${iso !== hojeISO ? `<button onclick="gamSetDia('${hojeISO}')" class="text-[11px] font-bold text-brand-400 border border-brand-500/40 rounded-lg px-2.5 py-1.5">Hoje</button>` : ''}
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <select onchange="gamAcompSet('corretor', this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200"><option value="">Todos os corretores</option>${ativos.map(n => `<option ${gamAcomp.corretor === n ? 'selected' : ''}>${n}</option>`).join('')}</select>
+                        <select onchange="gamAcompSet('tipo', this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200"><option value="">Todas as atividades</option>${Object.entries(GAM_TIPOS).map(([k, t]) => `<option value="${k}" ${gamAcomp.tipo === k ? 'selected' : ''}>${t.icon} ${t.label}</option>`).join('')}</select>
+                        <select onchange="gamAcompSet('periodo', this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200"><option value="dia" ${gamAcomp.periodo === 'dia' ? 'selected' : ''}>Dia inteiro</option><option value="manha" ${gamAcomp.periodo === 'manha' ? 'selected' : ''}>Manhã (até 12h)</option><option value="tarde" ${gamAcomp.periodo === 'tarde' ? 'selected' : ''}>Tarde (12h em diante)</option><option value="custom" ${gamAcomp.periodo === 'custom' ? 'selected' : ''}>Horário personalizado</option></select>
+                        ${gamAcomp.periodo === 'custom' ? `<input type="time" value="${gamAcomp.de}" onchange="gamAcompSet('de', this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200"><span class="text-slate-500 text-xs">→</span><input type="time" value="${gamAcomp.ate}" onchange="gamAcompSet('ate', this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200">` : ''}
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-500"><i class="fa-solid fa-rotate mr-1 text-emerald-500"></i>Atualiza sozinho a cada sincronização (${gamHHMM(agora)}). Horário real onde o BI tem: entrada, produção e atividades (hora do lançamento), agendamento (hora do cadastro) e visita (horário da visita). <b>Análises, aprovações e vendas vêm da planilha só com a data</b> — aparecem como "sem horário" e ficam fora dos filtros de manhã/tarde/intervalo.</p>`;
+
+            if (gamAcomp.modo === 'equipe') {
+                const feed = [];
+                ativos.filter(c => !gamAcomp.corretor || c === gamAcomp.corretor).forEach(c => gamAcompFiltraEventos(gamEventosDia(c, iso)).forEach(e => feed.push(Object.assign({ corretor: c }, e))));
+                feed.sort((a, b) => (a.hora === null) - (b.hora === null) || String(a.hora || '').localeCompare(String(b.hora || '')));
+                const comHora = feed.filter(e => e.hora), semHora = feed.filter(e => !e.hora);
+                const item = e => { const t = GAM_TIPOS[e.tipo]; return `<div class="flex items-center gap-3 py-2 border-b border-slate-800/40"><span class="w-14 text-right text-sm font-black tabular-nums ${e.hora ? 'text-slate-100' : 'text-slate-600'}">${e.hora || '— —'}</span><span class="text-lg leading-none">${t.icon}</span>${gamAvatar(e.corretor, 'w-7 h-7')}<div class="flex-1 min-w-0"><p class="text-sm text-slate-100"><b>${e.corretor.split(' ')[0]}</b> — ${e.titulo.toLowerCase()}</p><p class="text-[10px] text-slate-500 truncate">${e.resultado}</p></div><span class="text-sm font-black tabular-nums ${e.pontos > 0 ? 'text-emerald-400' : (e.pontos < 0 ? 'text-rose-400' : 'text-slate-600')}">${e.pontos > 0 ? '+' : ''}${e.pontos}</span></div>`; };
+                return controles + `
+                <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-5">
+                    <h3 class="text-xs font-black tracking-widest text-slate-400 uppercase mb-2"><i class="fa-solid fa-stream text-brand-400 mr-1.5"></i>O que a equipe fez — ${gamFmtLongo(iso)} <span class="text-slate-600 normal-case tracking-normal font-semibold">· ${feed.length} evento(s) · ${gamN(feed.reduce((s, e) => s + e.pontos, 0))} pts</span></h3>
+                    ${comHora.length ? comHora.map(item).join('') : '<p class="text-xs text-slate-600 py-3">Nenhum evento com horário neste recorte.</p>'}
+                    ${semHora.length ? `<p class="text-[10px] font-black text-slate-500 uppercase tracking-wider mt-4 mb-1">Durante o dia — sem horário no CRM (planilha só tem a data)</p>${semHora.map(item).join('')}` : ''}
+                </section>`;
+            }
+
+            const cards = ativos.filter(c => !gamAcomp.corretor || c === gamAcomp.corretor).map(c => {
+                const todos = gamEventosDia(c, iso);
+                const evs = gamAcompFiltraEventos(todos);
+                const d = gamDia(c, iso);
+                const meta = gamMetaDe(c, 'dia');
+                const entrada = (d.manuais.find(m => m.atividade === 'presenca') || {}).horario || null;
+                const pt = entrada ? gamPontualidade(entrada) : null;
+                const ritmo = gamRitmoDia(d.pontos, meta, iso, todos.filter(e => e.tipo !== 'presenca').length);
+                const semMov = entrada && !todos.some(e => e.tipo !== 'presenca');
+                const aberto = !!gamAcomp.expandidos[c];
+                const id = 'gamAcomp_' + btoa(unescape(encodeURIComponent(c))).replace(/[^a-z0-9]/gi, '');
+                return `<div id="${id}" class="bg-slate-900/40 rounded-2xl border ${semMov ? 'border-rose-500/40' : 'border-slate-800'} overflow-hidden">
+                    <div onclick="gamAcompToggle('${c.replace(/'/g, "\\'")}')" class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-900/60 transition flex-wrap">
+                        ${gamAvatar(c, 'w-10 h-10')}
+                        <div class="min-w-[160px]"><p class="text-sm font-black text-white">${c}</p><p class="text-[10px] text-slate-500">Última atividade: <b class="text-slate-300">${gamUltimaAtividade(todos)}</b></p></div>
+                        <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Pontos hoje</p><p class="text-2xl font-black tabular-nums ${d.pontos > 0 ? 'text-white' : 'text-slate-600'}">${gamN(d.pontos)}</p></div>
+                        <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Entrada</p><p class="text-sm font-black ${pt ? pt.cls : 'text-slate-600'}">${pt ? `${pt.cor} ${entrada} — ${pt.txt}` : '—'}</p></div>
+                        <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Ritmo do dia</p><span class="text-[11px] font-black px-2 py-0.5 rounded-lg border ${ritmo.cls}">${ritmo.cor} ${ritmo.txt}</span></div>
+                        ${semMov ? '<span class="text-[11px] font-black text-rose-300 bg-rose-500/15 border border-rose-500/40 rounded-lg px-2 py-1">⚠️ SEM MOVIMENTAÇÃO</span>' : ''}
+                        <div class="ml-auto flex items-center gap-2"><div class="w-28">${gamBarra(d.pontos, meta)}</div><i class="fa-solid fa-chevron-${aberto ? 'up' : 'down'} text-slate-500 text-xs"></i></div>
+                    </div>
+                    ${aberto ? `<div class="px-4 pb-4 space-y-3 border-t border-slate-800/60 pt-3">
+                        ${gamResumoDiaHtml(c, iso)}
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                            <div class="lg:col-span-2"><p class="text-[9px] text-slate-500 uppercase font-bold mb-1">Linha do tempo — ${gamFmtLongo(iso)}${gamAcomp.periodo !== 'dia' || gamAcomp.tipo ? ' (filtrada)' : ''}</p>${evs.length ? evs.map(gamEventoHtml).join('') : '<p class="text-xs text-slate-600 py-3">Nenhum evento neste recorte.</p>'}</div>
+                            ${gamOrigemPontosHtml(evs, d.pontos)}
+                        </div>
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+            return controles + `<div class="space-y-2">${cards || '<p class="text-xs text-slate-600">Nenhum corretor ativo.</p>'}</div>`;
         }
 
         // ---------- HISTÓRICO ----------
