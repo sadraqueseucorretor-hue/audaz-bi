@@ -4262,7 +4262,7 @@
 
         const gamTaxa = (a, b) => b > 0 ? Math.round((a / b) * 100) : null;
         const gamTaxaTxt = (a, b) => { const t = gamTaxa(a, b); return t === null ? '—' : t + '%'; };
-        let gamView = 'hoje';      // hoje | semana | mes | individual | historico | gestao | config
+        let gamView = 'acompanhar';  // acompanhar (inicial) | hoje | semana | mes | individual | historico | gestao | config
         let gamDiaSel = null;      // ISO do dia em foco (view HOJE)
         let gamSemanaSel = null;   // nº da semana em foco (view SEMANA)
         let gamCorretorSel = null; // view INDIVIDUAL
@@ -4538,7 +4538,7 @@
             if (gamMigrarLigacoesLegado() && isDiretor) saveGamificacao();
             if (!gamDiaSel) gamDiaSel = gamISO(gamHoje());
             const semAtual = gamSemanaAtualN();
-            const tabs = [['hoje','Hoje','fa-sun'],['acompanhar','Acompanhar o dia','fa-stream'],['semana','Semana','fa-calendar-week'],['mes','Mês','fa-calendar'],['individual','Individual','fa-user'],['historico','Histórico','fa-clock-rotate-left'],['gestao','Gestão','fa-user-tie'],['config','Configurar','fa-sliders']];
+            const tabs = [['acompanhar','Acompanhar o dia','fa-stream'],['hoje','Hoje','fa-sun'],['semana','Semana','fa-calendar-week'],['mes','Mês','fa-calendar'],['individual','Individual','fa-user'],['historico','Histórico','fa-clock-rotate-left'],['gestao','Gestão','fa-user-tie'],['config','Configurar','fa-sliders']];
             const semC = gamSemanaComercialAtual();
             const sem = semAtual > 0 ? semC : null;
             const cab = `
