@@ -687,7 +687,7 @@
                         <span class="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-400 text-sm font-black flex items-center justify-center shrink-0"><i class="fa-solid fa-users"></i></span>
                         <div class="min-w-0">
                             <h2 class="text-base font-black text-white tracking-wide uppercase leading-tight">3. Equipe</h2>
-                            <p class="text-[11px] text-slate-500 leading-tight">Ranking, IPC e atividade diária de cada corretor</p>
+                            <p class="text-[11px] text-slate-500 leading-tight">Ranking e IPC de cada corretor</p>
                         </div>
                         <div class="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent ml-2"></div>
                     </div>
@@ -837,109 +837,7 @@
                     </div>
                 </section>
 
-<div id="calendarView" class="space-y-6 pt-5 mt-2 border-t border-slate-800/60">
 
-                <!-- Cabeçalho: título + seletor de métrica + mês -->
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-                            <i class="fa-solid fa-fire text-orange-400"></i> Mapa de Calor Operacional
-                        </h2>
-                        <p class="text-xs text-slate-400">Acompanhe a produtividade diária da equipe.</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <!-- Seletor de métrica do calendário -->
-                        <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
-                            <button onclick="setCalendarMetric('analises')" id="calBtn-analises" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-sky-500 text-white">Análises</button>
-                            <button onclick="setCalendarMetric('aprovados')" id="calBtn-aprovados" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovados</button>
-                            <button onclick="setCalendarMetric('vendas')" id="calBtn-vendas" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
-                        </div>
-                        <span class="flex items-center gap-2 text-xs bg-slate-800 text-slate-300 font-bold px-3 py-2 rounded-lg" id="calMonthLabel">
-                            <i class="fa-solid fa-calendar-days text-slate-500"></i> Junho/2026
-                        </span>
-                    </div>
-                </div>
-
-                <!-- INDICADORES EXCLUSIVOS DO CALENDÁRIO -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-
-                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
-                        <div class="w-11 h-11 shrink-0 rounded-full bg-sky-500/15 text-sky-400 flex items-center justify-center text-lg"><i class="fa-solid fa-chart-line"></i></div>
-                        <div>
-                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Análises do Mês</p>
-                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiAnalisesMes">0</h4>
-                            <p class="text-[10px] text-slate-500">Total realizado</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
-                        <div class="w-11 h-11 shrink-0 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-solid fa-circle-check"></i></div>
-                        <div>
-                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aprovados do Mês</p>
-                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiAprovadosMes">0</h4>
-                            <p class="text-[10px] text-slate-500">Total realizado</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
-                        <div class="w-11 h-11 shrink-0 rounded-full bg-purple-500/15 text-purple-400 flex items-center justify-center text-lg"><i class="fa-solid fa-trophy"></i></div>
-                        <div>
-                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vendas do Mês</p>
-                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiVendasMes">0</h4>
-                            <p class="text-[10px] text-slate-500">Total realizado</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
-                        <div class="w-11 h-11 shrink-0 rounded-full bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg"><i class="fa-solid fa-users"></i></div>
-                        <div>
-                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Corretores Ativos</p>
-                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiCorretoresAtivos">0 / 0</h4>
-                            <p class="text-[10px] text-slate-500">Ativos no mês</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
-                        <div class="w-11 h-11 shrink-0 rounded-full bg-rose-500/15 text-rose-400 flex items-center justify-center text-lg"><i class="fa-solid fa-fire"></i></div>
-                        <div>
-                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Melhor Sequência</p>
-                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiMelhorSequencia">0</h4>
-                            <p class="text-[10px] text-slate-500" id="calKpiMelhorSequenciaSub">Dias consecutivos</p>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- CONTÊINER DA MATRIZ DO CALENDÁRIO COM ROLAGEM HORIZONTAL -->
-                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
-
-                    <!-- Tabela com scroll horizontal suave -->
-                    <div class="overflow-x-auto rounded-xl border border-slate-800/80">
-                        <table class="w-full text-center border-collapse">
-                            <thead>
-                                <tr class="bg-slate-950/80 border-b border-slate-800 text-[10px] text-slate-400 font-bold uppercase tracking-wider" id="calendarHeaderRow">
-                                    <!-- Dinâmico via JS -->
-                                </tr>
-                            </thead>
-                            <tbody id="calendarTableBody" class="divide-y divide-slate-800/40">
-                                <!-- Dinâmico via JS -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Legenda + última atualização -->
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-800/60">
-                        <div class="flex flex-wrap items-center gap-4 text-[11px] font-bold text-slate-400" id="calendarLegend">
-                            <!-- Preenchida via JS -->
-                        </div>
-                        <div class="flex items-center gap-2 text-[11px] text-slate-500" id="calendarUpdatedAt">
-                            <i class="fa-solid fa-rotate cursor-pointer hover:text-slate-300 transition" onclick="drawProductionCalendar()" title="Atualizar agora"></i>
-                            <span>Dados atualizados até --/--/---- --:--</span>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
                     </div>
                 </div>
 
@@ -1233,6 +1131,112 @@
                 <div id="gamificacaoSection" class="hidden">
                     <div id="gamRoot"></div>
                 </div>
+
+                <!-- CALENDÁRIO DE PRODUÇÃO / MAPA DE CALOR: tela EXCLUSIVA da aba "Calendário" (15/09/2026 —
+                     antes ficava inline no Painel, dentro do grupo Equipe). -->
+<div id="calendarView" class="hidden space-y-6">
+
+                <!-- Cabeçalho: título + seletor de métrica + mês -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                            <i class="fa-solid fa-fire text-orange-400"></i> Mapa de Calor Operacional
+                        </h2>
+                        <p class="text-xs text-slate-400">Acompanhe a produtividade diária da equipe.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <!-- Seletor de métrica do calendário -->
+                        <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                            <button onclick="setCalendarMetric('analises')" id="calBtn-analises" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-sky-500 text-white">Análises</button>
+                            <button onclick="setCalendarMetric('aprovados')" id="calBtn-aprovados" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovados</button>
+                            <button onclick="setCalendarMetric('vendas')" id="calBtn-vendas" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
+                        </div>
+                        <span class="flex items-center gap-2 text-xs bg-slate-800 text-slate-300 font-bold px-3 py-2 rounded-lg" id="calMonthLabel">
+                            <i class="fa-solid fa-calendar-days text-slate-500"></i> Junho/2026
+                        </span>
+                    </div>
+                </div>
+
+                <!-- INDICADORES EXCLUSIVOS DO CALENDÁRIO -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
+                        <div class="w-11 h-11 shrink-0 rounded-full bg-sky-500/15 text-sky-400 flex items-center justify-center text-lg"><i class="fa-solid fa-chart-line"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Análises do Mês</p>
+                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiAnalisesMes">0</h4>
+                            <p class="text-[10px] text-slate-500">Total realizado</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
+                        <div class="w-11 h-11 shrink-0 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-solid fa-circle-check"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aprovados do Mês</p>
+                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiAprovadosMes">0</h4>
+                            <p class="text-[10px] text-slate-500">Total realizado</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
+                        <div class="w-11 h-11 shrink-0 rounded-full bg-purple-500/15 text-purple-400 flex items-center justify-center text-lg"><i class="fa-solid fa-trophy"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vendas do Mês</p>
+                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiVendasMes">0</h4>
+                            <p class="text-[10px] text-slate-500">Total realizado</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
+                        <div class="w-11 h-11 shrink-0 rounded-full bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg"><i class="fa-solid fa-users"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Corretores Ativos</p>
+                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiCorretoresAtivos">0 / 0</h4>
+                            <p class="text-[10px] text-slate-500">Ativos no mês</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
+                        <div class="w-11 h-11 shrink-0 rounded-full bg-rose-500/15 text-rose-400 flex items-center justify-center text-lg"><i class="fa-solid fa-fire"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Melhor Sequência</p>
+                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiMelhorSequencia">0</h4>
+                            <p class="text-[10px] text-slate-500" id="calKpiMelhorSequenciaSub">Dias consecutivos</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- CONTÊINER DA MATRIZ DO CALENDÁRIO COM ROLAGEM HORIZONTAL -->
+                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+
+                    <!-- Tabela com scroll horizontal suave -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-800/80">
+                        <table class="w-full text-center border-collapse">
+                            <thead>
+                                <tr class="bg-slate-950/80 border-b border-slate-800 text-[10px] text-slate-400 font-bold uppercase tracking-wider" id="calendarHeaderRow">
+                                    <!-- Dinâmico via JS -->
+                                </tr>
+                            </thead>
+                            <tbody id="calendarTableBody" class="divide-y divide-slate-800/40">
+                                <!-- Dinâmico via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Legenda + última atualização -->
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-800/60">
+                        <div class="flex flex-wrap items-center gap-4 text-[11px] font-bold text-slate-400" id="calendarLegend">
+                            <!-- Preenchida via JS -->
+                        </div>
+                        <div class="flex items-center gap-2 text-[11px] text-slate-500" id="calendarUpdatedAt">
+                            <i class="fa-solid fa-rotate cursor-pointer hover:text-slate-300 transition" onclick="drawProductionCalendar()" title="Atualizar agora"></i>
+                            <span>Dados atualizados até --/--/---- --:--</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
 
                 <!-- TELA (modo TV): visão de exibição para monitor da equipe — ver renderTela(). -->
                 <div id="telaSection" class="hidden">
@@ -6074,7 +6078,7 @@
             // O Mapa de Calor só existe nas views "dashboard" e "calendar" (é inline no painel) —
             // redesenhá-lo ao entrar em Rankings/Corretor/Plantões era ~12ms jogados fora em TODA
             // troca de aba, contribuindo pro travamento que o usuário reportou.
-            if (viewName === 'dashboard' || viewName === 'calendar') drawProductionCalendar();
+            if (viewName === 'calendar') drawProductionCalendar();
             const onCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-100";
             const offCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200";
             const linkDashboard = document.getElementById('navLinkDashboard');
@@ -6102,7 +6106,8 @@
             const plantoesSection = document.getElementById('plantoesSection');
             const telaSection = document.getElementById('telaSection');
             const gamSection = document.getElementById('gamificacaoSection');
-            const secoesDedicadas = ['rankings', 'corretor', 'plantoes', 'tela', 'gamificacao'];
+            const calSection = document.getElementById('calendarView');
+            const secoesDedicadas = ['rankings', 'corretor', 'plantoes', 'tela', 'gamificacao', 'calendar'];
             if (dashboardViewEl) {
                 Array.from(dashboardViewEl.children).forEach(child => {
                     if (child === quickSection) { child.classList.toggle('hidden', viewName !== 'rankings'); return; }
@@ -6110,6 +6115,7 @@
                     if (child === plantoesSection) { child.classList.toggle('hidden', viewName !== 'plantoes'); return; }
                     if (child === telaSection) { child.classList.toggle('hidden', viewName !== 'tela'); return; }
                     if (child === gamSection) { child.classList.toggle('hidden', viewName !== 'gamificacao'); return; }
+                    if (child === calSection) { child.classList.toggle('hidden', viewName !== 'calendar'); return; }
                     child.classList.toggle('hidden', secoesDedicadas.includes(viewName));
                 });
             }
@@ -7820,7 +7826,7 @@
             renderCharts();
             renderAlerts(referenceDate);
 
-            drawProductionCalendar();
+            if (activeView === 'calendar') drawProductionCalendar();   // Mapa de Calor só existe na aba Calendário
             renderFiltersSummary();
             renderCorretorCards();
             ajustarBlocosEquipe();
