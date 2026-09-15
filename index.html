@@ -1184,7 +1184,7 @@
                             <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
                                 <i class="fa-solid fa-clipboard-list text-violet-400"></i> Plantões
                             </h2>
-                            <p class="text-xs text-slate-500">Escalas Diamond, Roleta e Represados — semana inteira, uma coluna por dia.</p>
+                            <p class="text-xs text-slate-500">Escalas configuráveis — semana inteira, uma coluna por dia.</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="mudarSemanaPlantao(-1)" class="h-8 w-8 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition flex items-center justify-center"><i class="fa-solid fa-chevron-left text-xs"></i></button>
@@ -1576,7 +1576,7 @@
 
     <!-- MODAL: CAPACIDADE MÁXIMA DE CADA ESCALA (Diamond/Roleta/Represados) -->
     <div id="plantaoVagasModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-6 relative shadow-2xl">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 relative shadow-2xl">
             <button onclick="fecharPlantaoVagasModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
@@ -1585,25 +1585,14 @@
                     <i class="fa-solid fa-sliders text-lg"></i>
                 </div>
                 <div>
-                    <h4 class="text-base font-bold text-slate-200">Capacidade das Escalas</h4>
-                    <p class="text-xs text-slate-500">Número máximo de vagas por dia em cada escala</p>
+                    <h4 class="text-base font-bold text-slate-200">Escalas do Plantão</h4>
+                    <p class="text-xs text-slate-500">Renomeie, troque cor e ícone, defina as vagas por dia, adicione ou remova escalas</p>
                 </div>
             </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-[10px] font-bold text-violet-400 uppercase mb-1.5">Diamond</label>
-                    <input type="number" min="0" id="vagasInputDiamond" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500 transition">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-emerald-400 uppercase mb-1.5">Roleta</label>
-                    <input type="number" min="0" id="vagasInputRoleta" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500 transition">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-amber-400 uppercase mb-1.5">Represados</label>
-                    <input type="number" min="0" id="vagasInputRepresados" class="w-full bg-slate-950 border border-slate-800 text-sm rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500 transition">
-                </div>
-            </div>
-            <button onclick="salvarVagasPorEscala()" class="w-full mt-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-lg transition">Salvar</button>
+            <div id="plantaoEscalasEditor" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1"></div>
+            <button onclick="plantaoAdicionarEscala()" class="mt-3 text-xs font-bold text-brand-400 hover:text-brand-300"><i class="fa-solid fa-plus mr-1"></i>Adicionar escala</button>
+            <p class="text-[10px] text-slate-600 mt-2">Remover uma escala não apaga o que já foi escalado nela — os dados ficam guardados e voltam se você a adicionar de novo com o mesmo nome interno.</p>
+            <button onclick="salvarVagasPorEscala()" class="w-full mt-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-lg transition">Salvar</button>
         </div>
     </div>
 
@@ -6125,11 +6114,42 @@
         // empilhadas dentro de cada dia, vagas fixas por escala, status Confirmado/Aguardando por
         // pessoa, edição num modal por (escala, dia). Cada pessoa na fila agora é
         // { nome, confirmado } — não mais uma string simples.
-        const ESCALAS_PLANTAO_DEF = [
-            { key: 'diamond', label: 'Diamond', text: 'text-violet-400', bg: 'bg-violet-500/15', border: 'border-violet-500/40', icon: 'fa-gem' },
-            { key: 'roleta', label: 'Roleta', text: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', icon: 'fa-bullseye' },
-            { key: 'represados', label: 'Represados', text: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/40', icon: 'fa-users' }
+        // ESCALAS CONFIGURÁVEIS (pedido 15/09/2026): o gestor renomeia (ex.: Roleta → C2S), troca
+        // cor/ícone/vagas, adiciona e remove escalas — tudo salvo na nuvem. A `key` é fixa e interna
+        // (é o que indexa escalasPlantao/vagas/info); só o `label` muda. As 3 originais continuam
+        // com as keys 'diamond'/'roleta'/'represados' pra nada do histórico se perder.
+        const PLANTAO_CORES = ['violet', 'emerald', 'amber', 'sky', 'rose', 'cyan', 'indigo', 'orange', 'pink', 'teal', 'lime', 'fuchsia'];
+        const PLANTAO_ICONES = ['fa-gem', 'fa-bullseye', 'fa-users', 'fa-phone', 'fa-star', 'fa-fire', 'fa-bolt', 'fa-house', 'fa-crown', 'fa-rocket', 'fa-handshake', 'fa-flag'];
+        const PLANTAO_ESCALAS_PADRAO = [
+            { key: 'diamond', label: 'Diamond', cor: 'violet', icon: 'fa-gem' },
+            { key: 'roleta', label: 'Roleta', cor: 'emerald', icon: 'fa-bullseye' },
+            { key: 'represados', label: 'Represados', cor: 'amber', icon: 'fa-users' }
         ];
+        let plantaoEscalasCfg = PLANTAO_ESCALAS_PADRAO.map(e => Object.assign({}, e));
+        let ESCALAS_PLANTAO_DEF = [];   // derivada de plantaoEscalasCfg (com as classes Tailwind)
+        function plantaoDefDe(e) { const c = PLANTAO_CORES.includes(e.cor) ? e.cor : 'violet'; return { key: e.key, label: e.label || e.key, cor: c, icon: e.icon || 'fa-star', text: `text-${c}-400`, bg: `bg-${c}-500/15`, border: `border-${c}-500/40` }; }
+        function rebuildEscalasPlantaoDef() {
+            ESCALAS_PLANTAO_DEF = plantaoEscalasCfg.map(plantaoDefDe);
+            // garante as estruturas por escala (uma escala nova entra vazia; uma removida mantém os dados guardados)
+            plantaoEscalasCfg.forEach(e => {
+                if (!escalasPlantao[e.key]) escalasPlantao[e.key] = {};
+                if (vagasPorEscala[e.key] === undefined) vagasPorEscala[e.key] = 2;
+                if (plantaoInfoEscala[e.key] === undefined) plantaoInfoEscala[e.key] = '';
+            });
+        }
+        function loadPlantaoEscalasCfg() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(`${appId}-plantao-escalas`) || 'null');
+                if (Array.isArray(saved) && saved.length) plantaoEscalasCfg = saved.filter(e => e && e.key).map(e => ({ key: e.key, label: e.label || e.key, cor: e.cor || 'violet', icon: e.icon || 'fa-star' }));
+            } catch (e) {}
+            rebuildEscalasPlantaoDef();
+        }
+        function savePlantaoEscalasCfg() {
+            rebuildEscalasPlantaoDef();
+            localStorage.setItem(`${appId}-plantao-escalas`, JSON.stringify(plantaoEscalasCfg));
+            localStorage.setItem(`${appId}-vagas-por-escala`, JSON.stringify(vagasPorEscala));
+            pushCloudSettings();
+        }
         // Notas livres por escala (ex.: regras de tolerância/horário) — editáveis pelo diretor,
         // mostradas na barra lateral "Informações Importantes". Puramente informativo, não afeta
         // nenhum cálculo.
@@ -6211,26 +6231,56 @@
                 if (saved && typeof saved === 'object') vagasPorEscala = Object.assign({ diamond: 3, roleta: 2, represados: 1 }, saved);
             } catch (e) {}
         }
+        // Rascunho editado no modal; só vira definitivo no Salvar.
+        let plantaoEscalasRascunho = null;
         function abrirPlantaoVagasModal() {
-            document.getElementById('vagasInputDiamond').value = vagasPorEscala.diamond;
-            document.getElementById('vagasInputRoleta').value = vagasPorEscala.roleta;
-            document.getElementById('vagasInputRepresados').value = vagasPorEscala.represados;
+            plantaoEscalasRascunho = plantaoEscalasCfg.map(e => Object.assign({ vagas: vagasPorEscala[e.key] }, e));
+            renderPlantaoEscalasEditor();
             document.getElementById('plantaoVagasModal').classList.remove('hidden');
         }
+        function renderPlantaoEscalasEditor() {
+            const el = document.getElementById('plantaoEscalasEditor');
+            if (!el) return;
+            const r = plantaoEscalasRascunho;
+            el.innerHTML = r.map((e, i) => {
+                const c = PLANTAO_CORES.includes(e.cor) ? e.cor : 'violet';
+                const temDados = Object.values(escalasPlantao[e.key] || {}).some(f => f && f.length);
+                return `<div class="flex items-center gap-2 bg-slate-950/60 border border-${c}-500/30 rounded-xl px-3 py-2">
+                    <div class="h-8 w-8 rounded-lg bg-${c}-500/15 text-${c}-400 flex items-center justify-center shrink-0"><i class="fa-solid ${e.icon}"></i></div>
+                    <input value="${(e.label || '').replace(/"/g, '&quot;')}" placeholder="Nome da escala" oninput="plantaoEscalasRascunho[${i}].label=this.value" class="flex-1 min-w-[110px] bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-sm font-bold text-slate-100 outline-none focus:border-brand-500">
+                    <select onchange="plantaoEscalasRascunho[${i}].cor=this.value; renderPlantaoEscalasEditor()" title="Cor" class="bg-slate-950 border border-slate-800 rounded-lg px-1.5 py-1.5 text-xs text-${c}-300">${PLANTAO_CORES.map(x => `<option value="${x}" ${x === c ? 'selected' : ''}>${x}</option>`).join('')}</select>
+                    <select onchange="plantaoEscalasRascunho[${i}].icon=this.value; renderPlantaoEscalasEditor()" title="Ícone" class="bg-slate-950 border border-slate-800 rounded-lg px-1.5 py-1.5 text-xs text-slate-300">${PLANTAO_ICONES.map(x => `<option value="${x}" ${x === e.icon ? 'selected' : ''}>${x.replace('fa-', '')}</option>`).join('')}</select>
+                    <label class="flex items-center gap-1 text-[10px] text-slate-500 shrink-0">vagas <input type="number" min="0" value="${e.vagas}" onchange="plantaoEscalasRascunho[${i}].vagas=Math.max(0, parseInt(this.value,10)||0)" class="w-14 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1.5 text-sm text-slate-200 text-center"></label>
+                    <div class="flex flex-col gap-0.5 shrink-0"><button onclick="plantaoMoverEscala(${i},-1)" ${i === 0 ? 'disabled' : ''} class="text-slate-500 hover:text-slate-200 disabled:opacity-20 text-[10px]"><i class="fa-solid fa-chevron-up"></i></button><button onclick="plantaoMoverEscala(${i},1)" ${i === r.length - 1 ? 'disabled' : ''} class="text-slate-500 hover:text-slate-200 disabled:opacity-20 text-[10px]"><i class="fa-solid fa-chevron-down"></i></button></div>
+                    <button onclick="plantaoRemoverEscala(${i})" title="${temDados ? 'Remover (os dias já escalados ficam guardados)' : 'Remover'}" class="text-slate-600 hover:text-rose-400 shrink-0"><i class="fa-solid fa-trash text-xs"></i></button>
+                </div>`;
+            }).join('') || '<p class="text-xs text-slate-500">Nenhuma escala — adicione pelo menos uma.</p>';
+        }
+        function plantaoAdicionarEscala() {
+            const usados = new Set(plantaoEscalasRascunho.map(e => e.key));
+            let key = 'escala' + Date.now().toString(36).slice(-4);
+            while (usados.has(key)) key += 'x';
+            const cor = PLANTAO_CORES[plantaoEscalasRascunho.length % PLANTAO_CORES.length];
+            plantaoEscalasRascunho.push({ key, label: '', cor, icon: 'fa-star', vagas: 2 });
+            renderPlantaoEscalasEditor();
+            setTimeout(() => { const inputs = document.querySelectorAll('#plantaoEscalasEditor input[placeholder]'); const u = inputs[inputs.length - 1]; if (u) u.focus(); }, 30);
+        }
+        function plantaoRemoverEscala(i) { plantaoEscalasRascunho.splice(i, 1); renderPlantaoEscalasEditor(); }
+        function plantaoMoverEscala(i, d) { const j = i + d; if (j < 0 || j >= plantaoEscalasRascunho.length) return; const t = plantaoEscalasRascunho[i]; plantaoEscalasRascunho[i] = plantaoEscalasRascunho[j]; plantaoEscalasRascunho[j] = t; renderPlantaoEscalasEditor(); }
         function fecharPlantaoVagasModal() {
             document.getElementById('plantaoVagasModal').classList.add('hidden');
         }
         function salvarVagasPorEscala() {
-            const lerNum = (id) => Math.max(0, parseInt(document.getElementById(id).value, 10) || 0);
-            vagasPorEscala = {
-                diamond: lerNum('vagasInputDiamond'),
-                roleta: lerNum('vagasInputRoleta'),
-                represados: lerNum('vagasInputRepresados')
-            };
-            localStorage.setItem(`${appId}-vagas-por-escala`, JSON.stringify(vagasPorEscala));
-            pushCloudSettings();
+            const r = (plantaoEscalasRascunho || []).map(e => Object.assign({}, e, { label: (e.label || '').trim() }));
+            if (!r.length) { showToast('Deixe pelo menos uma escala.', true); return; }
+            if (r.some(e => !e.label)) { showToast('Toda escala precisa de um nome.', true); return; }
+            r.forEach(e => { vagasPorEscala[e.key] = Math.max(0, parseInt(e.vagas, 10) || 0); });
+            plantaoEscalasCfg = r.map(e => ({ key: e.key, label: e.label, cor: e.cor, icon: e.icon }));
+            savePlantaoEscalasCfg();
             fecharPlantaoVagasModal();
             renderPlantoes();
+            renderPlantaoInfoEscala();
+            showToast('Escalas salvas.');
         }
 
         let plantaoSemanaRef = new Date();
@@ -6392,6 +6442,7 @@
         // uma barra fixa com o resumo de vagas da semana, notas por escala e total de plantonistas.
         // Abaixo da grade, um resumo com quantas vezes cada corretor apareceu em cada escala.
         function renderPlantoes() {
+            rebuildEscalasPlantaoDef();
             const ref = new Date(plantaoSemanaRef); ref.setHours(0, 0, 0, 0);
             const dow = ref.getDay();
             const desdeSegunda = (dow === 0) ? 6 : (dow - 1);
@@ -6459,14 +6510,14 @@
                 ESCALAS_PLANTAO_DEF.forEach(e => {
                     const fila = escalasPlantao[e.key][iso] || [];
                     fila.forEach(pessoa => {
-                        if (!contagem[pessoa.nome]) contagem[pessoa.nome] = { diamond: 0, roleta: 0, represados: 0 };
+                        if (!contagem[pessoa.nome]) { contagem[pessoa.nome] = {}; ESCALAS_PLANTAO_DEF.forEach(x => { contagem[pessoa.nome][x.key] = 0; }); }
                         contagem[pessoa.nome][e.key]++;
                     });
                 });
             }
             const nomes = Object.keys(contagem).sort((a, b) => {
-                const totalA = contagem[a].diamond + contagem[a].roleta + contagem[a].represados;
-                const totalB = contagem[b].diamond + contagem[b].roleta + contagem[b].represados;
+                const totalA = ESCALAS_PLANTAO_DEF.reduce((s, e) => s + (contagem[a][e.key] || 0), 0);
+                const totalB = ESCALAS_PLANTAO_DEF.reduce((s, e) => s + (contagem[b][e.key] || 0), 0);
                 return totalB - totalA || a.localeCompare(b, 'pt-BR');
             });
             if (!nomes.length) {
@@ -6475,14 +6526,12 @@
             }
             const head = `<thead><tr class="border-b border-slate-800">
                 <th class="text-left py-2 pr-3 text-slate-500 text-[10px] uppercase font-bold tracking-wide">Corretor</th>
-                <th class="text-center py-2 px-3 text-violet-400 text-[10px] uppercase font-bold tracking-wide">Diamond</th>
-                <th class="text-center py-2 px-3 text-emerald-400 text-[10px] uppercase font-bold tracking-wide">Roleta</th>
-                <th class="text-center py-2 px-3 text-amber-400 text-[10px] uppercase font-bold tracking-wide">Represados</th>
+                ${ESCALAS_PLANTAO_DEF.map(e => `<th class="text-center py-2 px-3 ${e.text} text-[10px] uppercase font-bold tracking-wide">${e.label}</th>`).join('')}
                 <th class="text-center py-2 pl-3 text-slate-300 text-[10px] uppercase font-bold tracking-wide">Total</th>
             </tr></thead>`;
             const body = nomes.map(nome => {
                 const c = contagem[nome];
-                const total = c.diamond + c.roleta + c.represados;
+                const total = ESCALAS_PLANTAO_DEF.reduce((s, e) => s + (c[e.key] || 0), 0);
                 return `
                     <tr class="border-b border-slate-800/50">
                         <td class="py-2.5 pr-3">
@@ -6491,9 +6540,7 @@
                                 <span class="text-sm font-semibold text-slate-200 truncate">${nome}</span>
                             </div>
                         </td>
-                        <td class="text-center py-2.5 px-3 font-bold ${c.diamond ? 'text-violet-300' : 'text-slate-700'}">${c.diamond}</td>
-                        <td class="text-center py-2.5 px-3 font-bold ${c.roleta ? 'text-emerald-300' : 'text-slate-700'}">${c.roleta}</td>
-                        <td class="text-center py-2.5 px-3 font-bold ${c.represados ? 'text-amber-300' : 'text-slate-700'}">${c.represados}</td>
+                        ${ESCALAS_PLANTAO_DEF.map(e => `<td class="text-center py-2.5 px-3 font-bold ${c[e.key] ? e.text : 'text-slate-700'}">${c[e.key] || 0}</td>`).join('')}
                         <td class="text-center py-2.5 pl-3 font-extrabold text-slate-100">${total}</td>
                     </tr>`;
             }).join('');
@@ -6522,6 +6569,7 @@
             loadEscalasPlantao();
             loadVagasPorEscala();
             loadPlantaoInfoEscala();
+            loadPlantaoEscalasCfg();
             loadIpcMesesCustom();
             loadGamificacao();
             // TV bootando direto na Tela: abra o BI com ?tela=1 ou #tela e ele já entra no modo
@@ -6741,6 +6789,8 @@
                 if (data.escalasPlantao && typeof data.escalasPlantao === 'object') { escalasPlantao = Object.assign({ diamond: {}, roleta: {}, represados: {} }, data.escalasPlantao); localStorage.setItem(`${appId}-escalas-plantao`, JSON.stringify(escalasPlantao)); }
                 if (data.vagasPorEscala && typeof data.vagasPorEscala === 'object') { vagasPorEscala = Object.assign({ diamond: 3, roleta: 2, represados: 1 }, data.vagasPorEscala); localStorage.setItem(`${appId}-vagas-por-escala`, JSON.stringify(vagasPorEscala)); }
                 if (data.plantaoInfoEscala && typeof data.plantaoInfoEscala === 'object') { plantaoInfoEscala = Object.assign({ diamond: '', roleta: '', represados: '' }, data.plantaoInfoEscala); localStorage.setItem(`${appId}-plantao-info-escala`, JSON.stringify(plantaoInfoEscala)); }
+                if (Array.isArray(data.plantaoEscalas) && data.plantaoEscalas.length) { plantaoEscalasCfg = data.plantaoEscalas.filter(e => e && e.key).map(e => ({ key: e.key, label: e.label || e.key, cor: e.cor || 'violet', icon: e.icon || 'fa-star' })); localStorage.setItem(`${appId}-plantao-escalas`, JSON.stringify(plantaoEscalasCfg)); }
+                rebuildEscalasPlantaoDef();
                 if (data.gamificacao && typeof data.gamificacao === 'object') {
                     gamConfig = gamMesclarConfig(data.gamificacao.config);
                     if (Array.isArray(data.gamificacao.lancamentos)) gamLancamentos = data.gamificacao.lancamentos;
@@ -6824,6 +6874,7 @@
                     escalasPlantao: escalasPlantao,
                     vagasPorEscala: vagasPorEscala,
                     plantaoInfoEscala: plantaoInfoEscala,
+                    plantaoEscalas: plantaoEscalasCfg,
                     gamificacao: { config: gamConfig, lancamentos: gamLancamentos, producao: gamProducao, ajustes: gamAjustes },
                     _updatedAt: Date.now()
                 };
