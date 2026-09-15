@@ -4533,7 +4533,7 @@
                     <div class="flex items-center gap-2 flex-wrap">
                         <button onclick="gamAbrirProducao()" class="text-xs font-black text-white bg-brand-500 hover:bg-brand-400 rounded-xl px-4 py-2.5 transition shadow-lg shadow-brand-500/20 flex items-center gap-2 disabled:opacity-40" ${isDiretor ? '' : 'disabled title="Entre como diretor"'}><i class="fa-solid fa-plus"></i> Registrar produção</button>
                         <button onclick="gamView='hoje'; gamGradeAberta=true; renderGamificacao(); setTimeout(()=>{ const g=document.getElementById('gamGradeSec'); if(g) g.scrollIntoView({behavior:'smooth',block:'start'}); },50)" class="text-xs font-black text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl px-4 py-2.5 transition shadow-lg shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-40" ${isDiretor ? '' : 'disabled title="Entre como diretor"'}><i class="fa-solid fa-table-list"></i> Preencher equipe</button>
-                        <button onclick="gamAbrirLancamento('gestor')" class="text-xs font-black text-indigo-200 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 rounded-xl px-4 py-2.5 transition flex items-center gap-2 disabled:opacity-40" ${isDiretor ? '' : 'disabled title="Entre como diretor"'}><i class="fa-solid fa-user-tie"></i> Minha atividade</button>
+                        <button onclick="gamAbrirMinhaAtividade()" class="text-xs font-black text-indigo-200 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 rounded-xl px-4 py-2.5 transition flex items-center gap-2 disabled:opacity-40" ${isDiretor ? '' : 'disabled title="Entre como diretor"'}><i class="fa-solid fa-user-tie"></i> Meu dia</button>
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5 flex-wrap bg-slate-950/60 border border-slate-800 rounded-2xl p-1.5">
@@ -4818,6 +4818,78 @@
             saveGamificacao();
             gamFecharModal();
             showToast(`Produção de ${c} salva.`);
+            renderGamificacao();
+        }
+
+        // ---------- MEU DIA (gestor) — formulário único, igual ao do corretor ----------
+        // Todas as regras manuais da gestão com contador −/+, já carregando o que foi lançado no
+        // dia; um Salvar sincroniza (quantidade nova substitui a antiga, sem duplicar).
+        function gamGestorAtividadesDoDia(iso) {
+            const q = {};
+            gamLancamentos.filter(l => !l.cancelado && l.corretor === '__GESTOR__' && l.data === iso).forEach(l => { q[l.atividade] = (q[l.atividade] || 0) + (+l.quantidade || 1); });
+            return q;
+        }
+        function gamAbrirMinhaAtividade() {
+            if (!isDiretor) { showToast('Entre como diretor para registrar.', true); return; }
+            gamFecharModal();
+            const hojeISO = gamISO(gamHoje());
+            const dataPre = (gamDiaSel && gamDiaSel >= gamConfig.inicio) ? gamDiaSel : (hojeISO >= gamConfig.inicio ? hojeISO : gamConfig.inicio);
+            const regras = (gamConfig.gestor.regras || []).filter(r => r.ativo !== false && !r.auto);
+            const autos = (gamConfig.gestor.regras || []).filter(r => r.ativo !== false && r.auto);
+            document.getElementById('gamModalTitulo').innerHTML = `<i class="fa-solid fa-user-tie text-indigo-400 mr-1.5"></i>Meu dia — ${gamConfig.gestor.nome}`;
+            document.getElementById('gamModalBody').innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <div><label class="text-[10px] font-bold text-slate-500 uppercase">Data</label><input type="date" id="gamGesData" value="${dataPre}" min="${gamConfig.inicio}" onchange="gamGesPrefill()" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></div>
+                        <div class="text-right"><p class="text-[9px] text-slate-500 uppercase font-bold">Pontos deste dia</p><p id="gamGesTotal" class="text-2xl font-black tabular-nums text-white leading-tight">0</p></div>
+                    </div>
+                    <div class="rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2"><i class="fa-solid fa-bolt mr-1.5"></i>O que eu fiz hoje</p>
+                        ${regras.length ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">${regras.map(r => `<div class="flex items-center justify-between gap-2 bg-slate-950/60 rounded-lg px-2.5 py-1.5"><div class="min-w-0"><p class="text-xs font-bold text-slate-200 truncate">${r.label}</p><p class="text-[9px] text-slate-500">${r.pontos >= 0 ? '+' : ''}${r.pontos} cada</p></div><div class="flex items-center gap-1 shrink-0"><button type="button" onclick="gamGesStep('${r.key}',-1)" class="h-7 w-7 rounded-md border border-slate-700 text-slate-300 hover:border-indigo-500/50 text-xs font-black">−</button><input type="number" min="0" id="gamGesAtv_${r.key}" value="0" oninput="gamGesPreview()" class="w-11 bg-slate-950 border border-slate-800 rounded-md px-1 py-1 text-sm font-black text-center text-slate-100"><button type="button" onclick="gamGesStep('${r.key}',1)" class="h-7 w-7 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/30 text-xs font-black">+</button></div></div>`).join('')}</div>` : '<p class="text-xs text-slate-600">Nenhuma regra manual — crie em Configurar → Gestão.</p>'}
+                        ${autos.length ? `<p class="text-[10px] text-sky-400 mt-2"><i class="fa-solid fa-robot mr-1"></i>Automáticas (não precisa lançar): ${autos.map(a => `${a.label} +${a.pontos}`).join(' · ')}</p>` : ''}
+                    </div>
+                    <input id="gamGesObs" placeholder="Observação (opcional)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200">
+                    <p id="gamGesPreview" class="text-[11px] text-slate-400"></p>
+                </div>`;
+            const btn = document.getElementById('gamModalSalvar');
+            btn.textContent = 'Salvar meu dia';
+            btn.className = 'text-xs font-black text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg px-4 py-2';
+            btn.onclick = gamSalvarMinhaAtividade;
+            document.getElementById('gamModal').classList.remove('hidden');
+            gamGesPrefill();
+        }
+        function gamGesStep(key, delta) { const el = document.getElementById('gamGesAtv_' + key); if (!el) return; el.value = Math.max(0, (+el.value || 0) + delta); gamGesPreview(); }
+        function gamGesPrefill() {
+            const iso = document.getElementById('gamGesData').value;
+            const q = gamGestorAtividadesDoDia(iso);
+            (gamConfig.gestor.regras || []).forEach(r => { const el = document.getElementById('gamGesAtv_' + r.key); if (el) el.value = q[r.key] || 0; });
+            gamGesPreview(Object.keys(q).length ? 'Editando o que já foi lançado neste dia.' : '');
+        }
+        function gamGesPreview(nota) {
+            let total = 0; const itens = [];
+            (gamConfig.gestor.regras || []).forEach(r => { const el = document.getElementById('gamGesAtv_' + r.key); const q = el ? Math.max(0, +el.value || 0) : 0; if (q > 0) { total += (+r.pontos || 0) * q; itens.push(`${q}× ${r.label}`); } });
+            document.getElementById('gamGesTotal').textContent = gamN(total);
+            document.getElementById('gamGesPreview').innerHTML = `${nota ? `<span class="text-indigo-400 font-bold">${nota}</span><br>` : ''}${itens.length ? itens.join(' · ') : 'Marque o que fez usando os botões + / −.'}`;
+        }
+        function gamSalvarMinhaAtividade() {
+            if (!isDiretor) return;
+            const iso = document.getElementById('gamGesData').value;
+            if (!iso || iso < gamConfig.inicio) { showToast(`A gamificação começa em ${gamFmtLongo(gamConfig.inicio)}.`, true); return; }
+            const obs = (document.getElementById('gamGesObs').value || '').trim();
+            const autor = gamUsuarioAtual(), agora = new Date().toISOString();
+            const atuais = gamGestorAtividadesDoDia(iso);
+            let n = 0;
+            (gamConfig.gestor.regras || []).forEach(r => {
+                const el = document.getElementById('gamGesAtv_' + r.key); if (!el) return;
+                const q = Math.max(0, +el.value || 0);
+                if ((atuais[r.key] || 0) === q) return;
+                gamLancamentos.filter(l => !l.cancelado && l.corretor === '__GESTOR__' && l.data === iso && l.atividade === r.key).forEach(l => { l.cancelado = { por: autor, em: agora, motivo: 'atualizado em Meu dia' }; });
+                if (q > 0) gamLancamentos.push({ id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6), tipo: 'manual', corretor: '__GESTOR__', data: iso, atividade: r.key, label: r.label, quantidade: q, horario: null, pontos: (+r.pontos || 0) * q, justificativa: obs || 'Meu dia', autor, criadoEm: agora });
+                n++;
+            });
+            if (!n) { showToast('Nada mudou.'); gamFecharModal(); return; }
+            saveGamificacao(); gamFecharModal();
+            showToast('Seu dia foi salvo.');
             renderGamificacao();
         }
 
@@ -5320,7 +5392,7 @@
             const regras = (g.regras || []).map(r => `<div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-800/40"><span class="${r.ativo === false ? 'text-slate-600 line-through' : 'text-slate-300'}">${r.label}${r.auto ? ' <span class="text-[9px] font-black text-sky-400 bg-sky-500/10 px-1.5 rounded">AUTO</span>' : ''}</span><span class="font-black text-emerald-400">+${r.pontos}</span></div>`).join('');
             const hist = gamHistoricoLinhas({}).filter(r => r.corretor.endsWith('(gestão)')).slice(0, 30);
             return `
-                <div class="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 px-5 py-4"><p class="text-sm font-black text-indigo-300"><i class="fa-solid fa-user-tie mr-1.5"></i>Gamificação da Gestão — ${g.nome}</p><p class="text-[11px] text-indigo-200/70">Pontuação própria do gestor, separada do ranking dos corretores. Reuniões, treinamentos, conteúdo e ações: botão <b>+ Minha atividade</b> (atividade → quantidade → salvar). "Meta semanal da equipe atingida" pontua sozinha ao fechar cada semana em que a soma dos pontos dos corretores bateu a soma das metas.</p></div>
+                <div class="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 px-5 py-4 flex items-start justify-between gap-3 flex-wrap"><div><p class="text-sm font-black text-indigo-300"><i class="fa-solid fa-user-tie mr-1.5"></i>Gamificação da Gestão — ${g.nome}</p><p class="text-[11px] text-indigo-200/70">Pontuação própria do gestor, separada do ranking dos corretores. Reuniões, treinamentos, conteúdo e ações: botão <b>Meu dia</b> — marque tudo que fez com + / − e salve uma vez. "Meta semanal da equipe atingida" pontua sozinha ao fechar cada semana em que a soma dos pontos dos corretores bateu a soma das metas.</p></div>${isDiretor ? `<button onclick="gamAbrirMinhaAtividade()" class="text-xs font-black text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl px-4 py-2.5 shadow"><i class="fa-solid fa-pen mr-1.5"></i>Meu dia</button>` : ''}</div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     ${[['Semana ' + semN, sem, g.metas.semana], ['Mês ' + j.mesNome, mes, g.metas.mes]].map(([t, acc, meta]) => `<div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-4"><p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">${t}</p><p class="text-3xl font-black text-white tabular-nums">${gamN(acc.pontos)} <span class="text-xs text-slate-500 font-bold">/ ${gamN(meta)} pts</span></p>${gamBarra(acc.pontos, meta)}${acc.autos.length ? `<p class="text-[10px] text-sky-400 mt-1.5">${acc.autos.map(a => a.label + ' +' + a.pontos).join(' · ')}</p>` : ''}</div>`).join('')}
                 </div>
