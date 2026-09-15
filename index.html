@@ -4252,6 +4252,7 @@
             document.getElementById('gamModal').classList.remove('hidden');
         }
         function gamAjusteTexto(a) {
+            a = Object.assign({ original: {}, corrigido: {} }, a);
             if (a.acao === 'excluir') return 'não contar';
             if (a.acao === 'data') return `data ${gamFmtLongo(a.original.data)} → ${gamFmtLongo(a.corrigido.data)}`;
             return `horário ${a.original.hora || '—'} → ${a.corrigido.hora}`;
@@ -5182,7 +5183,14 @@
                   : (e.producao ? `<button onclick="gamAbrirProducao(gamAcomp.corretor || undefined)" class="text-[10px] font-bold text-amber-400 hover:text-amber-300"><i class="fa-solid fa-pen mr-0.5"></i>editar</button>`
                   : (e.ref ? `<button onclick="gamCorrigirAuto('${e.ref}')" class="text-[10px] font-bold text-sky-400 hover:text-sky-300"><i class="fa-solid fa-wrench mr-0.5"></i>corrigir</button>${e.ajuste ? `<button onclick="gamDesfazerAjuste('${e.ajuste.id}')" class="text-[10px] font-bold text-slate-400 hover:text-slate-200 ml-2">desfazer</button>` : ''}` : ''))));
             const audit = e.ajuste ? `<span class="block text-[10px] text-amber-400">correção: ${gamAjusteTexto(e.ajuste)} · por ${e.ajuste.por} em ${new Date(e.ajuste.em).toLocaleString('pt-BR')}${e.ajuste.motivo ? ' · “' + e.ajuste.motivo + '”' : ''}</span>` : '';
-            const alt = (e.alteracoes || []).length ? `<span class="block text-[10px] text-amber-400">corrigido ${e.alteracoes.length}x · último: ${(a => `${a.de.horario ? a.de.horario + ' → ' + a.para.horario : (a.de.quantidade !== undefined && a.de.quantidade !== a.para.quantidade ? 'qtd ' + a.de.quantidade + ' → ' + a.para.quantidade : (a.de.data !== a.para.data ? gamFmtLongo(a.de.data) + ' → ' + gamFmtLongo(a.para.data) : 'restaurado'))} (${a.de.pontos >= 0 ? '+' : ''}${a.de.pontos} → ${a.para.pontos >= 0 ? '+' : ''}${a.para.pontos}) por ${a.por} em ${new Date(a.em).toLocaleString('pt-BR')}`)(e.alteracoes[e.alteracoes.length - 1])}</span>` : '';
+            // Última alteração: lançamentos têm {de, para}; a PRODUÇÃO guarda só {de} (o "para" é o valor atual).
+            const alt = (e.alteracoes || []).length ? `<span class="block text-[10px] text-amber-400">corrigido ${e.alteracoes.length}x · último: ${(a => {
+                const de = a.de || {}, para = a.para;
+                if (!para) return `${de.ligacoes !== undefined ? de.ligacoes + ' lig → ' + (e.quantidade !== undefined ? e.quantidade + ' lig' : 'atual') : 'editado'} por ${a.por || '?'} em ${a.em ? new Date(a.em).toLocaleString('pt-BR') : ''}`;
+                const oque = de.horario ? de.horario + ' → ' + para.horario : (de.quantidade !== undefined && de.quantidade !== para.quantidade ? 'qtd ' + de.quantidade + ' → ' + para.quantidade : (de.data && para.data && de.data !== para.data ? gamFmtLongo(de.data) + ' → ' + gamFmtLongo(para.data) : 'restaurado'));
+                const pts = (de.pontos !== undefined && para.pontos !== undefined) ? ` (${de.pontos >= 0 ? '+' : ''}${de.pontos} → ${para.pontos >= 0 ? '+' : ''}${para.pontos})` : '';
+                return `${oque}${pts} por ${a.por || '?'} em ${a.em ? new Date(a.em).toLocaleString('pt-BR') : ''}`;
+            })(e.alteracoes[e.alteracoes.length - 1])}</span>` : '';
             const exclInfo = e.excluidoInfo ? `<span class="block text-[10px] text-rose-400">excluído por ${e.excluidoInfo.por} em ${new Date(e.excluidoInfo.em).toLocaleString('pt-BR')} · valia ${e.pontosOriginais >= 0 ? '+' : ''}${e.pontosOriginais}</span>` : '';
             return `<div class="flex items-start gap-3 py-2 border-b border-slate-800/40 ${excl ? 'opacity-60' : ''}">
                 <div class="w-14 shrink-0 text-right"><span class="text-sm font-black tabular-nums ${e.hora ? 'text-slate-100' : 'text-slate-600'}">${e.hora || '— —'}</span>${e.horaEhLancamento ? '<span class="block text-[8px] text-slate-600 leading-tight">hora do lançamento</span>' : (!e.hora ? '<span class="block text-[8px] text-slate-600 leading-tight">sem horário no CRM</span>' : '')}</div>
