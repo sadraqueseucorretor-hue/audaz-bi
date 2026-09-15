@@ -4568,7 +4568,10 @@
             try {
                 corpo = { hoje: gamViewHoje, acompanhar: gamViewAcompanhar, semana: gamViewSemana, mes: gamViewMes, individual: gamViewIndividual, historico: gamViewHistorico, gestao: gamViewGestao, config: gamViewConfig }[gamView]();
             } catch (e) { console.error(e); corpo = `<p class="text-rose-400 text-sm">Erro ao montar a tela: ${e.message}</p>`; }
+            const scrollAntes = window.scrollY;
             root.innerHTML = `<div class="space-y-4">${cab}${corpo}</div>`;
+            // Re-render troca o HTML inteiro; sem isto a página pulava pro topo a cada clique (expandir card, filtro…).
+            requestAnimationFrame(() => window.scrollTo(0, scrollAntes));
         }
 
         // ---------- HOJE ----------
@@ -5214,7 +5217,7 @@
             return 'nenhuma';
         }
         // Filtros do acompanhamento
-        let gamAcomp = { modo: 'corretores', corretor: '', periodo: 'dia', de: '09:00', ate: '12:00', tipo: '', expandidos: {} };
+        let gamAcomp = { modo: 'corretores', escopo: 'hoje', corretor: '', periodo: 'dia', de: '09:00', ate: '12:00', tipo: '', expandidos: {} };
         function gamAcompSet(k, v) { gamAcomp[k] = v; renderGamificacao(); }
         function gamAcompToggle(nome) { gamAcomp.expandidos[nome] = !gamAcomp.expandidos[nome]; renderGamificacao(); }
         function gamVerDia(nome) { gamView = 'acompanhar'; gamAcomp.modo = 'corretores'; gamAcomp.corretor = nome; gamAcomp.expandidos[nome] = true; renderGamificacao(); setTimeout(() => { const el = document.getElementById('gamAcomp_' + btoa(unescape(encodeURIComponent(nome))).replace(/[^a-z0-9]/gi, '')); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); }
@@ -5242,6 +5245,70 @@
             const soma = evs.reduce((s, e) => s + e.pontos, 0);
             return `<div class="bg-slate-950/50 rounded-xl p-3"><p class="text-[9px] text-slate-500 uppercase font-bold mb-1">De onde vieram os pontos</p>${linhas.length ? linhas.map(([l, v]) => `<div class="flex justify-between text-xs py-0.5"><span class="text-slate-300">${l}</span><span class="font-black tabular-nums ${v > 0 ? 'text-emerald-400' : 'text-rose-400'}">${v > 0 ? '+' : ''}${v}</span></div>`).join('') : '<p class="text-xs text-slate-600">nenhum ponto</p>'}<div class="flex justify-between text-sm pt-1 mt-1 border-t border-slate-800"><span class="font-bold text-slate-200">Total</span><span class="font-black tabular-nums text-white">${gamN(soma)}</span></div>${soma !== total ? `<p class="text-[9px] text-amber-400 mt-1">filtro ativo — total do dia: ${gamN(total)}</p>` : ''}</div>`;
         }
+        // Acompanhar — escopo SEMANA / MÊS: card por corretor com pontos do período e posição no
+        // ranking; expandido = tabela DIA A DIA (seg → sáb; domingo só se tiver algo) com entrada,
+        // ligações, atendidas, conectadas, agendamentos, visitas, análises, aprovações, vendas e
+        // pontos, e a linha TOTAL no fim. Semana = semana comercial que contém o dia em foco; mês =
+        // mês comercial em foco.
+        function gamAcompPeriodoCards(iso, ativos) {
+            const ehSemana = gamAcomp.escopo === 'semana';
+            let ini, fim, rotulo;
+            if (ehSemana) {
+                const ss = gamSemanasComerciais(); const w = ss.find(x => iso >= x.inicio && iso <= x.fim) || gamSemanaComercialAtual();
+                ini = w.inicio; fim = w.fim; rotulo = `Semana ${w.n} · ${gamFmt(ini)} a ${gamFmt(fim)}`;
+            } else {
+                const j = getJanelaMesComercial('analises'); ini = gamISO(j.inicioReal); fim = gamISO(j.fimEstimado); rotulo = `${j.mesNome}/${j.ano} · ${gamFmt(ini)} a ${gamFmt(fim)}`;
+            }
+            const hojeISO = gamISO(gamHoje());
+            const rk = gamRanking(ini, fim); const pos = {}; rk.forEach(c => { pos[c.corretor] = c.pos; });
+            const metaTipo = ehSemana ? 'semana' : 'mes';
+            const dias = gamDiasISO(ini, fim);
+            const num = (v, cor) => `<td class="py-1.5 text-center text-sm font-bold tabular-nums ${v ? cor : 'text-slate-700'}">${v}</td>`;
+            const cards = ativos.filter(c => !gamAcomp.corretor || c === gamAcomp.corretor).map(c => {
+                const acc = gamPeriodo(c, ini, fim);
+                const meta = gamMetaDe(c, metaTipo);
+                const aberto = !!gamAcomp.expandidos[c];
+                const id = 'gamAcomp_' + btoa(unescape(encodeURIComponent(c))).replace(/[^a-z0-9]/gi, '');
+                let linhas = '';
+                if (aberto) {
+                    linhas = dias.map(d => {
+                        const dd = gamDia(c, d); const k = dd.contagens; const dow = gamDeISO(d).getDay();
+                        const vazio = !dd.pontos && !k.ligacoes && !k.agendamentos && !k.visitas && !k.analises && !k.aprovacoes && !k.vendas && !k.presenca;
+                        if (dow === 0 && vazio) return '';   // domingo só aparece se teve algo
+                        const futuro = d > hojeISO; const ehHoje = d === hojeISO;
+                        const pres = k.presenca ? gamPontualidade(k.presenca) : null;
+                        return `<tr class="border-b border-slate-800/40 ${ehHoje ? 'bg-brand-500/5' : ''} ${futuro ? 'opacity-40' : ''}">
+                            <td class="py-1.5 pl-2 whitespace-nowrap"><span class="text-xs font-black ${ehHoje ? 'text-brand-400' : 'text-slate-200'}">${DIAS_SEM_ABREV[dow] === 'D' ? 'DOM' : ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'][dow]} ${gamFmt(d)}</span>${ehHoje ? ' <span class="text-[9px] font-black text-brand-400">HOJE</span>' : ''}</td>
+                            <td class="py-1.5 text-center text-xs font-bold ${pres ? pres.cls : 'text-slate-700'}">${pres ? `${pres.cor} ${k.presenca}` : (futuro ? '' : '—')}</td>
+                            ${num(k.ligacoes, 'text-slate-100')}${num(k.atendidas, 'text-teal-400')}${num(k.conectadas, 'text-emerald-300')}${num(k.agendamentos, 'text-violet-400')}${num(k.visitas, 'text-cyan-400')}${num(k.analises, 'text-sky-400')}${num(k.aprovacoes, 'text-amber-400')}${num(k.vendas, 'text-emerald-400')}
+                            <td class="py-1.5 pr-2 text-right text-base font-black tabular-nums ${dd.pontos > 0 ? 'text-white' : 'text-slate-700'}">${gamN(dd.pontos)}</td>
+                        </tr>`;
+                    }).join('') + `<tr class="bg-slate-950/60">
+                            <td class="py-2 pl-2 text-xs font-black text-white uppercase">Total</td>
+                            <td class="py-2 text-center text-xs font-bold text-slate-300">${acc.presencas} pres.</td>
+                            ${[['ligacoes','text-slate-100'],['atendidas','text-teal-400'],['conectadas','text-emerald-300'],['agendamentos','text-violet-400'],['visitas','text-cyan-400'],['analises','text-sky-400'],['aprovacoes','text-amber-400'],['vendas','text-emerald-400']].map(([k, cor]) => `<td class="py-2 text-center text-base font-black tabular-nums ${acc[k] ? cor : 'text-slate-700'}">${acc[k]}</td>`).join('')}
+                            <td class="py-2 pr-2 text-right text-xl font-black tabular-nums text-white">${gamN(acc.pontos)}</td>
+                        </tr>`;
+                }
+                return `<div id="${id}" class="bg-slate-900/40 rounded-2xl border border-slate-800 overflow-hidden">
+                    <div onclick="gamAcompToggle('${c.replace(/'/g, "\\'")}')" class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-900/60 transition flex-wrap">
+                        ${gamAvatar(c, 'w-10 h-10')}
+                        <div class="min-w-[160px]"><p class="text-sm font-black text-white">${c}</p><p class="text-[10px] text-slate-500">${rotulo}</p></div>
+                        <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Pontos ${ehSemana ? 'na semana' : 'no mês'}</p><p class="text-2xl font-black tabular-nums ${acc.pontos > 0 ? 'text-white' : 'text-slate-600'}">${gamN(acc.pontos)}</p></div>
+                        <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Ranking</p><p class="text-sm font-black text-amber-400">${gamMedalha(pos[c], acc.pontos)}</p></div>
+                        <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Presenças</p><p class="text-sm font-black text-slate-200">${acc.presencas} / ${acc.diasDecorridos}</p></div>
+                        <div class="text-center px-3"><p class="text-[9px] text-slate-500 uppercase font-bold">Resumo</p><p class="text-[11px] font-bold text-slate-300">${acc.ligacoes} lig · ${acc.agendamentos} ag · ${acc.visitas} vi · ${acc.analises} an · ${acc.aprovacoes} ap · ${acc.vendas} vd</p></div>
+                        <div class="ml-auto flex items-center gap-2"><div class="w-28">${gamBarra(acc.pontos, meta)}</div><i class="fa-solid fa-chevron-${aberto ? 'up' : 'down'} text-slate-500 text-xs"></i></div>
+                    </div>
+                    ${aberto ? `<div class="px-4 pb-4 border-t border-slate-800/60 pt-3"><div class="overflow-x-auto"><table class="w-full text-left border-collapse">
+                        <thead><tr class="border-b border-slate-800/80 text-[9px] text-slate-500 font-bold uppercase tracking-wider"><th class="pb-2 pl-2">Dia</th><th class="pb-2 text-center text-orange-400">Entrada</th><th class="pb-2 text-center">Ligações</th><th class="pb-2 text-center text-teal-500">Atend.</th><th class="pb-2 text-center text-emerald-500">Conect.</th><th class="pb-2 text-center text-violet-500">Agend.</th><th class="pb-2 text-center text-cyan-500">Visitas</th><th class="pb-2 text-center text-sky-500">Análises</th><th class="pb-2 text-center text-amber-500">Aprov.</th><th class="pb-2 text-center text-emerald-500">Vendas</th><th class="pb-2 pr-2 text-right">Pontos</th></tr></thead>
+                        <tbody>${linhas}</tbody></table></div>
+                        <p class="text-[10px] text-slate-600 mt-2">Meta ${ehSemana ? 'da semana' : 'do mês'}: ${gamN(meta)} pts · dias futuros esmaecidos · domingo só aparece se teve movimento. Para a linha do tempo hora a hora, use o escopo <b>Hoje</b>.</p>
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+            return `<div class="space-y-2">${cards || '<p class="text-xs text-slate-600">Nenhum corretor ativo.</p>'}</div>`;
+        }
         function gamViewAcompanhar() {
             const iso = gamDiaSel; const hojeISO = gamISO(gamHoje());
             const ativos = getActiveCorretores();
@@ -5253,6 +5320,7 @@
                             <button onclick="gamAcompSet('modo','corretores')" class="text-[11px] font-bold px-3 py-1.5 rounded-lg ${gamAcomp.modo === 'corretores' ? 'bg-slate-800 text-white' : 'text-slate-400'}"><i class="fa-solid fa-user mr-1"></i>Por corretor</button>
                             <button onclick="gamAcompSet('modo','equipe')" class="text-[11px] font-bold px-3 py-1.5 rounded-lg ${gamAcomp.modo === 'equipe' ? 'bg-slate-800 text-white' : 'text-slate-400'}"><i class="fa-solid fa-people-group mr-1"></i>O que a equipe fez</button>
                         </div>
+                        ${gamAcomp.modo === 'corretores' ? `<div class="flex items-center gap-1 bg-slate-950/60 border border-slate-800 rounded-xl p-1">${[['hoje','Hoje'],['semana','Semana'],['mes','Mês']].map(([k,l]) => `<button onclick="gamAcompSet('escopo','${k}')" class="text-[11px] font-bold px-3 py-1.5 rounded-lg ${gamAcomp.escopo === k ? 'bg-brand-500 text-white' : 'text-slate-400'}">${l}</button>`).join('')}</div>` : ''}
                         <button onclick="gamShiftDia(-1)" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
                         <input type="date" value="${iso}" onchange="gamSetDia(this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200">
                         <button onclick="gamShiftDia(1)" class="h-8 w-8 rounded-lg border border-slate-700 text-slate-300 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
@@ -5281,6 +5349,7 @@
                 </section>`;
             }
 
+            if (gamAcomp.escopo === 'semana' || gamAcomp.escopo === 'mes') return controles + gamAcompPeriodoCards(iso, ativos);
             const cards = ativos.filter(c => !gamAcomp.corretor || c === gamAcomp.corretor).map(c => {
                 const todos = gamEventosDia(c, iso);
                 const evs = gamAcompFiltraEventos(todos);
