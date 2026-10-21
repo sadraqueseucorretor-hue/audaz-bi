@@ -67,21 +67,28 @@
         .backdrop-blur-premium {
             backdrop-filter: blur(16px);
         }
-        .org-chart-scroll { width: 100%; padding: 1.25rem; }
-        .org-chart-root { width: min(100%, 420px); margin-inline: auto; display:flex; align-items:center; gap:1rem; text-align:left; padding:1rem 1.25rem; }
-        .org-chart-root-connector { height: 28px; width: 2px; background: linear-gradient(#f59e0b,#334155); margin-inline: auto; }
+        .org-chart-scroll { width: 100%; padding: clamp(.75rem,2vw,1.5rem); }
+        .org-chart-root { width: min(100%, 390px); min-height:112px; margin-inline: auto; display:flex; align-items:center; gap:1rem; text-align:left; padding:1.1rem 1.35rem; box-shadow:0 18px 45px rgba(245,158,11,.08); }
+        .org-chart-root-connector { height: 36px; width: 2px; background: linear-gradient(#f59e0b,#475569); margin-inline: auto; }
         .org-chart-level { width: 100%; }
-        .org-chart-level-label { display:flex; align-items:center; gap:.6rem; margin:0 0 .75rem; color:#94a3b8; font-size:.65rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
-        .org-chart-level-label::after { content:''; height:1px; flex:1; background:linear-gradient(90deg,#334155,transparent); }
-        .org-chart-children { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 1rem; width:100%; position:relative; }
+        .org-chart-level-label { display:flex; align-items:center; justify-content:center; gap:.7rem; margin:0 0 1rem; color:#cbd5e1; font-size:.68rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+        .org-chart-level-label::before,.org-chart-level-label::after { content:''; height:1px; flex:1; background:linear-gradient(90deg,transparent,#334155); }
+        .org-chart-level-label::after { background:linear-gradient(90deg,#334155,transparent); }
+        .org-chart-children { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 1rem; width:100%; position:relative; align-items:start; }
         .org-chart-branch { position:relative; min-width:0; display:flex; flex-direction:column; }
-        .org-chart-node-card { width:100%; background:linear-gradient(145deg,rgba(15,23,42,.98),rgba(2,6,23,.96)); border:1px solid #334155; border-radius:1rem; padding:1rem; box-shadow:0 10px 24px rgba(0,0,0,.16); }
-        .org-chart-node-children { width:100%; padding:1rem 0 0 1.1rem; margin-top:.8rem; border-left:1px solid #334155; }
+        .org-chart-node-card { width:100%; min-width:0; background:linear-gradient(145deg,rgba(15,23,42,.98),rgba(2,6,23,.96)); border:1px solid #334155; border-radius:1rem; padding:.8rem; box-shadow:0 10px 24px rgba(0,0,0,.16); }
+        .org-chart-node-card.is-manager { border-color:rgba(167,139,250,.38); box-shadow:inset 0 3px rgba(167,139,250,.72),0 12px 28px rgba(0,0,0,.2); }
+        .org-chart-node-card.is-broker { padding:.6rem; background:rgba(2,6,23,.72); border-color:rgba(51,65,85,.8); box-shadow:none; }
+        .org-chart-node-children { width:100%; padding:1rem 0 0; margin-top:.8rem; border-top:1px solid #293548; }
         .org-chart-node-children:empty { display:none; }
-        .org-chart-node-children > .org-chart-children > .org-chart-branch::before { content:''; position:absolute; top:1.45rem; left:-1.1rem; width:1.1rem; border-top:1px solid #334155; }
-        .org-chart-node-children > .org-chart-children { grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); }
+        .org-chart-node-children > .org-chart-level-label { justify-content:flex-start; font-size:.6rem; color:#64748b; margin-bottom:.7rem; }
+        .org-chart-node-children > .org-chart-level-label::before { display:none; }
+        .org-chart-node-children > .org-chart-children { grid-template-columns:repeat(auto-fit,minmax(min(100%,185px),1fr)); gap:.55rem; }
+        .org-node-edit { margin-top:.65rem; border-top:1px solid #1e293b; padding-top:.5rem; }
+        .org-node-edit summary { color:#64748b; cursor:pointer; font-size:10px; font-weight:700; }
+        .org-node-edit[open] summary { margin-bottom:.5rem; color:#cbd5e1; }
         .org-chart-empty { width:min(100%,720px); margin:0 auto; }
-        @media (max-width:640px) { .org-chart-scroll { padding:.75rem; } .org-chart-children,.org-chart-node-children > .org-chart-children { grid-template-columns:minmax(0,1fr); gap:.75rem; } .org-chart-node-children { padding-left:.85rem; } .org-chart-node-children > .org-chart-children > .org-chart-branch::before { left:-.85rem; width:.85rem; } }
+        @media (max-width:640px) { .org-chart-scroll { padding:.65rem; } .org-chart-children { grid-template-columns:minmax(0,1fr); gap:.7rem; } .org-chart-node-children > .org-chart-children { grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr)); } .org-chart-root { min-height:92px; } }
 
         .animate-pulse-slow {
             animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -1043,7 +1050,7 @@
 <section id="organogramaSection" class="hidden space-y-5">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Regional → Gerentes → Corretores</p></div>
-                        <span id="organogramaSyncLabel" class="text-[10px] text-slate-500"></span>
+                        <div class="flex flex-wrap items-center gap-2 justify-end"><span id="organogramaCountLabel" class="text-[10px] text-slate-400 bg-slate-900 border border-slate-800 rounded-full px-3 py-1.5"></span><span id="organogramaSyncLabel" class="text-[10px] text-slate-500"></span></div>
                     </div>
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-6">
                         <div class="org-chart-scroll">
@@ -1892,6 +1899,10 @@
             const names = [...byKey.values()].sort((a,b) => a.localeCompare(b,'pt-BR'));
             const assigned = new Set(organograma.map(n => orgPersonKey(n.name)));
             const availableNames = names.filter(n => !assigned.has(orgPersonKey(n)));
+            const managerCount = organograma.filter(n => n.role === 'Gerente' && n.parentId === 'regional').length;
+            const brokerCount = organograma.filter(n => n.role === 'Corretor' && organograma.some(m => m.id === n.parentId && m.role === 'Gerente')).length;
+            const countLabel = document.getElementById('organogramaCountLabel');
+            if (countLabel) countLabel.textContent = `${managerCount} ${managerCount === 1 ? 'gerente' : 'gerentes'} · ${brokerCount} ${brokerCount === 1 ? 'corretor' : 'corretores'}`;
             renderOrgMemberPicker(availableNames);
             updateOrgParentOptions(document.getElementById('orgNewRole')?.value || 'Gerente');
             const addButton = document.querySelector('#organogramaSection button[onclick="addOrgMember()"]');
@@ -1907,15 +1918,15 @@
                     const nextSeen = new Set(seen); nextSeen.add(node.id);
                     const excluded = orgDescendants(node.id);
                     const parents = node.role === 'Gerente' ? [{id:'regional', name:'Sadraque Ribeiro · Regional'}] : organograma.filter(n => n.role === 'Gerente' && !excluded.has(n.id)).map(n => ({id:n.id, name:`${n.name} · Gerente`}));
+                    const reports = node.role === 'Gerente' ? organograma.filter(n => n.parentId === node.id && n.role === 'Corretor').length : 0;
                     return `<div class="org-chart-branch">
-                        <div class="org-chart-node-card">
-                            <div class="flex items-center gap-2 mb-2"><span class="h-2.5 w-2.5 rounded-full ${node.role === 'Gerente' ? 'bg-violet-400' : node.role === 'Coordenador' ? 'bg-sky-400' : 'bg-emerald-400'}"></span><span class="text-[10px] uppercase font-bold tracking-widest text-slate-400">${orgEsc(node.role)}</span></div>
-                            <div class="w-full flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-2.5 py-2.5"><span class="shrink-0">${corretorAvatarInner(node.name, 'h-10 w-10', 'text-[10px]')}</span><span class="text-sm font-bold text-white truncate">${orgEsc(node.name)}</span></div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                                <select id="orgRole-${orgEsc(node.id)}" onchange="updateOrgParentOptions(this.value,'${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
-                                <select id="orgParent-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.length ? parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>'}</select>
-                            </div>
-                            <div class="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-800"><button onclick="saveOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div>
+                        <div class="org-chart-node-card ${node.role === 'Gerente' ? 'is-manager' : 'is-broker'}">
+                            <div class="flex items-center gap-2 mb-2"><span class="h-2 w-2 rounded-full ${node.role === 'Gerente' ? 'bg-violet-400' : 'bg-emerald-400'}"></span><span class="text-[10px] uppercase font-extrabold tracking-[.14em] ${node.role === 'Gerente' ? 'text-violet-300' : 'text-emerald-300'}">${orgEsc(node.role)}</span>${node.role === 'Gerente' ? `<span class="ml-auto text-[10px] text-slate-500">${reports} ${reports === 1 ? 'corretor' : 'corretores'}</span>` : ''}</div>
+                            <div class="w-full flex items-center gap-3"><span class="shrink-0">${corretorAvatarInner(node.name, node.role === 'Gerente' ? 'h-12 w-12' : 'h-9 w-9', 'text-[10px]')}</span><span class="text-sm font-bold text-white leading-tight">${orgEsc(node.name)}</span></div>
+                            ${isDiretor ? `<details class="org-node-edit"><summary>Editar cargo ou vínculo</summary><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <select id="orgRole-${orgEsc(node.id)}" onchange="updateOrgParentOptions(this.value,'${orgEsc(node.id)}')" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+                                <select id="orgParent-${orgEsc(node.id)}" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.length ? parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>'}</select>
+                            </div><div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div></details>` : ''}
                         </div>
                         <div class="org-chart-node-children">${renderBranch(node.id, nextSeen)}</div>
                     </div>`;
