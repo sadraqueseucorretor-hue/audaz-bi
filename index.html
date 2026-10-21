@@ -2470,11 +2470,24 @@
             localStorage.setItem(`${appId}-quick-ranking-mode`, quickRankingMode);
             drawQuickRankings();
         }
-        function rankingTeamKey(team) { return stripDiacritics(String(team || '').trim()).toLocaleLowerCase(); }
+        function rankingTeamKey(team) { return stripDiacritics(String(team || '').trim()).replace(/\s+/g, ' ').toLocaleLowerCase(); }
+        function canonicalRankingTeamName(team) {
+            const label = String(team || '').trim();
+            if (!label) return 'Sem equipe';
+            const key = rankingTeamKey(label);
+            const configured = organograma.find(n => n.role === 'Gerente' && n.equipe && rankingTeamKey(n.equipe) === key);
+            if (configured) return String(configured.equipe).trim();
+            const variants = new Map();
+            (dataset || []).forEach(row => {
+                const candidate = String(row.Equipe || '').trim();
+                if (candidate && rankingTeamKey(candidate) === key) variants.set(candidate, (variants.get(candidate) || 0) + 1);
+            });
+            return [...variants.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0],'pt-BR'))[0]?.[0] || label;
+        }
         function getRankingTeamForBroker(name) {
             const member = organograma.find(n => n.role === 'Corretor' && orgPersonKey(n.name) === orgPersonKey(name));
             const manager = member && organograma.find(n => n.id === member.parentId && n.role === 'Gerente');
-            if (manager) return manager.equipe || manager.name;
+            if (manager) return canonicalRankingTeamName(manager.equipe || manager.name);
             const teams = new Map();
             (dataset || []).forEach(row => {
                 if (!row.Corretor || orgPersonKey(row.Corretor) !== orgPersonKey(name) || !row.Equipe) return;
@@ -2482,10 +2495,7 @@
                 teams.set(team, (teams.get(team) || 0) + 1);
             });
             const dataTeam = [...teams.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0],'pt-BR'))[0]?.[0];
-            if (dataTeam) {
-                const linkedManager = organograma.find(n => n.role === 'Gerente' && n.equipe && rankingTeamKey(n.equipe) === rankingTeamKey(dataTeam));
-                return linkedManager?.equipe || dataTeam;
-            }
+            if (dataTeam) return canonicalRankingTeamName(dataTeam);
             return 'Sem equipe';
         }
         function drawQuickRankings() {
@@ -2698,7 +2708,7 @@
             ];
 
             if (quickRankingMode === 'equipe') {
-                const teamNames = new Set(organograma.filter(node => node.role === 'Gerente').map(manager => manager.equipe || manager.name));
+                const teamNames = new Set(organograma.filter(node => node.role === 'Gerente').map(manager => canonicalRankingTeamName(manager.equipe || manager.name)));
                 ativos.forEach(nome => teamNames.add(getRankingTeamForBroker(nome)));
                 if (selEq) { teamNames.clear(); teamNames.add(selEq); }
                 cards.forEach(card => {
@@ -8072,7 +8082,9 @@
 
             let equipesMap = {};
             filteredDataset.forEach(row => {
-                const eq = row.Equipe;
+                // Usa o vínculo corretor → gerente → equipe do organograma como fonte única.
+                // getRankingTeamForBroker também canonicaliza variantes como IMPARÁVEIS/IMPARAVEIS.
+                const eq = row.Corretor ? getRankingTeamForBroker(row.Corretor) : '';
                 if (!eq) return;
 
                 // Análises/Aprovações: por safra (Mês Cadastro)
