@@ -71,6 +71,8 @@
         .org-chart-root { width: min(100%, 420px); margin-inline: auto; display:flex; align-items:center; gap:1rem; text-align:left; padding:1rem 1.25rem; }
         .org-chart-root-connector { height: 28px; width: 2px; background: linear-gradient(#f59e0b,#334155); margin-inline: auto; }
         .org-chart-level { width: 100%; }
+        .org-chart-level-label { display:flex; align-items:center; gap:.6rem; margin:0 0 .75rem; color:#94a3b8; font-size:.65rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+        .org-chart-level-label::after { content:''; height:1px; flex:1; background:linear-gradient(90deg,#334155,transparent); }
         .org-chart-children { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 1rem; width:100%; position:relative; }
         .org-chart-branch { position:relative; min-width:0; display:flex; flex-direction:column; }
         .org-chart-node-card { width:100%; background:linear-gradient(145deg,rgba(15,23,42,.98),rgba(2,6,23,.96)); border:1px solid #334155; border-radius:1rem; padding:1rem; box-shadow:0 10px 24px rgba(0,0,0,.16); }
@@ -1040,7 +1042,7 @@
 
 <section id="organogramaSection" class="hidden space-y-5">
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Visualize a equipe por níveis e expanda cada liderança para ver quem responde a ela.</p></div>
+                        <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Regional no topo, gerentes abaixo e cada equipe logo abaixo da sua liderança.</p></div>
                         <span id="organogramaSyncLabel" class="text-[10px] text-slate-500"></span>
                     </div>
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-6">
@@ -1879,8 +1881,10 @@
             const renderBranch = (parentId, seen = new Set()) => {
                 const children = organograma.filter(n => n.parentId === parentId && !seen.has(n.id));
                 if (!children.length) return '';
-                const groupClass = children.length > 1 ? 'org-chart-children has-branches' : 'org-chart-children';
-                return `<div class="${groupClass}">${children.map(node => {
+                const parentNode = parentId === 'regional' ? null : organograma.find(n => n.id === parentId);
+                const levelLabel = parentId === 'regional' ? 'Lideranças abaixo da Regional' : `Equipe abaixo de ${parentNode ? orgEsc(parentNode.name) : 'esta liderança'}`;
+                const groupClass = 'org-chart-children';
+                return `<div class="org-chart-level-label">${levelLabel}</div><div class="${groupClass}">${children.map(node => {
                     if (seen.has(node.id)) return '';
                     const nextSeen = new Set(seen); nextSeen.add(node.id);
                     const excluded = orgDescendants(node.id);
