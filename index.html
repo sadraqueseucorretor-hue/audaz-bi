@@ -1068,7 +1068,7 @@
                                 </button>
                             </div>
                         </div>
-                        <p class="text-[10px] text-slate-500" id="quickRefHint">Semana atual e mês comercial corrente.</p>
+                        <div class="flex items-center justify-between gap-3 flex-wrap"><p class="text-[10px] text-slate-500" id="quickRefHint">Semana atual e mês comercial corrente.</p><div class="inline-flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950/60 p-1"><button id="quickRankModeCorretor" onclick="setQuickRankingMode('corretor')" class="px-2.5 py-1 rounded-md text-[10px] font-bold">Corretores</button><button id="quickRankModeEquipe" onclick="setQuickRankingMode('equipe')" class="px-2.5 py-1 rounded-md text-[10px] font-bold">Equipes</button></div></div>
                     </div>
                     <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
                 </section>
@@ -2464,11 +2464,37 @@
         // do travamento. Agora só desenha quando a aba Rankings está aberta; se algo mudou enquanto
         // ela estava fechada, fica pendente e é redesenhada ao entrar (ver switchView).
         let quickRankingsPendente = false;
+        let quickRankingMode = localStorage.getItem(`${appId}-quick-ranking-mode`) === 'equipe' ? 'equipe' : 'corretor';
+        function setQuickRankingMode(mode) {
+            quickRankingMode = mode === 'equipe' ? 'equipe' : 'corretor';
+            localStorage.setItem(`${appId}-quick-ranking-mode`, quickRankingMode);
+            drawQuickRankings();
+        }
+        function getRankingTeamForBroker(name) {
+            const counts = new Map();
+            (dataset || []).forEach(row => {
+                if (row.Corretor && orgPersonKey(row.Corretor) === orgPersonKey(name) && row.Equipe) {
+                    const team = String(row.Equipe).trim();
+                    counts.set(team, (counts.get(team) || 0) + 1);
+                }
+            });
+            if (counts.size) return [...counts.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0],'pt-BR'))[0][0];
+            const member = organograma.find(n => n.role === 'Corretor' && orgPersonKey(n.name) === orgPersonKey(name));
+            const manager = member && organograma.find(n => n.id === member.parentId && n.role === 'Gerente');
+            return manager?.equipe || 'Sem equipe';
+        }
         function drawQuickRankings() {
             if (activeView !== 'rankings') { quickRankingsPendente = true; return; }
             quickRankingsPendente = false;
             const grid = document.getElementById('quickRankingsGrid');
             if (!grid) return;
+            const modeCorretorBtn = document.getElementById('quickRankModeCorretor');
+            const modeEquipeBtn = document.getElementById('quickRankModeEquipe');
+            const modeBase = 'px-2.5 py-1 rounded-md text-[10px] font-bold transition';
+            if (modeCorretorBtn) modeCorretorBtn.className = modeBase + (quickRankingMode === 'corretor' ? ' bg-brand-600 text-white' : ' text-slate-400 hover:text-white');
+            if (modeEquipeBtn) modeEquipeBtn.className = modeBase + (quickRankingMode === 'equipe' ? ' bg-brand-600 text-white' : ' text-slate-400 hover:text-white');
+            const metasCorretorBtn = document.getElementById('btnMetasPorCorretor');
+            if (metasCorretorBtn) metasCorretorBtn.classList.toggle('hidden', quickRankingMode === 'equipe');
             const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date(); // cards "Hoje" = sempre hoje
             const refSM = quickRef || hojeReal;                                    // "Semana" e "Mês" = referência escolhida
             // Sem referência manual: mês comercial corrente (último dos dados). Com referência: mês da data escolhida.
@@ -2556,6 +2582,7 @@
             // filtros estruturais daqui em cima; Equipe/Construtora não se aplicam a ela.
             const baseAgenda = agendaDataset.filter(row => {
                 if (selCorr && row.Corretor !== selCorr) return false;
+                if (selEq && getRankingTeamForBroker(row.Corretor) !== selEq) return false;
                 if (!agendaMatchesEmpreendimento(row, selEmp)) return false;
                 return true; // histórico de corretor desativado continua contando (ver comentário acima)
             });
@@ -2664,6 +2691,23 @@
                 { title: 'Vendas · Mês',        icon: 'fa-trophy',       col: 'VD', map: vdMes,  vgv: true,  key: 'vdMes',  cadence: 'Mês' }
             ];
 
+            if (quickRankingMode === 'equipe') {
+                const teamNames = new Set((dataset || []).map(row => String(row.Equipe || '').trim()).filter(Boolean));
+                ativos.forEach(nome => teamNames.add(getRankingTeamForBroker(nome)));
+                if (selEq) { teamNames.clear(); teamNames.add(selEq); }
+                cards.forEach(card => {
+                    const grouped = Object.fromEntries([...teamNames].map(team => [team, {count:0, vgv:0}]));
+                    Object.entries(card.map).forEach(([broker, value]) => {
+                        const team = selEq || getRankingTeamForBroker(broker);
+                        if (selEq && team !== selEq) return;
+                        if (!grouped[team]) grouped[team] = {count:0, vgv:0};
+                        grouped[team].count += value.count;
+                        grouped[team].vgv += value.vgv;
+                    });
+                    card.map = grouped;
+                });
+            }
+
             rankingCardsSnapshot = [];
             grid.innerHTML = cards.map((card, cardIdx) => {
                 const list = Object.entries(card.map)
@@ -2681,14 +2725,14 @@
                 const batida = meta > 0 && totalCount >= meta;
 
                 // Meta individual por corretor (para as colunas Falta/Progresso da tabela e o rodapé de destaques)
-                const comMetaIndiv = list
+                const comMetaIndiv = (quickRankingMode === 'corretor' ? list : [])
                     .map(r => {
                         const m = (metasPorCorretor[r.nome] && metasPorCorretor[r.nome][card.key]) || 0;
                         return m > 0 ? { nome: r.nome, count: r.count, metaC: m, pctC: Math.min(100, Math.round((r.count / m) * 100)), faltaC: Math.max(0, m - r.count) } : null;
                     })
                     .filter(Boolean);
 
-                let melhorNome = '—', melhorPct = null;
+                let melhorNome = quickRankingMode === 'equipe' && list.length && (card.vgv ? list[0].vgv : list[0].count) > 0 ? list[0].nome : '—', melhorPct = null;
                 if (comMetaIndiv.length) {
                     const best = comMetaIndiv.reduce((a, b) => (b.pctC > a.pctC ? b : a));
                     melhorNome = parseNomeCargo(best.nome).nome;
@@ -2720,7 +2764,8 @@
                 const updatedLabel = `Atualizado em ${pad2(agora.getDate())}/${pad2(agora.getMonth() + 1)} às ${pad2(agora.getHours())}:${pad2(agora.getMinutes())}`;
 
                 rankingCardsSnapshot[cardIdx] = {
-                    title: card.title,
+                    title: quickRankingMode === 'equipe' ? `Equipes · ${card.title}` : card.title,
+                    dimension: quickRankingMode,
                     period: periodoPorCadencia[card.cadence],
                     cadence: card.cadence,
                     unidade: unidadePorCol[card.col],
@@ -2729,7 +2774,7 @@
                     totalCount, totalVgv, meta, pct, falta, batida,
                     melhorNome, melhorPct, pendenciaLine1, pendenciaLine2,
                     rows: list.map((r, i) => {
-                        const m = (metasPorCorretor[r.nome] && metasPorCorretor[r.nome][card.key]) || 0;
+                        const m = quickRankingMode === 'corretor' ? ((metasPorCorretor[r.nome] && metasPorCorretor[r.nome][card.key]) || 0) : 0;
                         const { nome, cargo } = parseNomeCargo(r.nome);
                         return {
                             pos: i + 1,
@@ -2751,6 +2796,12 @@
                 let bodyRows;
                 if (list.length === 0) {
                     bodyRows = `<tr><td colspan="5" class="text-center text-xs text-slate-500 py-6">Sem registros</td></tr>`;
+                } else if (quickRankingMode === 'equipe') {
+                    bodyRows = list.map((r,i) => {
+                        const base = card.vgv ? totalVgv : totalCount;
+                        const part = base > 0 ? Math.round(((card.vgv ? r.vgv : r.count) / base) * 100) : 0;
+                        return `<tr class="border-b border-slate-800/60 hover:bg-slate-800/30 transition ${r.count === 0 ? 'opacity-60' : ''}"><td class="py-1.5 pl-2 font-extrabold ${r.count > 0 && i === 0 ? 'text-amber-400' : 'text-slate-500'} text-[11px] align-middle">${i+1}º</td><td class="py-1.5 pr-2"><div class="flex items-center gap-2 min-w-0"><span class="h-6 w-6 shrink-0 rounded-full bg-indigo-500/15 text-indigo-300 flex items-center justify-center"><i class="fa-solid fa-people-group text-[10px]"></i></span><span class="text-xs font-semibold ${r.count ? 'text-slate-100' : 'text-slate-400'} truncate">${orgEsc(r.nome)}</span></div></td><td class="py-1.5 text-center text-xs font-extrabold text-emerald-400 align-middle">${r.count}</td><td colspan="2" class="py-1.5 pr-3"><div class="flex items-center gap-2"><div class="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-gradient-to-r from-indigo-500 to-sky-400" style="width:${part}%"></div></div><span class="text-[10px] font-bold text-sky-300 w-8 text-right">${part}%</span></div></td>${card.vgv ? `<td class="py-1.5 pr-2 text-right text-[10px] font-semibold text-indigo-300 whitespace-nowrap align-middle">${fmtInt(r.vgv)}</td>` : ''}</tr>`;
+                    }).join('');
                 } else {
                     bodyRows = list.map((r, i) => {
                         const zero = r.count === 0;
@@ -2796,7 +2847,7 @@
                     <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-2.5 py-2 flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2 min-w-0">
                             <div class="h-7 w-7 rounded-lg bg-white/15 flex items-center justify-center shrink-0"><i class="fa-solid ${card.icon} text-white text-xs"></i></div>
-                            <h4 class="text-sm font-extrabold text-white uppercase truncate">${card.title}</h4>
+                            <h4 class="text-sm font-extrabold text-white uppercase truncate">${quickRankingMode === 'equipe' ? 'Equipes · ' : ''}${card.title}</h4>
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
                             <div class="bg-white/15 rounded-lg px-2 py-1 text-[10px] font-bold text-white flex items-center gap-1 whitespace-nowrap">
@@ -2849,10 +2900,9 @@
                             <thead class="sticky top-0 bg-slate-900/95">
                                 <tr class="text-[10px] text-slate-500 uppercase font-bold border-b border-slate-800">
                                     <th class="py-1.5 pl-2 text-left">#</th>
-                                    <th class="py-1.5 text-left">Corretor</th>
+                                    <th class="py-1.5 text-left">${quickRankingMode === 'equipe' ? 'Equipe' : 'Corretor'}</th>
                                     <th class="py-1.5 text-center">Feito</th>
-                                    <th class="py-1.5 text-center">Falta</th>
-                                    <th class="py-1.5 pr-3 text-left">Progresso</th>
+                                    ${quickRankingMode === 'equipe' ? '<th class="py-1.5 pr-3 text-center" colspan="2">Participação</th>' : '<th class="py-1.5 text-center">Falta</th><th class="py-1.5 pr-3 text-left">Progresso</th>'}
                                     ${card.vgv ? `<th class="py-1.5 pr-2 text-right">VGV</th>` : ''}
                                 </tr>
                             </thead>
