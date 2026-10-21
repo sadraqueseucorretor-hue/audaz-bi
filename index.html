@@ -2470,10 +2470,23 @@
             localStorage.setItem(`${appId}-quick-ranking-mode`, quickRankingMode);
             drawQuickRankings();
         }
+        function rankingTeamKey(team) { return stripDiacritics(String(team || '').trim()).toLocaleLowerCase(); }
         function getRankingTeamForBroker(name) {
             const member = organograma.find(n => n.role === 'Corretor' && orgPersonKey(n.name) === orgPersonKey(name));
             const manager = member && organograma.find(n => n.id === member.parentId && n.role === 'Gerente');
-            return manager ? (manager.equipe || manager.name) : 'Sem equipe';
+            if (manager) return manager.equipe || manager.name;
+            const teams = new Map();
+            (dataset || []).forEach(row => {
+                if (!row.Corretor || orgPersonKey(row.Corretor) !== orgPersonKey(name) || !row.Equipe) return;
+                const team = String(row.Equipe).trim();
+                teams.set(team, (teams.get(team) || 0) + 1);
+            });
+            const dataTeam = [...teams.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0],'pt-BR'))[0]?.[0];
+            if (dataTeam) {
+                const linkedManager = organograma.find(n => n.role === 'Gerente' && n.equipe && rankingTeamKey(n.equipe) === rankingTeamKey(dataTeam));
+                return linkedManager?.equipe || dataTeam;
+            }
+            return 'Sem equipe';
         }
         function drawQuickRankings() {
             if (activeView !== 'rankings') { quickRankingsPendente = true; return; }
@@ -2515,7 +2528,7 @@
             // (e só os ATIVOS são pré-populados com zero mais abaixo) — sem apagar nada do passado.
             const base = dataset.filter(row => {
                 if (selCorr && row.Corretor !== selCorr) return false;
-                if (selEq && (quickRankingMode === 'equipe' ? getRankingTeamForBroker(row.Corretor) !== selEq : row.Equipe !== selEq)) return false;
+                if (selEq && (quickRankingMode === 'equipe' ? rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq) : row.Equipe !== selEq)) return false;
                 if (selCons && row.Construtora !== selCons) return false;
                 if (selEmp && row.Empreendimento !== selEmp) return false;
                 return true;
@@ -2540,7 +2553,7 @@
             // Pré-popula TODOS os corretores ativos com 0 (aparecem mesmo sem registro).
             let ativos = getActiveCorretores();
             if (selCorr) ativos = ativos.filter(n => n === selCorr);
-            if (selEq && quickRankingMode === 'equipe') ativos = ativos.filter(n => getRankingTeamForBroker(n) === selEq);
+            if (selEq && quickRankingMode === 'equipe') ativos = ativos.filter(n => rankingTeamKey(getRankingTeamForBroker(n)) === rankingTeamKey(selEq));
             const novoMapa = () => { const m = {}; ativos.forEach(n => { m[n] = { count: 0, vgv: 0 }; }); return m; };
             const prHoje = novoMapa(), prSem = novoMapa(), prMes = novoMapa();
             const agHoje = novoMapa(), agSem = novoMapa(), agMes = novoMapa(), coHoje = novoMapa(), coSem = novoMapa(), coMes = novoMapa();
@@ -2575,7 +2588,7 @@
             // filtros estruturais daqui em cima; Equipe/Construtora não se aplicam a ela.
             const baseAgenda = agendaDataset.filter(row => {
                 if (selCorr && row.Corretor !== selCorr) return false;
-                if (selEq && getRankingTeamForBroker(row.Corretor) !== selEq) return false;
+                if (selEq && rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq)) return false;
                 if (!agendaMatchesEmpreendimento(row, selEmp)) return false;
                 return true; // histórico de corretor desativado continua contando (ver comentário acima)
             });
@@ -2608,7 +2621,7 @@
             // sem precisar de janela por data como a Agenda precisa.
             const baseProspeccao = prospeccaoDataset.filter(row => {
                 if (selCorr && row.Corretor !== selCorr) return false;
-                if (selEq && (quickRankingMode === 'equipe' ? getRankingTeamForBroker(row.Corretor) !== selEq : row.Equipe !== selEq)) return false;
+                if (selEq && (quickRankingMode === 'equipe' ? rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq) : row.Equipe !== selEq)) return false;
                 return true; // histórico de corretor desativado continua contando (ver comentário acima)
             });
             const ehMesProspeccao = (row) => {
@@ -2692,7 +2705,7 @@
                     const grouped = Object.fromEntries([...teamNames].map(team => [team, {count:0, vgv:0}]));
                     Object.entries(card.map).forEach(([broker, value]) => {
                         const team = selEq || getRankingTeamForBroker(broker);
-                        if (selEq && team !== selEq) return;
+                        if (selEq && rankingTeamKey(team) !== rankingTeamKey(selEq)) return;
                         if (!grouped[team]) grouped[team] = {count:0, vgv:0};
                         grouped[team].count += value.count;
                         grouped[team].vgv += value.vgv;
