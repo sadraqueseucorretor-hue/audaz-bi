@@ -101,12 +101,12 @@
                 <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 mb-6">
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Origem dos Dados</span>
-                        <span id="sourceBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-500 flex items-center gap-1">
-                            <span class="h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse"></span> DEMO
+                        <span id="sourceBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/10 text-slate-400 flex items-center gap-1">
+                            <span class="h-1.5 w-1.5 rounded-full bg-slate-400 animate-pulse"></span> CARREGANDO
                         </span>
                     </div>
                     <p class="text-xs text-slate-400 mb-4 leading-relaxed">
-                        Ligue diretamente a folha de cálculo pública do Google Sheets para sincronizar a sua equipa em tempo real.
+                        Conecte a planilha publicada do Google Sheets para acompanhar a equipe em tempo real.
                     </p>
                     <button onclick="toggleConnectionModal()" id="btnConfigurarPlanilha" class="diretor-locked w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150" disabled>
                         <i class="fa-solid fa-link text-brand-500"></i>
@@ -115,7 +115,7 @@
 
                     <button onclick="toggleCorretorModal()" id="btnGerirCorretores" class="diretor-locked w-full mt-2 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150" disabled>
                         <i class="fa-solid fa-users-gear text-indigo-400"></i>
-                        Gerir Corretores
+                        Gerenciar Corretores
                     </button>
 
                     <button onclick="toggleMesesComerciaisModal()" id="btnMesesComerciais" class="diretor-locked w-full mt-2 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150" disabled>
@@ -162,6 +162,12 @@
 
         <!-- Área de Conteúdo Principal -->
         <main class="flex-1 flex flex-col min-w-0">
+            <!-- Tela de carregamento (12/10/2026): antes, nos primeiros segundos, o painel aparecia com
+                 rótulo DEMO / Junho/2026 / zeros até a planilha chegar — parecia erro (principalmente na TV). -->
+            <div id="bootLoading" class="fixed inset-0 z-40 bg-slate-950/95 flex flex-col items-center justify-center gap-3">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-brand-500"></i>
+                <p class="text-sm font-bold text-slate-300">Carregando dados da planilha…</p>
+            </div>
             
             <!-- Header Superior -->
             <header class="min-h-16 border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-3 bg-slate-950/40 backdrop-blur-premium z-10 shrink-0">
@@ -183,6 +189,9 @@
                         </button>
                         <button onclick="switchView('corretor')" id="navLinkCorretor" title="Painel do Corretor" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-user text-sky-400"></i><span class="hidden lg:inline">Corretor</span>
+                        </button>
+                        <button onclick="switchView('organograma')" id="navLinkOrganograma" title="Organograma da equipe" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-sitemap text-amber-400"></i><span class="hidden lg:inline">Equipe</span>
                         </button>
                         <button onclick="switchView('plantoes')" id="navLinkPlantoes" title="Plantões (Diamond / Roleta / Represados)" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-clipboard-list text-violet-400"></i><span class="hidden lg:inline">Plantões</span>
@@ -244,11 +253,11 @@
                                 <option value="">Todos os corretores</option>
                             </select>
                         </div>
-                        <!-- Filtro Equipa -->
+                        <!-- Filtro Equipe -->
                         <div>
-                            <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-users text-slate-600"></i> Equipa</label>
+                            <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-users text-slate-600"></i> Equipe</label>
                             <select id="filterEquipe" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
-                                <option value="">Todas as equipas</option>
+                                <option value="">Todas as equipes</option>
                             </select>
                         </div>
                         <!-- Filtro Construtora -->
@@ -519,7 +528,7 @@
                             </div>
                         </div>
                         <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                            <span>Taxa de fecho total (Análises → Vendas):</span>
+                            <span>Taxa de fechamento total (Análises → Vendas):</span>
                             <span id="funnelTaxaFinal" class="font-bold text-brand-400 text-sm">0%</span>
                         </div>
                     </div>
@@ -742,13 +751,13 @@
                         </div>
                     </div>
 
-                    <!-- Tabela de Ranking de Equipas (some sozinha quando só existe 1 equipe — ver ajustarBlocosEquipe) -->
+                    <!-- Tabela de Ranking de Equipes (some sozinha quando só existe 1 equipe — ver ajustarBlocosEquipe) -->
                     <div id="rankingEquipesCard" class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col justify-between">
                         <div>
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                                 <div>
                                     <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                                        <i class="fa-solid fa-people-group text-blue-500"></i> Ranking Geral de Equipas
+                                        <i class="fa-solid fa-people-group text-blue-500"></i> Ranking Geral de Equipes
                                     </h3>
                                     <p class="text-[10px] text-slate-500">Medição consolidada de sinergia e entrega comercial</p>
                                 </div>
@@ -756,7 +765,7 @@
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500">
                                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                                     </span>
-                                    <input type="text" id="searchEquipe" oninput="drawTables()" placeholder="Procurar equipa..." class="bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-300 w-full sm:w-48 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition">
+                                    <input type="text" id="searchEquipe" oninput="drawTables()" placeholder="Procurar equipe..." class="bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-300 w-full sm:w-48 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition">
                                 </div>
                             </div>
 
@@ -765,7 +774,7 @@
                                     <thead>
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
-                                            <th class="pb-3">Equipa</th>
+                                            <th class="pb-3">Equipe</th>
                                             <th class="pb-3 text-center">Análises</th>
                                             <th class="pb-3 text-center">Aprovs</th>
                                             <th class="pb-3 text-center">Vendas</th>
@@ -796,7 +805,7 @@
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <div class="text-center px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800">
-                                <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Média da equipa</p>
+                                <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Média da equipe</p>
                                 <p class="text-lg font-extrabold text-brand-400 tabular-nums leading-tight" id="ipcMediaEquipe">0,00</p>
                             </div>
                             <div class="text-center px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800">
@@ -830,7 +839,7 @@
                         <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-brand-500"></span> Na média ou acima</span>
                         <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span> Abaixo da média</span>
                         <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span> Crítico (inclui IPC 0,00 — barra vazia)</span>
-                        <span class="flex items-center gap-1.5 ml-auto"><i class="fa-solid fa-grip-lines-vertical text-slate-300"></i> Linha branca = média da equipa</span>
+                        <span class="flex items-center gap-1.5 ml-auto"><i class="fa-solid fa-grip-lines-vertical text-slate-300"></i> Linha branca = média da equipe</span>
                     </div>
                 </section>
 
@@ -918,7 +927,7 @@
                     <div id="performanceEquipeCard" class="lg:col-span-2 bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
                         <div class="flex items-center justify-between mb-4">
                             <div>
-                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Desempenho por Equipa</h3>
+                                <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase">Desempenho por Equipe</h3>
                                 <p class="text-[10px] text-slate-500">Participação de mercado das frentes comerciais imobiliárias</p>
                             </div>
                             <div class="h-8 w-8 bg-slate-800/50 rounded-lg border border-slate-700/50 flex items-center justify-center text-slate-400">
@@ -1013,6 +1022,28 @@
                         <p class="text-[10px] text-slate-500" id="quickRefHint">Semana atual e mês comercial corrente.</p>
                     </div>
                     <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
+                </section>
+
+<section id="organogramaSection" class="hidden space-y-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Monte a estrutura aos poucos: escolha o cargo e defina a quem cada pessoa responde.</p></div>
+                        <span id="organogramaSyncLabel" class="text-[10px] text-slate-500"></span>
+                    </div>
+                    <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-6">
+                        <div class="bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/30 rounded-xl p-4 max-w-sm mx-auto text-center"><div class="text-[10px] uppercase tracking-widest font-bold text-amber-300">Regional</div><div class="text-base font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-[10px] text-slate-500 mt-1">Responsável regional</div></div>
+                        <div class="h-6 border-l border-slate-700 mx-auto w-px"></div><div id="organogramaTree" class="flex flex-col items-center gap-4"></div>
+                    </div>
+                    <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-5">
+                        <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase mb-3"><i class="fa-solid fa-user-plus text-brand-400 mr-1"></i> Adicionar pessoa à estrutura</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                            <input id="orgNewName" list="orgKnownNames" placeholder="Nome da pessoa" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><datalist id="orgKnownNames"></datalist>
+                            <select id="orgNewRole" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><option value="Gerente">Gerente</option><option value="Coordenador">Coordenador</option><option value="Corretor">Corretor</option></select>
+                            <select id="orgNewParent" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"></select>
+                            <button onclick="addOrgMember()" class="diretor-locked bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-lg px-3 py-2 transition"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
+                        </div>
+                        <p class="text-[10px] text-slate-600 mt-2">Os nomes dos corretores cadastrados aparecem como sugestão; gerentes e coordenadores também podem ser digitados aqui.</p>
+                        <p id="organogramaEditHint" class="text-[10px] text-amber-400 mt-2 hidden">Entre como diretor para editar e sincronizar esta estrutura.</p>
+                    </div>
                 </section>
 
 <div id="corretorSection" class="hidden space-y-4">
@@ -1379,9 +1410,9 @@
             <!-- Passos de Configuração -->
             <div class="space-y-4 mb-6">
                 <div class="text-xs text-slate-400 space-y-2 leading-relaxed">
-                    <p class="font-semibold text-slate-200">Instruções para publicar a sua folha de cálculo do Google Sheets:</p>
+                    <p class="font-semibold text-slate-200">Instruções para publicar a sua planilha do Google Sheets:</p>
                     <ol class="list-decimal list-inside space-y-1">
-                        <li>Abra a sua folha de cálculo comercial do Google Sheets.</li>
+                        <li>Abra a sua planilha comercial do Google Sheets.</li>
                         <li>Clique em <strong class="text-slate-200">Arquivo</strong> &gt; <strong class="text-slate-200">Compartilhar</strong> &gt; <strong class="text-slate-200">Publicar na Web</strong>.</li>
                         <li>Selecione o documento inteiro e altere o formato de exportação para <strong class="text-emerald-400 font-semibold">Valores separados por vírgula (.csv)</strong>.</li>
                         <li>Clique em Publicar, copie o link gerado e cole no campo abaixo!</li>
@@ -1452,7 +1483,7 @@
                     <i class="fa-solid fa-users-gear text-lg"></i>
                 </div>
                 <div>
-                    <h4 class="text-base font-bold text-slate-200">Gerir Corretores</h4>
+                    <h4 class="text-base font-bold text-slate-200">Gerenciar Corretores</h4>
                     <p class="text-xs text-slate-500">Ative/desative ou pré-cadastre corretores (guardado neste navegador)</p>
                 </div>
             </div>
@@ -1703,7 +1734,7 @@
         let filteredDataset = [];
         let currentPeriod = 'mes'; // hoje, semana, mes, ano
         let vendasMode = 'gerais'; // 'gerais' (todas as ganhas) | 'finalizadas' (toggle de comparação)
-        let isMockDataActive = true;
+        let isMockDataActive = false; // só vira true se alguém clicar em "usar dados de demonstração"
         // Sem valor padrão embutido aqui de propósito: a URL real vem só do Firestore/localStorage,
         // pra não deixar o link da planilha (com nome de cliente/comissão) visível em texto puro
         // pra qualquer um que veja o código-fonte da página.
@@ -1743,6 +1774,81 @@
         let corretorFotos = {};      // nome -> dataURL (JPEG 128x128, já comprimida no upload)
         let corretorFotoImages = {}; // nome -> HTMLImageElement pré-carregada (pro export em Canvas 2D)
 
+        // Organograma: hierarquia configurável, com regional fixo no topo.
+        let organograma = [];
+        function loadOrganograma() {
+            try { const saved = JSON.parse(localStorage.getItem(`${appId}-organograma`) || '[]'); organograma = Array.isArray(saved) ? saved : []; }
+            catch (e) { organograma = []; }
+        }
+        function orgEsc(v) { return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function orgId() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `org-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+        function saveOrganograma() {
+            localStorage.setItem(`${appId}-organograma`, JSON.stringify(organograma));
+            pushCloudSettings();
+            const label = document.getElementById('organogramaSyncLabel');
+            if (label) label.textContent = isDiretor ? 'Alteração salva e sincronizando…' : 'Salvo neste navegador';
+            renderOrganograma();
+        }
+        function orgParentOptions(selected, omitId) {
+            const options = [{id:'regional', name:'Sadraque Ribeiro · Regional'}, ...organograma.filter(n => n.id !== omitId).map(n => ({id:n.id, name:`${n.name} · ${n.role}`}))];
+            return options.map(o => `<option value="${orgEsc(o.id)}" ${o.id === selected ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('');
+        }
+        function orgDescendants(id) {
+            const found = new Set([id]); let changed = true;
+            while (changed) { changed = false; organograma.forEach(n => { if (found.has(n.parentId) && !found.has(n.id)) { found.add(n.id); changed = true; } }); }
+            return found;
+        }
+        function renderOrganograma() {
+            const tree = document.getElementById('organogramaTree'); if (!tree) return;
+            const hint = document.getElementById('organogramaEditHint'); if (hint) hint.classList.toggle('hidden', isDiretor);
+            const names = [...new Set([...(getAllKnownCorretores ? getAllKnownCorretores() : []), ...organograma.map(n => n.name)])].sort((a,b) => a.localeCompare(b,'pt-BR'));
+            const datalist = document.getElementById('orgKnownNames'); if (datalist) datalist.innerHTML = names.map(n => `<option value="${orgEsc(n)}"></option>`).join('');
+            const parent = document.getElementById('orgNewParent'); if (parent) parent.innerHTML = orgParentOptions(parent.value || 'regional');
+            const renderBranch = (parentId, seen = new Set()) => {
+                const children = organograma.filter(n => n.parentId === parentId && !seen.has(n.id));
+                if (!children.length) return '';
+                return `<div class="flex flex-wrap justify-center items-start gap-3 w-full">${children.map(node => {
+                    if (seen.has(node.id)) return '';
+                    const nextSeen = new Set(seen); nextSeen.add(node.id);
+                    const excluded = orgDescendants(node.id);
+                    const parents = [{id:'regional', name:'Sadraque Ribeiro · Regional'}, ...organograma.filter(n => !excluded.has(n.id)).map(n => ({id:n.id, name:`${n.name} · ${n.role}`}))];
+                    return `<div class="w-full max-w-md">
+                        <div class="bg-slate-950/70 border border-slate-700 rounded-xl p-3 shadow-lg">
+                            <div class="flex items-center gap-2 mb-2"><span class="h-2 w-2 rounded-full ${node.role === 'Gerente' ? 'bg-violet-400' : node.role === 'Coordenador' ? 'bg-sky-400' : 'bg-emerald-400'}"></span><span class="text-[10px] uppercase font-bold tracking-widest text-slate-400">${orgEsc(node.role)}</span></div>
+                            <input id="orgName-${orgEsc(node.id)}" value="${orgEsc(node.name)}" ${isDiretor ? '' : 'disabled'} class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm font-bold text-white outline-none focus:border-brand-500 disabled:opacity-60">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                                <select id="orgRole-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Coordenador','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+                                <select id="orgParent-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>Responde a: ${orgEsc(o.name)}</option>`).join('')}</select>
+                            </div>
+                            <div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-2.5 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-2.5 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div>
+                        </div>${renderBranch(node.id, nextSeen)}</div>`;
+                }).join('')}</div>`;
+            };
+            tree.innerHTML = organograma.length ? renderBranch('regional') : '<p class="text-xs text-slate-500 text-center py-2">A estrutura começa com você no nível Regional. Adicione o primeiro gerente, coordenador ou corretor abaixo.</p>';
+            const sync = document.getElementById('organogramaSyncLabel'); if (sync && !sync.textContent) sync.textContent = `${organograma.length} pessoa${organograma.length === 1 ? '' : 's'} na estrutura`;
+        }
+        function addOrgMember() {
+            if (!isDiretor) return;
+            const nameEl = document.getElementById('orgNewName'), roleEl = document.getElementById('orgNewRole'), parentEl = document.getElementById('orgNewParent');
+            const name = (nameEl.value || '').trim(); if (!name) { nameEl.focus(); return; }
+            if (organograma.some(n => n.name.toLocaleLowerCase() === name.toLocaleLowerCase())) { nameEl.focus(); return; }
+            organograma.push({id:orgId(), name, role:roleEl.value, parentId:parentEl.value || 'regional'});
+            nameEl.value = ''; saveOrganograma();
+        }
+        function saveOrgMember(id) {
+            if (!isDiretor) return;
+            const node = organograma.find(n => n.id === id); if (!node) return;
+            const name = (document.getElementById(`orgName-${id}`).value || '').trim(); if (!name) return;
+            node.name = name; node.role = document.getElementById(`orgRole-${id}`).value;
+            node.parentId = document.getElementById(`orgParent-${id}`).value || 'regional'; saveOrganograma();
+        }
+        function removeOrgMember(id) {
+            if (!isDiretor) return;
+            const node = organograma.find(n => n.id === id); if (!node) return;
+            organograma.forEach(n => { if (n.parentId === id) n.parentId = node.parentId || 'regional'; });
+            organograma = organograma.filter(n => n.id !== id); saveOrganograma();
+        }
+
         function loadCorretorRoster() {
             try {
                 addedCorretores = JSON.parse(localStorage.getItem(`${appId}-corretores-added`) || '[]');
@@ -1777,7 +1883,7 @@
         }
 
         // Avatar de um corretor: foto (se tiver) ou iniciais num círculo gradiente — usado tanto
-        // no modal "Gerir Corretores" quanto nos cards de Rankings Rápidos, pra ficar consistente.
+        // no modal "Gerenciar Corretores" quanto nos cards de Rankings Rápidos, pra ficar consistente.
         function corretorAvatarInner(nome, sizeClasses, textSizeClass, extraClass) {
             const foto = corretorFotos[nome];
             if (foto) {
@@ -2056,7 +2162,18 @@
                 if (saved) rankingsMetas = saved;
             } catch (e) {}
         }
+        // META ÚNICA (12/10/2026): as metas MENSAIS dos Rankings Rápidos (prMes/agMes/coMes/anMes/
+        // apMes/vdMes) não são mais um cadastro paralelo — leem e gravam as mesmas metasMensais do
+        // "Metas do Mês"/Funil, pra a mesma pergunta ter uma resposta só. Metas de Dia e Semana
+        // continuam cadastradas aqui (decisão anterior do usuário: "pegue a meta cadastrada por semana").
+        const RANKING_MES_PARA_MENSAL = { prMes: 'prospeccao', agMes: 'agendamentos', coMes: 'compareceu', anMes: 'analises', apMes: 'aprovacoes', vdMes: 'vendas' };
+        function getRankingMeta(key) {
+            const campoMensal = RANKING_MES_PARA_MENSAL[key];
+            if (campoMensal) return Math.round(metasMensais[campoMensal] || 0);
+            return rankingsMetas[key] || 0;
+        }
         function setRankingMeta(key, val) {
+            if (RANKING_MES_PARA_MENSAL[key]) { setMetaMensal(RANKING_MES_PARA_MENSAL[key], String(parseInt(String(val).replace(/\D/g, '')) || 0)); drawQuickRankings(); return; }
             rankingsMetas[key] = parseInt(String(val).replace(/\D/g, '')) || 0;
             localStorage.setItem(`${appId}-rankings-metas`, JSON.stringify(rankingsMetas));
             pushCloudSettings();
@@ -2121,7 +2238,7 @@
             const ativos = getActiveCorretores();
 
             if (ativos.length === 0) {
-                wrap.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">Nenhum corretor ativo. Cadastre em "Gerir Corretores" primeiro.</p>`;
+                wrap.innerHTML = `<p class="text-xs text-slate-500 text-center py-6">Nenhum corretor ativo. Cadastre em "Gerenciar Corretores" primeiro.</p>`;
                 return;
             }
 
@@ -2201,9 +2318,9 @@
             // pedido do usuário: usar sempre a mesma referência de mês em tudo.
             const mesAtualAgenda = mesAtual;
             const anoAtualAgenda = anoAtual;
-            const lcProspeccao = (!quickRef && !isMockDataActive) ? (getMesComercialAtualPorData() || getLatestProspeccaoCommercialMonth()) : null;
-            const mesAtualProspeccao = lcProspeccao ? lcProspeccao.nome : mesAtual;
-            const anoAtualProspeccao = lcProspeccao ? lcProspeccao.ano : anoAtual;
+            // Prospecção segue o mesmo mês do resto (12/10/2026) — ver applyFilters.
+            const mesAtualProspeccao = mesAtual;
+            const anoAtualProspeccao = anoAtual;
 
             const selCorr = document.getElementById('filterCorretor').value;
             const selEq = document.getElementById('filterEquipe').value;
@@ -2393,7 +2510,7 @@
                 const totalCount = Object.values(card.map).reduce((s, v) => s + v.count, 0);
                 const totalVgv = Object.values(card.map).reduce((s, v) => s + v.vgv, 0);
 
-                const meta = rankingsMetas[card.key] || 0;
+                const meta = getRankingMeta(card.key);
                 const pct = meta > 0 ? Math.min(100, Math.round((totalCount / meta) * 100)) : 0;
                 const falta = Math.max(0, meta - totalCount);
                 const batida = meta > 0 && totalCount >= meta;
@@ -3188,7 +3305,7 @@
             renderCorretorRoster();
         }
 
-        // ===== FILTRO "EXIBIR CORRETORES" (Ativos / Inativos / Todos) no modal Gerir Corretores =====
+        // ===== FILTRO "EXIBIR CORRETORES" (Ativos / Inativos / Todos) no modal Gerenciar Corretores =====
         let corretorRosterFilter = 'todos'; // 'ativos' | 'inativos' | 'todos'
 
         function setCorretorRosterFilter(val) {
@@ -4369,7 +4486,7 @@
             marcar('grupoResultado');
         }
 
-        // Com 1 equipe só, "Ranking Geral de Equipas" (1 linha) e o donut "Desempenho por Equipa"
+        // Com 1 equipe só, "Ranking Geral de Equipes" (1 linha) e o donut "Desempenho por Equipe"
         // (100% de uma fatia) não informam nada — somem sozinhos. Voltam se surgir uma 2ª equipe.
         function ajustarBlocosEquipe() {
             const n = new Set((dataset || []).map(r => r.Equipe).filter(Boolean)).size;
@@ -4392,12 +4509,14 @@
             const linkCalendar = document.getElementById('navLinkCalendar');
             const linkRankings = document.getElementById('navLinkRankings');
             const linkCorretor = document.getElementById('navLinkCorretor');
+            const linkOrganograma = document.getElementById('navLinkOrganograma');
             const linkPlantoes = document.getElementById('navLinkPlantoes');
             const linkTela = document.getElementById('navLinkTela');
             if (linkDashboard) linkDashboard.className = viewName === 'dashboard' ? onCls : offCls;
             if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
             if (linkRankings) linkRankings.className = viewName === 'rankings' ? onCls : offCls;
             if (linkCorretor) linkCorretor.className = viewName === 'corretor' ? onCls : offCls;
+            if (linkOrganograma) linkOrganograma.className = viewName === 'organograma' ? onCls : offCls;
             if (linkPlantoes) linkPlantoes.className = viewName === 'plantoes' ? onCls : offCls;
             if (linkTela) linkTela.className = viewName === 'tela' ? onCls : offCls;
 
@@ -4408,14 +4527,16 @@
             const dashboardViewEl = document.getElementById('dashboardView');
             const quickSection = document.getElementById('quickRankingsSection');
             const corretorSection = document.getElementById('corretorSection');
+            const organogramaSection = document.getElementById('organogramaSection');
             const plantoesSection = document.getElementById('plantoesSection');
             const telaSection = document.getElementById('telaSection');
             const calSection = document.getElementById('calendarView');
-            const secoesDedicadas = ['rankings', 'corretor', 'plantoes', 'tela', 'calendar'];
+            const secoesDedicadas = ['rankings', 'corretor', 'organograma', 'plantoes', 'tela', 'calendar'];
             if (dashboardViewEl) {
                 Array.from(dashboardViewEl.children).forEach(child => {
                     if (child === quickSection) { child.classList.toggle('hidden', viewName !== 'rankings'); return; }
                     if (child === corretorSection) { child.classList.toggle('hidden', viewName !== 'corretor'); return; }
+                    if (child === organogramaSection) { child.classList.toggle('hidden', viewName !== 'organograma'); return; }
                     if (child === plantoesSection) { child.classList.toggle('hidden', viewName !== 'plantoes'); return; }
                     if (child === telaSection) { child.classList.toggle('hidden', viewName !== 'tela'); return; }
                     if (child === calSection) { child.classList.toggle('hidden', viewName !== 'calendar'); return; }
@@ -4426,6 +4547,7 @@
             const filtersBar = document.getElementById('filtersBar');
             if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings' || viewName === 'tela');
             if (viewName === 'corretor') renderCorretorCards();
+            if (viewName === 'organograma') renderOrganograma();
             if (viewName === 'plantoes') renderPlantoes();
             if (viewName === 'tela') renderTela();
             // Entrando nos Rankings: redesenha se algo mudou enquanto a aba estava fechada
@@ -4935,6 +5057,7 @@
         function bootApp() {
             restoreRefreshRate();
             loadCorretorRoster();
+            loadOrganograma();
             loadMetasMensais();
             loadRankingsMetas();
             loadMetasPorCorretor();
@@ -4950,7 +5073,13 @@
                 const qs = new URLSearchParams(location.search);
                 if (qs.get('tela') === '1' || location.hash === '#tela') setTimeout(() => switchView('tela'), 0);
             } catch (e) {}
-            if (localStorage.getItem(`${appId}-sidebar-hidden`) === '1') {
+            // Celular/tablet (12/10/2026): a barra lateral ocupava a 1ª tela inteira e empurrava o
+            // "estou batendo?" pra baixo — agora começa escondida em telas < 1024px (abre no ☰),
+            // a menos que a pessoa tenha escolhido deixá-la aberta neste aparelho.
+            // Mesmo motivo: no celular os filtros começam recolhidos (botão "Mostrar filtros" abre).
+            if (window.innerWidth < 1024 && !filtersBodyHidden) toggleFiltersBody();
+            const sidebarPref = localStorage.getItem(`${appId}-sidebar-hidden`);
+            if (sidebarPref === '1' || (sidebarPref === null && window.innerWidth < 1024)) {
                 const sb = document.getElementById('sidebar');
                 if (sb) sb.style.display = 'none';
             }
@@ -5148,6 +5277,7 @@
             if (!data) return;
             applyingCloud = true;
             try {
+                if (Array.isArray(data.orgChart)) { organograma = data.orgChart; localStorage.setItem(`${appId}-organograma`, JSON.stringify(organograma)); }
                 if (Array.isArray(data.corretoresAdded)) { addedCorretores = data.corretoresAdded; localStorage.setItem(`${appId}-corretores-added`, JSON.stringify(addedCorretores)); }
                 if (Array.isArray(data.corretoresInactive)) { inactiveCorretores = data.corretoresInactive; localStorage.setItem(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores)); }
                 if (data.corretorFotos && typeof data.corretorFotos === 'object') { corretorFotos = data.corretorFotos; localStorage.setItem(`${appId}-corretor-fotos`, JSON.stringify(corretorFotos)); preloadAllCorretorFotos(); }
@@ -5183,6 +5313,7 @@
             try {
                 updateVendasModeUI();
                 renderSheetUrlField();
+                if (typeof renderOrganograma === 'function') renderOrganograma();
                 if (typeof applyFilters === 'function' && dataset && dataset.length) applyFilters();
             } catch (e) {}
         }
@@ -5225,6 +5356,7 @@
             if (!isDiretor) return;
             try {
                 const payload = {
+                    orgChart: organograma,
                     corretoresAdded: addedCorretores,
                     corretoresInactive: inactiveCorretores,
                     corretorFotos: corretorFotos,
@@ -5260,6 +5392,7 @@
 
 
         function useMockData() {
+            esconderBootLoading();
             dataset = generateMockData();
             isMockDataActive = true;
             document.getElementById('sourceBadge').innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span> DEMO`;
@@ -5307,7 +5440,7 @@
         }
 
         function fetchFromGoogleSheets(url) {
-            showToast("A sincronizar com o Google Sheets...");
+            showToast("Sincronizando com o Google Sheets...");
 
             // Método 1: PapaParse download direto (com cache-buster)
             Papa.parse(cacheBust(url), {
@@ -5328,7 +5461,44 @@
             });
         }
 
+        // PADRONIZAÇÃO DE NOMES (12/10/2026): a planilha tem a mesma construtora/empreendimento
+        // digitada de jeitos diferentes ("CASAS MANAGER"/"CASAS MENAGER", "AVULSO"/"avulso",
+        // "VITORIA EUSEBIO"/"VITÓRIA EUSÉBIO"), o que dividia os números nos filtros e rankings.
+        // Aqui (só na leitura — a planilha não é alterada) tudo vira MAIÚSCULO, espaços extras somem,
+        // variações só de acento/maiúscula se juntam (vence a grafia mais usada; empate → a com
+        // acento) e alguns erros de digitação conhecidos são corrigidos em NOMES_ALIAS.
+        const NOMES_ALIAS = { 'CASAS MENAGER': 'CASAS MANAGER', 'AVULSON': 'AVULSO' };
+        const semAcento = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        function padronizarNomesCadastro(rows) {
+            ['Construtora', 'Empreendimento'].forEach(campo => {
+                const limpo = v => {
+                    let t = String(v).replace(/\s+/g, ' ').trim().toLocaleUpperCase('pt-BR');
+                    t = t.replace(/([A-ZÀ-Ý])(\d)$/, '$1 $2'); // "VILLE DE LISBOA4" → "VILLE DE LISBOA 4"
+                    return NOMES_ALIAS[semAcento(t)] || t;
+                };
+                const contagem = {};
+                rows.forEach(r => {
+                    if (!r[campo]) return;
+                    const t = limpo(r[campo]); const k = semAcento(t);
+                    (contagem[k] = contagem[k] || {})[t] = (contagem[k][t] || 0) + 1;
+                });
+                const escolhido = {};
+                Object.keys(contagem).forEach(k => {
+                    escolhido[k] = Object.entries(contagem[k]).sort((a, b) => (b[1] - a[1]) || (semAcento(a[0]) === a[0]) - (semAcento(b[0]) === b[0]) || a[0].localeCompare(b[0]))[0][0];
+                });
+                rows.forEach(r => { if (r[campo]) r[campo] = escolhido[semAcento(limpo(r[campo]))]; });
+            });
+            return rows;
+        }
+
+        function esconderBootLoading() {
+            const el = document.getElementById('bootLoading');
+            if (el) el.remove();
+        }
+        setTimeout(esconderBootLoading, 15000); // trava de segurança: nunca prende a tela
+
         function applyParsedRows(rows) {
+            esconderBootLoading();
             dataset = rows.map(row => {
                 if (row.VGV !== undefined && row.VGV !== null && typeof row.VGV === 'string') {
                     let clean = row.VGV.replace(/R\$\s?/, '').replace(/\./g, '').replace(',', '.').trim();
@@ -5338,6 +5508,7 @@
                 }
                 return row;
             });
+            padronizarNomesCadastro(dataset);
 
             isMockDataActive = false;
             document.getElementById('sourceBadge').innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse"></span> CONECTADO`;
@@ -5446,6 +5617,7 @@
                 updateSyncStatusUI("counting");
                 return;
             }
+            esconderBootLoading();
             const novoDataset = results.data.map(row => {
                 if (row.VGV !== undefined && row.VGV !== null && typeof row.VGV === 'string') {
                     let cleanVgv = row.VGV.replace(/R\$\s?/, '').replace(/\./g, '').replace(',', '.').trim();
@@ -5455,6 +5627,7 @@
                 }
                 return row;
             });
+            padronizarNomesCadastro(novoDataset);
 
             const mudou = JSON.stringify(novoDataset) !== JSON.stringify(dataset);
             dataset = novoDataset;
@@ -5532,7 +5705,7 @@
         }
 
         function fetchAgendaFromGoogleSheets(url) {
-            showToast("A sincronizar a Agenda de Visitas...");
+            showToast("Sincronizando a Agenda de Visitas...");
             Papa.parse(cacheBust(url), {
                 download: true,
                 header: true,
@@ -5630,7 +5803,8 @@
                 text.textContent = `Sincronizado. Nova verificação em ${secondsLeft}s`;
             } else if (status === "error") {
                 indicator.className = "h-2 w-2 rounded-full bg-rose-500 animate-bounce";
-                text.textContent = "Falha ao conectar à folha de cálculo";
+                text.textContent = "Falha ao conectar à planilha";
+                esconderBootLoading();
             }
         }
 
@@ -5705,7 +5879,7 @@
             const selAno = document.getElementById('filterAno').value;
 
             fillCorretorSelect(selCorretor);
-            fillSelect('filterEquipe', Array.from(equipes).sort(), "Todas as equipas", selEquipe);
+            fillSelect('filterEquipe', Array.from(equipes).sort(), "Todas as equipes", selEquipe);
             fillSelect('filterConstrutora', Array.from(construtoras).sort(), "Todas as construtoras", selConstrutora);
             fillSelect('filterEmpreendimento', Array.from(empreendimentos).sort(), "Todos os empreendimentos", selEmpreendimento);
             fillMultiSelect('filterMes', Array.from(meses), selMesesAntes);
@@ -6076,14 +6250,14 @@
             const referenceDateAgenda = referenceDate;
             currentRefDateAgenda = referenceDateAgenda;
 
-            // Mesma ideia pra Prospecção — mês corrente vem dela mesma (getLatestProspeccaoCommercialMonth).
-            let referenceDateProspeccao = referenceDate;
-            if (!refMes && !isMockDataActive && (currentPeriod === 'mes' || currentPeriod === 'ano')) {
-                referenceDateProspeccao = commercialRefDateProspeccao(isMockDataActive ? new Date(2026, 5, 9) : new Date());
-            }
+            // Prospecção também segue a MESMA referência de mês do resto do painel (12/10/2026).
+            // Antes ela detectava o próprio mês pelo último upload — se o upload do mês novo ainda
+            // não tinha sido feito, o painel mostrava os leads do mês ANTERIOR como se fossem do
+            // atual (ex.: 445 de Setembro aparecendo em Outubro). Agora fica 0 + aviso no funil.
+            const referenceDateProspeccao = referenceDate;
             currentRefDateProspeccao = referenceDateProspeccao;
 
-            // Filtra só pelos campos estruturais (corretor/equipa/construtora/empreendimento). Mês
+            // Filtra só pelos campos estruturais (corretor/equipe/construtora/empreendimento). Mês
             // Comercial e Semana NÃO recortam aqui — cada métrica (análises/aprovações/vendas) confere
             // a SUA própria coluna de mês/data via metricMatchesRef(), para "conversar com toda a
             // planilha" (uma linha cadastrada em jun e aprovada em jul conta como aprovação de jul).
@@ -6942,7 +7116,7 @@
                         <span class="text-[10px] font-bold text-${e.color}-400 uppercase w-[92px] shrink-0 flex items-center gap-1"><i class="fa-solid ${e.icon}" style="font-size:9px"></i>${e.label}</span>
                         <span class="text-sm font-black text-slate-100 shrink-0 w-[62px]">${e.realizado}<span class="text-slate-500 text-[10px] font-semibold">/${e.meta}</span></span>
                         <div class="relative flex-1 min-w-[70px] pt-4">
-                            <div class="absolute top-0 -translate-x-1/2 flex flex-col items-center leading-none" style="left:${idealPct}%">
+                            <div class="absolute top-0 flex flex-col leading-none ${idealPct > 85 ? '-translate-x-full items-end' : (idealPct < 15 ? 'items-start' : '-translate-x-1/2 items-center')}" style="left:${idealPct}%">
                                 <span class="text-[7px] font-bold text-white bg-slate-700 border border-${e.color}-400/70 rounded px-1.5 py-[1px] whitespace-nowrap shadow-sm">IDEAL <b class="text-[9px]">${e.ideal}</b></span>
                                 <span class="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[3px] border-t-slate-700"></span>
                             </div>
@@ -7025,10 +7199,16 @@
             const avisoEl = document.getElementById('funnelMesDivergenciaAviso');
             const avisoTextoEl = document.getElementById('funnelMesDivergenciaTexto');
             if (avisoEl && avisoTextoEl) {
-                const divergiu = !getReferenceMesComercial()
-                    && (janelaProspeccao.mesNome !== janelaAnalises.mesNome || janelaProspeccao.ano !== janelaAnalises.ano);
+                // Prospecção sem upload no mês atual (12/10/2026): agora ela segue o mesmo mês do
+                // resto do painel, então se o arquivo do mês ainda não foi subido os números de
+                // Prospecção ficam 0 — o aviso explica por quê, em vez de parecer queda real.
+                const mesesProsp = Array.isArray(prospeccaoDataset) ? prospeccaoDataset.map(r => r['_MesComercialNorm']) : [];
+                const temProspNoMes = mesesProsp.some(m => normalizeMes(m) === normalizeMes(String(janelaProspeccao.mesNome)) && getMesAno(m) === janelaProspeccao.ano);
+                const ultimoProsp = getLatestProspeccaoCommercialMonth();
+                const divergiu = !getReferenceMesComercial() && !isMockDataActive && mesesProsp.length > 0 && !temProspNoMes;
                 if (divergiu) {
-                    avisoTextoEl.textContent = `Prospecção já está em ${janelaProspeccao.mesNome}/${janelaProspeccao.ano} (leads novos contam aí), mas Análises/Aprovações/Vendas ainda estão em ${janelaAnalises.mesNome}/${janelaAnalises.ano} — nenhuma linha da planilha mestra foi lançada no mês novo ainda. Assim que a 1ª análise/aprovação/venda de ${janelaProspeccao.mesNome} entrar, o resto do funil acompanha.`;
+                    const ultimoTxt = ultimoProsp ? `${normalizeMes(ultimoProsp.nome)}/${ultimoProsp.ano}` : '—';
+                    avisoTextoEl.textContent = `Prospecção de ${janelaProspeccao.mesNome}/${janelaProspeccao.ano} ainda não foi carregada (último mês carregado: ${ultimoTxt}). Por isso Prospecção e as conversões que dependem dela aparecem zeradas — suba o arquivo do mês em "Prospecção", no menu lateral.`;
                     avisoEl.classList.remove('hidden'); avisoEl.classList.add('flex');
                 } else {
                     avisoEl.classList.add('hidden'); avisoEl.classList.remove('flex');
@@ -7197,7 +7377,7 @@
         // passa a ser ESSES meses pra TODOS (comparação num período fixo) e o divisor acompanha a
         // quantidade escolhida. Chips vazios = regra automática por última venda (padrão).
         //
-        // Filtros respeitados: corretor, equipa, construtora, empreendimento (filteredDataset) e a
+        // Filtros respeitados: corretor, equipe, construtora, empreendimento (filteredDataset) e a
         // situação da venda (isVendaModo — toggle Gerais x Finalizadas). Só conta GANHO/VENDA, por
         // Mês Ganho. O filtro de SEMANA é ignorado de propósito (7 dias não têm significado aqui).
         // Não altera nenhuma regra existente de Vendas/VGV/Comissão: só LÊ as mesmas funções.
@@ -7313,7 +7493,7 @@
         }
         const ipcMesCurto = m => m ? `${m.nome.slice(0, 3)}/${String(m.ano).slice(-2)}` : '—';
 
-        // Faixa do corretor em relação à média da equipa — a MESMA escala na barra, no badge e na
+        // Faixa do corretor em relação à média da equipe — a MESMA escala na barra, no badge e na
         // legenda. IPC 0,00 é CRÍTICO, não "neutro": num KPI de produtividade, zero é a informação
         // mais forte que existe.
         function ipcFaixa(ipc, media) {
@@ -7398,7 +7578,7 @@
                 a.corretor.localeCompare(b.corretor));
             lista.forEach((c, i) => { c.posicao = i + 1; });
             const totalVendas = lista.reduce((s, c) => s + c.vendas3m, 0);
-            // Média da equipa = IPC médio entre os corretores listados (régua da comparação visual).
+            // Média da equipe = IPC médio entre os corretores listados (régua da comparação visual).
             const mediaEquipe = lista.length ? lista.reduce((s, c) => s + c.ipc, 0) / lista.length : 0;
             const porCorretor = {};
             lista.forEach(c => { porCorretor[c.corretor] = c; });
@@ -7408,7 +7588,7 @@
 
         // Tabela do IPC (o que o usuário pediu pra ver): Ranking · Corretor · Última venda · Mês de
         // referência · Mês 1/2/3 (com as vendas de cada um) · Vendas 3M · IPC com barra comparativa
-        // contra a média da equipa. Lê o ipcSnapshot já calculado em drawTables().
+        // contra a média da equipe. Lê o ipcSnapshot já calculado em drawTables().
         function renderIPCComparativo() {
             const box = document.getElementById('ipcRankingList');
             if (!box) return;
@@ -7507,7 +7687,7 @@
                             <th class="pb-2 text-center" title="Mês que fecha a janela: o mês atual se o corretor vendeu nele, senão o mês anterior">Mês ref.</th>
                             ${thMeses}
                             <th class="pb-2 text-center">Vendas ${divisor}M</th>
-                            <th class="pb-2 pr-2 w-[26%]">IPC ${divisor}M · vs média da equipa</th>
+                            <th class="pb-2 pr-2 w-[26%]">IPC ${divisor}M · vs média da equipe</th>
                         </tr>
                     </thead>
                     <tbody>${linhas}</tbody>
@@ -7515,7 +7695,7 @@
             </div>`;
         }
 
-        // Ordenação dos rankings (corretores e equipas)
+        // Ordenação dos rankings (corretores e equipes)
         let rankSort = 'vgv'; // vgv | vendas | aprovacoes | analises | ipc
         function rankSorter(a, b) {
             const diff = (b[rankSort] || 0) - (a[rankSort] || 0);
@@ -7544,9 +7724,9 @@
             const rows = (cache && cache[metrica]) || [];
             const metricaLbl = { analises: 'Análises', aprovacoes: 'Aprovações', vendas: 'Vendas' }[metrica] || metrica;
             showDetailModal({
-                label1: tipo === 'corretor' ? 'Corretor' : 'Equipa',
+                label1: tipo === 'corretor' ? 'Corretor' : 'Equipe',
                 label2: 'Métrica',
-                nome: tipo === 'corretor' ? nome : `Equipa ${nome}`,
+                nome: tipo === 'corretor' ? nome : `Equipe ${nome}`,
                 dataStr: metricaLbl,
                 rows, showCorretor: tipo === 'equipe',
                 totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
@@ -7657,8 +7837,8 @@
                             <td class="py-3 text-center text-slate-400">${c.ipcNaoSeAplica ? '<span class="text-slate-600">—</span>' : (c.vendas3m || 0)}</td>
                             <td class="py-3 text-center">
                                 ${c.ipcNaoSeAplica
-                                    ? `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded text-slate-600" title="Corretor desativado — o IPC mede a produtividade da equipa atual e não se aplica a ele. O histórico dele segue nas demais colunas.">—</span>`
-                                    : `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${c.ipcJanelaTxt} ÷ ${c.ipcDivisor} — média da equipa: ${fmtIPC(ipcSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>`}
+                                    ? `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded text-slate-600" title="Corretor desativado — o IPC mede a produtividade da equipe atual e não se aplica a ele. O histórico dele segue nas demais colunas.">—</span>`
+                                    : `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${c.ipcJanelaTxt} ÷ ${c.ipcDivisor} — média da equipe: ${fmtIPC(ipcSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>`}
                             </td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
                         </tr>
@@ -7704,7 +7884,7 @@
             eqBody.innerHTML = '';
 
             if (rankingEquipes.length === 0) {
-                eqBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-500">Nenhuma equipa encontrada.</td></tr>`;
+                eqBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-500">Nenhuma equipe encontrada.</td></tr>`;
             } else {
                 rankingEquipes.forEach((eq, index) => {
                     const conversao = eq.analises > 0 ? ((eq.vendas / eq.analises) * 100).toFixed(1) : 0;
@@ -7716,7 +7896,7 @@
                     const rowHtml = `
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
-                            <td class="py-3 font-semibold text-slate-200">Equipa ${eq.equipe}</td>
+                            <td class="py-3 font-semibold text-slate-200">Equipe ${eq.equipe}</td>
                             <td class="py-3 text-center text-slate-400 ${eq.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${eq.analises > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','analises')"` : ''} title="${eq.analises > 0 ? 'Ver clientes' : ''}">${eq.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold ${eq.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${eq.aprovacoes > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','aprovacoes')"` : ''} title="${eq.aprovacoes > 0 ? 'Ver clientes' : ''}">${eq.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${eq.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${eq.vendas > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','vendas')"` : ''} title="${eq.vendas > 0 ? 'Ver clientes' : ''}">${eq.vendas}</td>
@@ -8167,7 +8347,7 @@
                 // anterior até a 1ª linha do mês novo chegar. Só cai no fallback antigo (último mês
                 // com dados) quando NENHUM mês configurado cobre hoje.
                 const lc = !isMockDataActive
-                    ? (getMesComercialAtualPorData() || (isProspeccaoMetrica ? getLatestProspeccaoCommercialMonth() : getLatestCommercialMonth()))
+                    ? (getMesComercialAtualPorData() || getLatestCommercialMonth())
                     : null;
                 if (lc) { mesNome = lc.nome; ano = lc.ano; monthIdx = lc.idx; }
                 else { mesNome = getMesName(hoje.getMonth() + 1); ano = hoje.getFullYear(); monthIdx = hoje.getMonth(); }
@@ -9557,125 +9737,100 @@
             const alertsGrid = document.getElementById('alertsGrid');
             alertsGrid.innerHTML = '';
 
+            // ALERTAS REESCRITOS (12/10/2026): antes só citava o 1º corretor da lista (inclusive
+            // INATIVOS — aparecia a Kercia, que já saiu) e a meta de VGV era fixa em R$ 5,0M no código.
+            // Agora: só corretores ATIVOS, dias contados até HOJE (não até o dia 15 do mês de
+            // referência), lista todo mundo que se enquadra, e as metas vêm de "Metas do Mês".
             let alerts = [];
-
-            let corretorUltimaVenda = {};
-            let corretorUltimaAnalise = {};
-
+            const hojeAl = new Date(); hojeAl.setHours(0, 0, 0, 0);
+            const umDiaEmMs = 1000 * 60 * 60 * 24;
+            const diasDesde = d => Math.floor((hojeAl - d) / umDiaEmMs);
+            const ativosAl = getActiveCorretores();
+            const ultimaAnalise = {}, ultimaVenda = {};
             dataset.forEach(row => {
                 const c = row.Corretor;
-                const dateCad = parseDate(row['Data Cadastro']);
-                const dateGanho = parseDate(row['Data Ganho']);
+                const dCad = parseDate(row['Data Cadastro']);
+                if (dCad && dCad <= hojeAl && (!ultimaAnalise[c] || dCad > ultimaAnalise[c])) ultimaAnalise[c] = dCad;
+                const dGan = parseDate(row['Data Ganho']);
+                if (isVendaGanhaReal(row) && dGan && dGan <= hojeAl && (!ultimaVenda[c] || dGan > ultimaVenda[c])) ultimaVenda[c] = dGan;
+            });
+            const listaNomes = arr => arr.map(x => `<strong>${x.nome}</strong> (${x.txt})`).join(', ');
 
-                if (dateCad) {
-                    if (!corretorUltimaAnalise[c] || dateCad > corretorUltimaAnalise[c]) {
-                        corretorUltimaAnalise[c] = dateCad;
-                    }
-                }
-
-                if (isGanho(row) && dateGanho) {
-                    if (!corretorUltimaVenda[c] || dateGanho > corretorUltimaVenda[c]) {
-                        corretorUltimaVenda[c] = dateGanho;
-                    }
-                }
+            // 1) Sem enviar análise há mais de 7 dias
+            const semAnalise = ativosAl
+                .map(nome => ({ nome, dias: ultimaAnalise[nome] ? diasDesde(ultimaAnalise[nome]) : Infinity }))
+                .filter(x => x.dias > 7).sort((a, b) => b.dias - a.dias)
+                .map(x => ({ ...x, txt: x.dias === Infinity ? 'nunca enviou' : `${x.dias} dias` }));
+            if (semAnalise.length) alerts.push({
+                type: 'warning', icon: 'fa-folder-open text-amber-400',
+                title: `Sem enviar análise há mais de 7 dias (${semAnalise.length})`,
+                desc: listaNomes(semAnalise) + '.',
+                action: 'Cobrar documentação'
             });
 
-            const corretoresInativosVenda = [];
-            const corretoresInativosAnalise = [];
-            const umDiaEmMs = 1000 * 60 * 60 * 24;
+            // 2) Sem venda há mais de 60 dias (ou nunca vendeu)
+            const semVenda = ativosAl
+                .map(nome => ({ nome, dias: ultimaVenda[nome] ? diasDesde(ultimaVenda[nome]) : Infinity }))
+                .filter(x => x.dias > 60).sort((a, b) => b.dias - a.dias)
+                .map(x => ({ ...x, txt: x.dias === Infinity ? 'nunca vendeu' : `${x.dias} dias` }));
+            if (semVenda.length) alerts.push({
+                type: 'danger', icon: 'fa-user-clock text-rose-400',
+                title: `Sem venda há mais de 60 dias (${semVenda.length})`,
+                desc: listaNomes(semVenda) + '.',
+                action: 'Reunião de alinhamento'
+            });
 
-            for (let c in corretorUltimaAnalise) {
-                const diffAnalise = Math.ceil((refDate - corretorUltimaAnalise[c]) / umDiaEmMs);
-                if (diffAnalise > 15) {
-                    corretoresInativosAnalise.push({ name: c, dias: diffAnalise });
-                }
+            // 3) Etapas do funil abaixo do ideal de hoje (mesma conta do Funil/Ritmo do Mês)
+            const etapasAl = [
+                { metrica: 'analises', label: 'Análises', real: kpiValues.analyses, meta: metasMensais.analises },
+                { metrica: 'aprovacoes', label: 'Aprovações', real: kpiValues.approvals, meta: metasMensais.aprovacoes },
+                { metrica: 'vendas', label: 'Vendas', real: kpiValues.sales, meta: metasMensais.vendas },
+                { metrica: 'agendamentos', label: 'Agendamentos', real: kpiValues.agendamentos, meta: metasMensais.agendamentos },
+                { metrica: 'compareceu', label: 'Visitas', real: kpiValues.compareceu, meta: metasMensais.compareceu }
+            ];
+            let janelaRef = null;
+            const atrasadas = [];
+            if (!getReferenceMesComercial()) etapasAl.forEach(e => {
+                if (!e.meta) return;
+                const jan = getJanelaMesComercial(e.metrica);
+                if (!janelaRef) janelaRef = jan;
+                const ideal = jan.diasUteisNoMes > 0 ? Math.round(e.meta * jan.diaUtilHoje / jan.diasUteisNoMes) : 0;
+                if (ideal > 0 && (e.real || 0) < ideal * 0.8) atrasadas.push(`<strong>${e.label}</strong> ${e.real || 0} de ${ideal} (${Math.round(((e.real || 0) / ideal) * 100)}% do ideal)`);
+            });
+            if (atrasadas.length) alerts.push({
+                type: 'danger', icon: 'fa-gauge-high text-rose-400',
+                title: 'Etapas abaixo do ritmo ideal de hoje',
+                desc: atrasadas.join(' · ') + '.',
+                action: 'Ver Ritmo do Mês'
+            });
 
-                const dataVenda = corretorUltimaVenda[c];
-                if (!dataVenda) {
-                    corretoresInativosVenda.push({ name: c, dias: 'Nunca vendeu' });
-                } else {
-                    const diffVenda = Math.ceil((refDate - dataVenda) / umDiaEmMs);
-                    if (diffVenda > 30) {
-                        corretoresInativosVenda.push({ name: c, dias: diffVenda });
-                    }
-                }
-            }
-
-            if (corretoresInativosVenda.length > 0) {
-                const topInativo = corretoresInativosVenda[0];
-                alerts.push({
-                    type: 'danger',
-                    icon: 'fa-user-clock text-rose-400',
-                    title: 'Inatividade Comercial Crítica',
-                    desc: `<strong>${topInativo.name}</strong> está há <strong>${topInativo.dias} dias</strong> sem fechar novos contratos na carteira imobiliária.`,
-                    action: 'Reunião de Alinhamento'
+            // 4) Meta de VGV (de "Metas do Mês", não mais fixa)
+            const metaVgvAl = metasMensais.vgv || 0;
+            if (metaVgvAl > 0) {
+                const progresso = (kpiValues.vgv / metaVgvAl) * 100;
+                if (progresso < 100) alerts.push({
+                    type: 'meta', icon: 'fa-bullseye text-brand-400',
+                    title: 'Meta de VGV do mês',
+                    desc: `Faltam <strong>${formatCurrency(Math.max(0, metaVgvAl - kpiValues.vgv))}</strong> para a meta de ${formatCurrency(metaVgvAl)}. Progresso: <strong>${progresso.toFixed(1)}%</strong>.`,
+                    action: 'Ver Metas do Mês'
+                });
+                else alerts.push({
+                    type: 'success', icon: 'fa-award text-emerald-400',
+                    title: 'Meta de VGV batida!',
+                    desc: `Parabéns à equipe! Meta de ${formatCurrency(metaVgvAl)} superada. VGV do mês: <strong>${formatCurrency(kpiValues.vgv)}</strong>.`,
+                    action: 'Revisar meta'
                 });
             }
 
-            if (corretoresInativosAnalise.length > 0) {
-                const topInativoCad = corretoresInativosAnalise[0];
-                alerts.push({
-                    type: 'warning',
-                    icon: 'fa-folder-open text-amber-400',
-                    title: 'Falta de Prospecção Recente',
-                    desc: `<strong>${topInativoCad.name}</strong> está há <strong>${topInativoCad.dias} dias</strong> sem dar entrada em propostas de análise documental.`,
-                    action: 'Reavaliar Pipeline de Leads'
-                });
-            }
-
-            let equipesSoma = {};
-            let somaTotal = 0;
-            let totalEquipes = 0;
-
-            filteredDataset.forEach(row => {
-                if (isGanho(row) && row.Equipe && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refDate)) {
-                    if (!equipesSoma[row.Equipe]) equipesSoma[row.Equipe] = 0;
-                    equipesSoma[row.Equipe] += getVGV(row);
-                }
+            // 5) Mês comercial sem período cadastrado (janela estimada pelo calendário)
+            if (janelaRef && !janelaRef.configMes) alerts.push({
+                type: 'warning', icon: 'fa-calendar-xmark text-amber-400',
+                title: `${janelaRef.mesNome}/${janelaRef.ano} sem período cadastrado`,
+                desc: `O início e o fim do mês comercial estão sendo estimados — o "ideal de hoje" pode estar errado. Cadastre as datas em <strong>Meses Comerciais</strong> (menu lateral).`,
+                action: 'Cadastrar período'
             });
 
-            const equipesList = Object.keys(equipesSoma);
-            equipesList.forEach(eq => {
-                somaTotal += equipesSoma[eq];
-                totalEquipes++;
-            });
-
-            const mediaVgv = totalEquipes > 0 ? (somaTotal / totalEquipes) : 0;
-
-            equipesList.forEach(eq => {
-                if (equipesSoma[eq] < mediaVgv) {
-                    alerts.push({
-                        type: 'info',
-                        icon: 'fa-chart-pie text-sky-400',
-                        title: `Desempenho Equipa ${eq}`,
-                        desc: `Faturamento abaixo da média da empresa de ${formatCurrency(mediaVgv)}. Atual acumulado: ${formatCurrency(equipesSoma[eq])}.`,
-                        action: 'Mentoria com Líder'
-                    });
-                }
-            });
-
-            const metaMensal = 5000000;
-            const progressoMeta = (kpiValues.vgv / metaMensal) * 100;
-            
-            if (progressoMeta < 100) {
-                alerts.push({
-                    type: 'meta',
-                    icon: 'fa-bullseye text-brand-400',
-                    title: 'Acompanhamento de Meta Corporativa',
-                    desc: `Faltam <strong>${formatCurrency(Math.max(0, metaMensal - kpiValues.vgv))}</strong> para bater a meta mensal de R$ 5.0M. Progresso atual: <strong>${progressoMeta.toFixed(1)}%</strong>.`,
-                    action: 'Ver Meta Geral'
-                });
-            } else {
-                alerts.push({
-                    type: 'success',
-                    icon: 'fa-award text-emerald-400',
-                    title: 'Meta Mensal Superada!',
-                    desc: `Parabéns à equipa! A meta de R$ 5.0M foi batida. VGV Consolidado: <strong>${formatCurrency(kpiValues.vgv)}</strong>.`,
-                    action: 'Criar Nova Meta'
-                });
-            }
-
-            alerts.slice(0, 3).forEach(alert => {
+            alerts.forEach(alert => {
                 let borderTheme = "border-slate-800 bg-slate-900/20";
                 if (alert.type === 'danger') borderTheme = "border-rose-500/20 bg-rose-500/5";
                 if (alert.type === 'warning') borderTheme = "border-amber-500/20 bg-amber-500/5";
@@ -10099,7 +10254,7 @@
         let currentDetailTitle = 'detalhamento';
 
         // Renderizador genérico do modal de detalhamento de clientes — usado pelo calendário,
-        // pelo funil de vendas e pelos rankings comerciais (corretor/equipa).
+        // pelo funil de vendas e pelos rankings comerciais (corretor/equipe).
         function showDetailModal(opts) {
             const { label1, label2, nome, dataStr, rows, totalLabel, showCorretor } = opts;
             document.getElementById('detailCorrLabel1').textContent = label1;
