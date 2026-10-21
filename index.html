@@ -1942,7 +1942,13 @@
             const activeKeys = new Set(names.map(orgPersonKey));
             const activeMembers = organograma.filter(n => activeKeys.has(orgPersonKey(n.name)));
             const managers = activeMembers.filter(n => n.role === 'Gerente' && n.parentId === 'regional');
-            const teams = managers.map(n => ({manager:n, brokers:activeMembers.filter(b => b.role === 'Corretor' && (n.equipe ? getOrgBrokerTeams(b.name).has(n.equipe) : b.parentId === n.id))}));
+            const brokerManager = broker => {
+                if (broker.manualParent && managers.some(m => m.id === broker.parentId)) return broker.parentId;
+                const brokerTeams = getOrgBrokerTeams(broker.name);
+                const linkedTeamManager = managers.find(m => m.equipe && brokerTeams.has(m.equipe));
+                return linkedTeamManager?.id || (managers.some(m => m.id === broker.parentId) ? broker.parentId : null);
+            };
+            const teams = managers.map(n => ({manager:n, brokers:activeMembers.filter(b => b.role === 'Corretor' && brokerManager(b) === n.id)}));
             const totalBrokers = teams.reduce((sum,team) => sum + team.brokers.length,0);
             const stats = {orgStatManagers:managers.length, orgStatBrokers:totalBrokers, orgStatTotal:managers.length + totalBrokers};
             Object.entries(stats).forEach(([id,value]) => { const el=document.getElementById(id); if (el) el.textContent=value; });
@@ -1984,7 +1990,7 @@
             const name = nameEl.value || ''; if (!name) { nameEl.focus(); return; }
             if (roleEl.value === 'Corretor' && (!parentEl.value || !organograma.some(n => n.id === parentEl.value && n.role === 'Gerente'))) { renderOrganograma(); return; }
             if (!getActiveCorretores().some(n => orgPersonKey(n) === orgPersonKey(name)) || organograma.some(n => orgPersonKey(n.name) === orgPersonKey(name))) { nameEl.value = ''; renderOrganograma(); return; }
-            organograma.push({id:orgId(), name, role:roleEl.value, parentId:roleEl.value === 'Gerente' ? 'regional' : parentEl.value, ...(roleEl.value === 'Gerente' ? {equipe:parentEl.value || ''} : {})});
+            organograma.push({id:orgId(), name, role:roleEl.value, parentId:roleEl.value === 'Gerente' ? 'regional' : parentEl.value, ...(roleEl.value === 'Gerente' ? {equipe:parentEl.value || ''} : {manualParent:true})});
             nameEl.value = ''; saveOrganograma();
         }
         function saveOrgMember(id) {
@@ -1997,7 +2003,9 @@
             node.role = document.getElementById(`orgRole-${id}`).value;
             const selectedParent = document.getElementById(`orgParent-${id}`).value;
             if (node.role === 'Corretor' && !organograma.some(n => n.id === selectedParent && n.role === 'Gerente')) { renderOrganograma(); return; }
-            node.parentId = node.role === 'Gerente' ? 'regional' : selectedParent; saveOrganograma();
+            node.parentId = node.role === 'Gerente' ? 'regional' : selectedParent;
+            if (node.role === 'Corretor') node.manualParent = true; else { delete node.manualParent; node.equipe = ''; }
+            saveOrganograma();
         }
         function removeOrgMember(id) {
             if (!isDiretor) return;
