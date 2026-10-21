@@ -1042,7 +1042,7 @@
 
 <section id="organogramaSection" class="hidden space-y-5">
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Regional no topo, gerentes abaixo e cada equipe logo abaixo da sua liderança.</p></div>
+                        <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Regional → Gerentes → Corretores</p></div>
                         <span id="organogramaSyncLabel" class="text-[10px] text-slate-500"></span>
                     </div>
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-6">
@@ -1061,11 +1061,11 @@
                                 </button>
                                 <div id="orgMemberPickerMenu" class="hidden absolute z-30 top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700 rounded-xl shadow-2xl overflow-hidden"><div id="orgMemberPickerOptions" class="max-h-64 overflow-y-auto p-1.5"></div></div>
                             </div>
-                            <select id="orgNewRole" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><option value="Gerente">Gerente</option><option value="Coordenador">Coordenador</option><option value="Corretor">Corretor</option></select>
+                            <select id="orgNewRole" onchange="updateOrgParentOptions(this.value)" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><option value="Gerente">Gerente</option><option value="Corretor">Corretor</option></select>
                             <select id="orgNewParent" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"></select>
                             <button onclick="addOrgMember()" class="diretor-locked bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-lg px-3 py-2 transition"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
                         </div>
-                        <p class="text-[10px] text-slate-600 mt-2">A lista mostra somente pessoas ativas cadastradas no BI. Cada opção usa a foto salva no cadastro.</p>
+                        <p class="text-[10px] text-slate-600 mt-2">Cadastre gerentes abaixo da Regional e vincule cada corretor ao gerente responsável. A lista usa somente pessoas ativas do BI e mostra as fotos cadastradas.</p>
                         <p id="organogramaEditHint" class="text-[10px] text-amber-400 mt-2 hidden">Entre como diretor para editar e sincronizar esta estrutura.</p>
                     </div>
                 </section>
@@ -1814,8 +1814,26 @@
             renderOrganograma();
         }
         function orgParentOptions(selected, omitId) {
-            const options = [{id:'regional', name:'Sadraque Ribeiro · Regional'}, ...organograma.filter(n => n.id !== omitId).map(n => ({id:n.id, name:`${n.name} · ${n.role}`}))];
+            const options = [{id:'regional', name:'Sadraque Ribeiro · Regional'}, ...organograma.filter(n => n.id !== omitId && n.role === 'Gerente').map(n => ({id:n.id, name:`${n.name} · Gerente`}))];
             return options.map(o => `<option value="${orgEsc(o.id)}" ${o.id === selected ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('');
+        }
+        function updateOrgParentOptions(role, id = null) {
+            const parent = document.getElementById(id ? `orgParent-${id}` : 'orgNewParent');
+            if (!parent) return;
+            const managerRole = (id ? document.getElementById(`orgRole-${id}`) : document.getElementById('orgNewRole'))?.value || role;
+            const managers = organograma.filter(n => n.role === 'Gerente' && n.id !== id);
+            if (managerRole === 'Gerente') {
+                parent.innerHTML = '<option value="regional">Sadraque Ribeiro · Regional</option>';
+                parent.value = 'regional';
+            } else {
+                const selected = managers.some(n => n.id === parent.value) ? parent.value : (managers[0]?.id || '');
+                parent.innerHTML = managers.length ? managers.map(n => `<option value="${orgEsc(n.id)}" ${n.id === selected ? 'selected' : ''}>${orgEsc(n.name)} · Gerente</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>';
+                parent.value = selected;
+            }
+            if (!id) {
+                const add = document.querySelector('#organogramaSection button[onclick="addOrgMember()"]');
+                if (add) add.disabled = !isDiretor || (managerRole === 'Corretor' && managers.length === 0);
+            }
         }
         function orgDescendants(id) {
             const found = new Set([id]); let changed = true;
@@ -1875,27 +1893,27 @@
             const assigned = new Set(organograma.map(n => orgPersonKey(n.name)));
             const availableNames = names.filter(n => !assigned.has(orgPersonKey(n)));
             renderOrgMemberPicker(availableNames);
-            const parent = document.getElementById('orgNewParent'); if (parent) parent.innerHTML = orgParentOptions(parent.value || 'regional');
+            updateOrgParentOptions(document.getElementById('orgNewRole')?.value || 'Gerente');
             const addButton = document.querySelector('#organogramaSection button[onclick="addOrgMember()"]');
-            if (addButton) addButton.disabled = !isDiretor || availableNames.length === 0;
+            if (addButton) addButton.disabled = !isDiretor || availableNames.length === 0 || (document.getElementById('orgNewRole')?.value === 'Corretor' && !organograma.some(n => n.role === 'Gerente'));
             const renderBranch = (parentId, seen = new Set()) => {
-                const children = organograma.filter(n => n.parentId === parentId && !seen.has(n.id));
+                const children = organograma.filter(n => n.parentId === parentId && !seen.has(n.id) && (parentId === 'regional' ? n.role === 'Gerente' : n.role === 'Corretor'));
                 if (!children.length) return '';
                 const parentNode = parentId === 'regional' ? null : organograma.find(n => n.id === parentId);
-                const levelLabel = parentId === 'regional' ? 'Lideranças abaixo da Regional' : `Equipe abaixo de ${parentNode ? orgEsc(parentNode.name) : 'esta liderança'}`;
+                const levelLabel = parentId === 'regional' ? 'Gerentes' : `Corretores · ${parentNode ? orgEsc(parentNode.name) : 'Gerente'}`;
                 const groupClass = 'org-chart-children';
                 return `<div class="org-chart-level-label">${levelLabel}</div><div class="${groupClass}">${children.map(node => {
                     if (seen.has(node.id)) return '';
                     const nextSeen = new Set(seen); nextSeen.add(node.id);
                     const excluded = orgDescendants(node.id);
-                    const parents = [{id:'regional', name:'Sadraque Ribeiro · Regional'}, ...organograma.filter(n => !excluded.has(n.id)).map(n => ({id:n.id, name:`${n.name} · ${n.role}`}))];
+                    const parents = node.role === 'Gerente' ? [{id:'regional', name:'Sadraque Ribeiro · Regional'}] : organograma.filter(n => n.role === 'Gerente' && !excluded.has(n.id)).map(n => ({id:n.id, name:`${n.name} · Gerente`}));
                     return `<div class="org-chart-branch">
                         <div class="org-chart-node-card">
                             <div class="flex items-center gap-2 mb-2"><span class="h-2.5 w-2.5 rounded-full ${node.role === 'Gerente' ? 'bg-violet-400' : node.role === 'Coordenador' ? 'bg-sky-400' : 'bg-emerald-400'}"></span><span class="text-[10px] uppercase font-bold tracking-widest text-slate-400">${orgEsc(node.role)}</span></div>
                             <div class="w-full flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-2.5 py-2.5"><span class="shrink-0">${corretorAvatarInner(node.name, 'h-10 w-10', 'text-[10px]')}</span><span class="text-sm font-bold text-white truncate">${orgEsc(node.name)}</span></div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
-                                <select id="orgRole-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Coordenador','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
-                                <select id="orgParent-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>Responde a: ${orgEsc(o.name)}</option>`).join('')}</select>
+                                <select id="orgRole-${orgEsc(node.id)}" onchange="updateOrgParentOptions(this.value,'${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+                                <select id="orgParent-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.length ? parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>'}</select>
                             </div>
                             <div class="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-800"><button onclick="saveOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div>
                         </div>
@@ -1903,22 +1921,25 @@
                     </div>`;
                 }).join('')}</div>`;
             };
-            tree.innerHTML = organograma.length ? renderBranch('regional') : '<p class="org-chart-empty text-xs text-slate-500 text-center py-8 px-4 rounded-xl border border-dashed border-slate-700">A estrutura começa com você no nível Regional. Adicione o primeiro gerente, coordenador ou corretor abaixo.</p>';
+            tree.innerHTML = organograma.length ? renderBranch('regional') : '<p class="org-chart-empty text-xs text-slate-500 text-center py-8 px-4 rounded-xl border border-dashed border-slate-700">A estrutura começa com você no nível Regional. Adicione um gerente; depois, vincule os corretores a ele.</p>';
             const sync = document.getElementById('organogramaSyncLabel'); if (sync && !sync.textContent) sync.textContent = `${organograma.length} pessoa${organograma.length === 1 ? '' : 's'} na estrutura`;
         }
         function addOrgMember() {
             if (!isDiretor) return;
             const nameEl = document.getElementById('orgNewName'), roleEl = document.getElementById('orgNewRole'), parentEl = document.getElementById('orgNewParent');
             const name = nameEl.value || ''; if (!name) { nameEl.focus(); return; }
+            if (roleEl.value === 'Corretor' && (!parentEl.value || !organograma.some(n => n.id === parentEl.value && n.role === 'Gerente'))) { renderOrganograma(); return; }
             if (!getActiveCorretores().some(n => orgPersonKey(n) === orgPersonKey(name)) || organograma.some(n => orgPersonKey(n.name) === orgPersonKey(name))) { nameEl.value = ''; renderOrganograma(); return; }
-            organograma.push({id:orgId(), name, role:roleEl.value, parentId:parentEl.value || 'regional'});
+            organograma.push({id:orgId(), name, role:roleEl.value, parentId:roleEl.value === 'Gerente' ? 'regional' : parentEl.value});
             nameEl.value = ''; saveOrganograma();
         }
         function saveOrgMember(id) {
             if (!isDiretor) return;
             const node = organograma.find(n => n.id === id); if (!node) return;
             node.role = document.getElementById(`orgRole-${id}`).value;
-            node.parentId = document.getElementById(`orgParent-${id}`).value || 'regional'; saveOrganograma();
+            const selectedParent = document.getElementById(`orgParent-${id}`).value;
+            if (node.role === 'Corretor' && !organograma.some(n => n.id === selectedParent && n.role === 'Gerente')) { renderOrganograma(); return; }
+            node.parentId = node.role === 'Gerente' ? 'regional' : selectedParent; saveOrganograma();
         }
         function removeOrgMember(id) {
             if (!isDiretor) return;
