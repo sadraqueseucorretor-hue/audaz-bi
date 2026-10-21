@@ -1036,12 +1036,12 @@
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-5">
                         <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase mb-3"><i class="fa-solid fa-user-plus text-brand-400 mr-1"></i> Adicionar pessoa à estrutura</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                            <input id="orgNewName" list="orgKnownNames" placeholder="Nome da pessoa" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><datalist id="orgKnownNames"></datalist>
+                            <select id="orgNewName" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><option value="">Selecione uma pessoa cadastrada</option></select>
                             <select id="orgNewRole" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><option value="Gerente">Gerente</option><option value="Coordenador">Coordenador</option><option value="Corretor">Corretor</option></select>
                             <select id="orgNewParent" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"></select>
                             <button onclick="addOrgMember()" class="diretor-locked bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-lg px-3 py-2 transition"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
                         </div>
-                        <p class="text-[10px] text-slate-600 mt-2">Os nomes dos corretores cadastrados aparecem como sugestão; gerentes e coordenadores também podem ser digitados aqui.</p>
+                        <p class="text-[10px] text-slate-600 mt-2">A lista usa as pessoas já cadastradas no BI em Gerir Corretores ou na planilha conectada.</p>
                         <p id="organogramaEditHint" class="text-[10px] text-amber-400 mt-2 hidden">Entre como diretor para editar e sincronizar esta estrutura.</p>
                     </div>
                 </section>
@@ -1801,9 +1801,19 @@
         function renderOrganograma() {
             const tree = document.getElementById('organogramaTree'); if (!tree) return;
             const hint = document.getElementById('organogramaEditHint'); if (hint) hint.classList.toggle('hidden', isDiretor);
-            const names = [...new Set([...(getAllKnownCorretores ? getAllKnownCorretores() : []), ...organograma.map(n => n.name)])].sort((a,b) => a.localeCompare(b,'pt-BR'));
-            const datalist = document.getElementById('orgKnownNames'); if (datalist) datalist.innerHTML = names.map(n => `<option value="${orgEsc(n)}"></option>`).join('');
+            const names = [...new Set(getAllKnownCorretores())].sort((a,b) => a.localeCompare(b,'pt-BR'));
+            const assigned = new Set(organograma.map(n => n.name.toLocaleLowerCase()));
+            const availableNames = names.filter(n => !assigned.has(n.toLocaleLowerCase()));
+            const memberSelect = document.getElementById('orgNewName');
+            if (memberSelect) {
+                const previous = memberSelect.value;
+                memberSelect.innerHTML = `<option value="">${availableNames.length ? 'Selecione uma pessoa cadastrada' : 'Todos os cadastros já estão na estrutura'}</option>` + availableNames.map(n => `<option value="${orgEsc(n)}">${orgEsc(n)}</option>`).join('');
+                if (availableNames.includes(previous)) memberSelect.value = previous;
+                memberSelect.disabled = !isDiretor || availableNames.length === 0;
+            }
             const parent = document.getElementById('orgNewParent'); if (parent) parent.innerHTML = orgParentOptions(parent.value || 'regional');
+            const addButton = document.querySelector('#organogramaSection button[onclick="addOrgMember()"]');
+            if (addButton) addButton.disabled = !isDiretor || availableNames.length === 0;
             const renderBranch = (parentId, seen = new Set()) => {
                 const children = organograma.filter(n => n.parentId === parentId && !seen.has(n.id));
                 if (!children.length) return '';
@@ -1815,7 +1825,7 @@
                     return `<div class="w-full max-w-md">
                         <div class="bg-slate-950/70 border border-slate-700 rounded-xl p-3 shadow-lg">
                             <div class="flex items-center gap-2 mb-2"><span class="h-2 w-2 rounded-full ${node.role === 'Gerente' ? 'bg-violet-400' : node.role === 'Coordenador' ? 'bg-sky-400' : 'bg-emerald-400'}"></span><span class="text-[10px] uppercase font-bold tracking-widest text-slate-400">${orgEsc(node.role)}</span></div>
-                            <input id="orgName-${orgEsc(node.id)}" value="${orgEsc(node.name)}" ${isDiretor ? '' : 'disabled'} class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm font-bold text-white outline-none focus:border-brand-500 disabled:opacity-60">
+                            <div class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2 text-sm font-bold text-white">${orgEsc(node.name)}</div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                                 <select id="orgRole-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Coordenador','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
                                 <select id="orgParent-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>Responde a: ${orgEsc(o.name)}</option>`).join('')}</select>
@@ -1830,16 +1840,15 @@
         function addOrgMember() {
             if (!isDiretor) return;
             const nameEl = document.getElementById('orgNewName'), roleEl = document.getElementById('orgNewRole'), parentEl = document.getElementById('orgNewParent');
-            const name = (nameEl.value || '').trim(); if (!name) { nameEl.focus(); return; }
-            if (organograma.some(n => n.name.toLocaleLowerCase() === name.toLocaleLowerCase())) { nameEl.focus(); return; }
+            const name = nameEl.value || ''; if (!name) { nameEl.focus(); return; }
+            if (!getAllKnownCorretores().includes(name) || organograma.some(n => n.name.toLocaleLowerCase() === name.toLocaleLowerCase())) { nameEl.focus(); return; }
             organograma.push({id:orgId(), name, role:roleEl.value, parentId:parentEl.value || 'regional'});
             nameEl.value = ''; saveOrganograma();
         }
         function saveOrgMember(id) {
             if (!isDiretor) return;
             const node = organograma.find(n => n.id === id); if (!node) return;
-            const name = (document.getElementById(`orgName-${id}`).value || '').trim(); if (!name) return;
-            node.name = name; node.role = document.getElementById(`orgRole-${id}`).value;
+            node.role = document.getElementById(`orgRole-${id}`).value;
             node.parentId = document.getElementById(`orgParent-${id}`).value || 'regional'; saveOrganograma();
         }
         function removeOrgMember(id) {
