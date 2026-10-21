@@ -67,18 +67,19 @@
         .backdrop-blur-premium {
             backdrop-filter: blur(16px);
         }
-        :root { --org-card-width: 280px; }
-        .org-chart-scroll { overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 0.75rem; }
-        .org-chart-root { width: var(--org-card-width); max-width: calc(100vw - 3rem); margin-inline: auto; }
-        .org-chart-root-connector { height: 28px; width: 1px; background: #334155; margin-inline: auto; }
-        .org-chart-level { display: flex; justify-content: center; width: 100%; min-width: max-content; }
-        .org-chart-children { display: flex; justify-content: center; align-items: flex-start; gap: 1.25rem; position: relative; width: max-content; min-width: 100%; padding-top: 28px; }
-        .org-chart-children.has-branches::before { content: ''; position: absolute; top: 0; left: calc(var(--org-card-width) / 2); right: calc(var(--org-card-width) / 2); border-top: 1px solid #334155; }
-        .org-chart-branch { position: relative; flex: 0 0 var(--org-card-width); width: var(--org-card-width); display: flex; flex-direction: column; align-items: center; }
-        .org-chart-branch::before { content: ''; position: absolute; top: 0; left: 50%; height: 28px; border-left: 1px solid #334155; }
-        .org-chart-node-card { position: relative; z-index: 1; width: 100%; background: rgba(2, 6, 23, .88); border: 1px solid #334155; border-radius: 1rem; padding: .875rem; box-shadow: 0 12px 30px rgba(0,0,0,.18); }
-        .org-chart-node-children { width: 100%; display: flex; justify-content: center; }
-        @media (max-width: 640px) { :root { --org-card-width: 248px; } .org-chart-children { gap: .75rem; } }
+        .org-chart-scroll { width: 100%; padding: 1.25rem; }
+        .org-chart-root { width: min(100%, 420px); margin-inline: auto; display:flex; align-items:center; gap:1rem; text-align:left; padding:1rem 1.25rem; }
+        .org-chart-root-connector { height: 28px; width: 2px; background: linear-gradient(#f59e0b,#334155); margin-inline: auto; }
+        .org-chart-level { width: 100%; }
+        .org-chart-children { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 1rem; width:100%; position:relative; }
+        .org-chart-branch { position:relative; min-width:0; display:flex; flex-direction:column; }
+        .org-chart-node-card { width:100%; background:linear-gradient(145deg,rgba(15,23,42,.98),rgba(2,6,23,.96)); border:1px solid #334155; border-radius:1rem; padding:1rem; box-shadow:0 10px 24px rgba(0,0,0,.16); }
+        .org-chart-node-children { width:100%; padding:1rem 0 0 1.1rem; margin-top:.8rem; border-left:1px solid #334155; }
+        .org-chart-node-children:empty { display:none; }
+        .org-chart-node-children > .org-chart-children > .org-chart-branch::before { content:''; position:absolute; top:1.45rem; left:-1.1rem; width:1.1rem; border-top:1px solid #334155; }
+        .org-chart-node-children > .org-chart-children { grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); }
+        .org-chart-empty { width:min(100%,720px); margin:0 auto; }
+        @media (max-width:640px) { .org-chart-scroll { padding:.75rem; } .org-chart-children,.org-chart-node-children > .org-chart-children { grid-template-columns:minmax(0,1fr); gap:.75rem; } .org-chart-node-children { padding-left:.85rem; } .org-chart-node-children > .org-chart-children > .org-chart-branch::before { left:-.85rem; width:.85rem; } }
 
         .animate-pulse-slow {
             animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -1039,12 +1040,12 @@
 
 <section id="organogramaSection" class="hidden space-y-5">
                     <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Monte a estrutura aos poucos: escolha o cargo e defina a quem cada pessoa responde.</p></div>
+                        <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Visualize a equipe por níveis e expanda cada liderança para ver quem responde a ela.</p></div>
                         <span id="organogramaSyncLabel" class="text-[10px] text-slate-500"></span>
                     </div>
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-6">
                         <div class="org-chart-scroll">
-                        <div class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/30 rounded-2xl p-4 text-center shadow-lg shadow-amber-950/10"><div id="orgRegionalAvatar" class="flex justify-center mb-2"></div><div class="text-[10px] uppercase tracking-widest font-bold text-amber-300">Regional</div><div class="text-base font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-[10px] text-slate-500 mt-1">Responsável regional</div></div>
+                        <div class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/30 rounded-2xl shadow-lg shadow-amber-950/10"><div id="orgRegionalAvatar" class="flex justify-center shrink-0"></div><div><div class="text-[10px] uppercase tracking-widest font-bold text-amber-300">Regional</div><div class="text-base font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-[10px] text-slate-500 mt-1">Responsável regional</div></div></div>
                         <div class="org-chart-root-connector"></div><div id="organogramaTree" class="org-chart-level"></div>
                         </div>
                     </div>
@@ -1898,7 +1899,7 @@
                     </div>`;
                 }).join('')}</div>`;
             };
-            tree.innerHTML = organograma.length ? renderBranch('regional') : '<p class="text-xs text-slate-500 text-center py-5 px-3 rounded-xl border border-dashed border-slate-700 w-full">A estrutura começa com você no nível Regional. Adicione o primeiro gerente, coordenador ou corretor abaixo.</p>';
+            tree.innerHTML = organograma.length ? renderBranch('regional') : '<p class="org-chart-empty text-xs text-slate-500 text-center py-8 px-4 rounded-xl border border-dashed border-slate-700">A estrutura começa com você no nível Regional. Adicione o primeiro gerente, coordenador ou corretor abaixo.</p>';
             const sync = document.getElementById('organogramaSyncLabel'); if (sync && !sync.textContent) sync.textContent = `${organograma.length} pessoa${organograma.length === 1 ? '' : 's'} na estrutura`;
         }
         function addOrgMember() {
@@ -4618,7 +4619,7 @@
             }
             // Filtros somem nas telas de exibição (Rankings e Tela/TV) — são telas pra olhar, não pra operar.
             const filtersBar = document.getElementById('filtersBar');
-            if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings' || viewName === 'tela');
+            if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings' || viewName === 'tela' || viewName === 'organograma');
             if (viewName === 'corretor') renderCorretorCards();
             if (viewName === 'organograma') renderOrganograma();
             if (viewName === 'plantoes') renderPlantoes();
