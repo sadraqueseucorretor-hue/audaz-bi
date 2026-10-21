@@ -84,8 +84,10 @@
         .org-chart-level-label { display:flex; align-items:center; justify-content:center; gap:.7rem; margin:0 0 1rem; color:#cbd5e1; font-size:.68rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
         .org-chart-level-label::before,.org-chart-level-label::after { content:''; height:1px; flex:1; background:linear-gradient(90deg,transparent,#334155); }
         .org-chart-level-label::after { background:linear-gradient(90deg,#334155,transparent); }
-        .org-chart-manager-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:.8rem; align-items:stretch; }
-        .org-team-group { --team-color:#3b82f6; min-width:0; max-width:360px; display:flex; flex-direction:column; gap:.65rem; }
+        .org-chart-scroll { overflow-x:auto; }
+        .org-chart-columns { min-width:1120px; }
+        .org-chart-manager-grid,.org-chart-team-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.8rem; align-items:stretch; }
+        .org-team-group { --team-color:#3b82f6; min-width:0; display:flex; flex-direction:column; gap:.65rem; }
         .org-manager-card,.org-team-card { border:1px solid color-mix(in srgb,var(--team-color) 65%,#1e293b); border-radius:1rem; background:linear-gradient(145deg,rgba(8,20,38,.96),rgba(2,10,25,.98)); overflow:hidden; }
         .org-manager-card { position:relative; min-height:112px; padding:.85rem .75rem .8rem .9rem; border-left:5px solid var(--team-color); box-shadow:0 12px 28px rgba(0,0,0,.18); }
         .org-manager-person { display:flex; align-items:center; gap:.65rem; min-width:0; }
@@ -112,7 +114,7 @@
         .org-node-edit[open] summary { margin-bottom:.5rem; color:#cbd5e1; }
         .org-chart-empty { width:min(100%,720px); margin:0 auto; }
         @media (max-width:1150px) { .org-overview { grid-template-columns:minmax(120px,.65fr) minmax(250px,1.25fr); } .org-stats { grid-column:1/-1; } }
-        @media (max-width:620px) { .org-chart-scroll { padding:.65rem; } .org-overview { grid-template-columns:minmax(0,1fr); text-align:center; } .org-brand { margin:.35rem auto; } .org-chart-root { max-width:390px; margin:auto; text-align:left; } .org-stats { grid-column:auto; } .org-chart-manager-grid { grid-template-columns:minmax(0,1fr); gap:.65rem; } .org-team-card { min-height:0; } }
+        @media (max-width:620px) { .org-chart-scroll { padding:.65rem; } .org-overview { grid-template-columns:minmax(0,1fr); text-align:center; } .org-brand { margin:.35rem auto; } .org-chart-root { max-width:390px; margin:auto; text-align:left; } .org-stats { grid-column:auto; } .org-chart-manager-grid,.org-chart-team-grid { grid-template-columns:repeat(5,minmax(190px,1fr)); gap:.65rem; } .org-team-card { min-height:0; } }
 
         .animate-pulse-slow {
             animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -1083,7 +1085,7 @@
                                 <div class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/40 rounded-2xl"><div id="orgRegionalAvatar" class="flex justify-center shrink-0"></div><div><div class="text-[10px] uppercase tracking-[.18em] font-extrabold text-amber-300">Regional</div><div class="text-lg font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-xs text-slate-300 mt-1">Gerente Regional</div><div class="text-[10px] text-slate-500 mt-1"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> Audaz Squad</div></div></div>
                                 <div class="org-stats"><div class="org-stat"><div id="orgStatManagers" class="org-stat-value">0</div><div class="org-stat-label">Gerentes</div></div><div class="org-stat"><div id="orgStatBrokers" class="org-stat-value">0</div><div class="org-stat-label">Corretores</div></div><div class="org-stat"><div id="orgStatTotal" class="org-stat-value">0</div><div class="org-stat-label">Pessoas na equipe</div></div></div>
                             </div>
-                            <div class="org-chart-root-connector"></div><div id="organogramaTree" class="org-chart-level"></div>
+                            <div class="org-chart-root-connector"></div><div class="org-chart-columns"><div id="organogramaTree" class="org-chart-level"></div></div>
                         </div>
                     </div>
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-5">
@@ -1861,8 +1863,9 @@
             const activeKeys = new Set(getActiveCorretores().filter(n => !inactiveKeys.has(orgPersonKey(n))).map(orgPersonKey));
             const managers = organograma.filter(n => n.role === 'Gerente' && n.id !== id && activeKeys.has(orgPersonKey(n.name)));
             if (managerRole === 'Gerente') {
-                parent.innerHTML = '<option value="regional">Sadraque Ribeiro · Regional</option>';
-                parent.value = 'regional';
+                const current = id ? organograma.find(n => n.id === id)?.equipe : '';
+                parent.innerHTML = `<option value="">Escolha uma equipe do BI</option>${getOrgTeamNames().map(team => `<option value="${orgEsc(team)}" ${team === current ? 'selected' : ''}>${orgEsc(team)}</option>`).join('')}`;
+                parent.value = current || '';
             } else {
                 const selected = managers.some(n => n.id === parent.value) ? parent.value : (managers[0]?.id || '');
                 parent.innerHTML = managers.length ? managers.map(n => `<option value="${orgEsc(n.id)}" ${n.id === selected ? 'selected' : ''}>${orgEsc(n.name)} · Gerente</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>';
@@ -1872,6 +1875,14 @@
                 const add = document.querySelector('#organogramaSection button[onclick="addOrgMember()"]');
                 if (add) add.disabled = !isDiretor || (managerRole === 'Corretor' && managers.length === 0);
             }
+        }
+        function getOrgTeamNames() {
+            return [...new Set((dataset || []).map(row => String(row.Equipe || '').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pt-BR'));
+        }
+        function getOrgBrokerTeams(name) {
+            const teams = new Set();
+            (dataset || []).forEach(row => { if (row.Corretor && orgPersonKey(row.Corretor) === orgPersonKey(name) && row.Equipe) teams.add(String(row.Equipe).trim()); });
+            return teams;
         }
         function orgDescendants(id) {
             const found = new Set([id]); let changed = true;
@@ -1931,7 +1942,7 @@
             const activeKeys = new Set(names.map(orgPersonKey));
             const activeMembers = organograma.filter(n => activeKeys.has(orgPersonKey(n.name)));
             const managers = activeMembers.filter(n => n.role === 'Gerente' && n.parentId === 'regional');
-            const teams = managers.map(n => ({manager:n, brokers:activeMembers.filter(b => b.role === 'Corretor' && b.parentId === n.id)}));
+            const teams = managers.map(n => ({manager:n, brokers:activeMembers.filter(b => b.role === 'Corretor' && (n.equipe ? getOrgBrokerTeams(b.name).has(n.equipe) : b.parentId === n.id))}));
             const totalBrokers = teams.reduce((sum,team) => sum + team.brokers.length,0);
             const stats = {orgStatManagers:managers.length, orgStatBrokers:totalBrokers, orgStatTotal:managers.length + totalBrokers};
             Object.entries(stats).forEach(([id,value]) => { const el=document.getElementById(id); if (el) el.textContent=value; });
@@ -1948,13 +1959,19 @@
                 if (!isDiretor) return '';
                 const excluded = orgDescendants(node.id);
                 const parents = node.role === 'Gerente' ? [{id:'regional',name:'Regional · Sadraque Ribeiro'}] : managers.filter(m => !excluded.has(m.id)).map(m => ({id:m.id,name:`${m.name} · Gerente`}));
-                return `<details class="org-node-edit"><summary>Editar vínculo</summary><div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2"><select id="orgRole-${orgEsc(node.id)}" onchange="updateOrgParentOptions(this.value,'${orgEsc(node.id)}')" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select><select id="orgParent-${orgEsc(node.id)}" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.length ? parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>'}</select></div><div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div></details>`;
+                const parentControl = node.role === 'Gerente'
+                    ? `<label class="block text-[9px] text-slate-500 uppercase tracking-wider mt-2">Equipe do BI<select id="orgTeam-${orgEsc(node.id)}" class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none"><option value="">Sem equipe vinculada</option>${getOrgTeamNames().map(team => `<option value="${orgEsc(team)}" ${node.equipe === team ? 'selected' : ''}>${orgEsc(team)}</option>`).join('')}</select></label>`
+                    : `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2"><select id="orgRole-${orgEsc(node.id)}" onchange="updateOrgParentOptions(this.value,'${orgEsc(node.id)}')" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select><select id="orgParent-${orgEsc(node.id)}" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.length ? parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>'}</select></div>`;
+                return `<details class="org-node-edit"><summary>${node.role === 'Gerente' ? 'Vincular equipe' : 'Editar vínculo'}</summary>${parentControl}<div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div></details>`;
             };
             const renderBroker = (broker, color) => `<div class="org-broker-entry"><article class="org-broker-row" style="--team-color:${color}"><div class="org-broker-avatar shrink-0">${corretorAvatarInner(broker.name,'h-12 w-12','text-[10px]')}</div><div class="min-w-0"><div class="org-broker-name">${orgEsc(broker.name)}</div><div class="org-broker-role">Corretor</div><div class="org-broker-active">Ativo</div></div></article>${renderEdit(broker)}</div>`;
             tree.innerHTML = managers.length ? `<div class="org-chart-level-label">Gerentes</div><div class="org-chart-manager-grid">${teams.map(({manager,brokers},i) => {
+                const color = colors[i % colors.length];
+                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div class="org-manager-person"><div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'corretor' : 'corretores'}</div></div></div>${renderEdit(manager)}</article></section>`;
+            }).join('')}</div><div class="org-chart-level-label mt-5">Equipes do BI</div><div class="org-chart-team-grid">${teams.map(({manager,brokers},i) => {
                 const color = colors[i % colors.length], expanded = organogramaExpandedTeams.has(manager.id), visible = expanded ? brokers : brokers.slice(0,3);
-                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div class="org-manager-person"><div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'corretor' : 'corretores'}</div></div></div>${renderEdit(manager)}</article><article class="org-team-card"><div class="org-team-head"><span><i class="fa-solid fa-users mr-1.5"></i> Equipe</span><span class="org-team-count">${brokers.length}</span></div><div class="org-broker-list">${visible.length ? visible.map(b=>renderBroker(b,color)).join('') : '<div class="text-[11px] text-slate-500 text-center py-5">Nenhum corretor vinculado</div>'}</div>${brokers.length > 3 ? `<div class="org-team-toggle"><button onclick="toggleOrgTeam('${orgEsc(manager.id)}')">${expanded ? 'Recolher equipe' : `Ver equipe completa · ${brokers.length}`} <i class="fa-solid fa-chevron-${expanded ? 'up' : 'down'} ml-1"></i></button></div>` : ''}</article></section>`;
-            }).join('')}</div>` : '<p class="org-chart-empty text-xs text-slate-500 text-center py-8 px-4 rounded-xl border border-dashed border-slate-700">Adicione um gerente abaixo de você. Depois, escolha esse gerente como responsável pelos corretores.</p>';
+                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-team-card"><div class="org-team-head"><span><i class="fa-solid fa-users mr-1.5"></i> ${orgEsc(manager.equipe || 'Sem equipe')}</span><span class="org-team-count">${brokers.length}</span></div><div class="text-[10px] text-slate-500 mb-2">${orgEsc(manager.name)}</div><div class="org-broker-list">${visible.length ? visible.map(b=>renderBroker(b,color)).join('') : `<div class="text-[11px] text-slate-500 text-center py-5">${manager.equipe ? 'Nenhum corretor ativo nesta equipe do BI' : 'Vincule uma equipe ao gerente acima'}</div>`}</div>${brokers.length > 3 ? `<div class="org-team-toggle"><button onclick="toggleOrgTeam('${orgEsc(manager.id)}')">${expanded ? 'Recolher equipe' : `Ver equipe completa · ${brokers.length}`} <i class="fa-solid fa-chevron-${expanded ? 'up' : 'down'} ml-1"></i></button></div>` : ''}</article></section>`;
+            }).join('')}</div>` : '<p class="org-chart-empty text-xs text-slate-500 text-center py-8 px-4 rounded-xl border border-dashed border-slate-700">Adicione gerentes abaixo de você. Eles ficarão alinhados na mesma faixa.</p>';
             const sync = document.getElementById('organogramaSyncLabel'); if (sync && (!sync.textContent || /^\d+ pessoas? na estrutura$/.test(sync.textContent))) sync.textContent = `${managers.length + totalBrokers} pessoas ativas exibidas`;
         }
         function toggleOrgTeam(id) {
@@ -1967,12 +1984,16 @@
             const name = nameEl.value || ''; if (!name) { nameEl.focus(); return; }
             if (roleEl.value === 'Corretor' && (!parentEl.value || !organograma.some(n => n.id === parentEl.value && n.role === 'Gerente'))) { renderOrganograma(); return; }
             if (!getActiveCorretores().some(n => orgPersonKey(n) === orgPersonKey(name)) || organograma.some(n => orgPersonKey(n.name) === orgPersonKey(name))) { nameEl.value = ''; renderOrganograma(); return; }
-            organograma.push({id:orgId(), name, role:roleEl.value, parentId:roleEl.value === 'Gerente' ? 'regional' : parentEl.value});
+            organograma.push({id:orgId(), name, role:roleEl.value, parentId:roleEl.value === 'Gerente' ? 'regional' : parentEl.value, ...(roleEl.value === 'Gerente' ? {equipe:parentEl.value || ''} : {})});
             nameEl.value = ''; saveOrganograma();
         }
         function saveOrgMember(id) {
             if (!isDiretor) return;
             const node = organograma.find(n => n.id === id); if (!node) return;
+            if (node.role === 'Gerente') {
+                node.equipe = document.getElementById(`orgTeam-${id}`)?.value || '';
+                node.parentId = 'regional'; saveOrganograma(); return;
+            }
             node.role = document.getElementById(`orgRole-${id}`).value;
             const selectedParent = document.getElementById(`orgParent-${id}`).value;
             if (node.role === 'Corretor' && !organograma.some(n => n.id === selectedParent && n.role === 'Gerente')) { renderOrganograma(); return; }
