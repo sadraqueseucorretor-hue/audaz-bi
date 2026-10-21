@@ -67,6 +67,19 @@
         .backdrop-blur-premium {
             backdrop-filter: blur(16px);
         }
+        :root { --org-card-width: 280px; }
+        .org-chart-scroll { overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 0.75rem; }
+        .org-chart-root { width: var(--org-card-width); max-width: calc(100vw - 3rem); margin-inline: auto; }
+        .org-chart-root-connector { height: 28px; width: 1px; background: #334155; margin-inline: auto; }
+        .org-chart-level { display: flex; justify-content: center; width: 100%; min-width: max-content; }
+        .org-chart-children { display: flex; justify-content: center; align-items: flex-start; gap: 1.25rem; position: relative; width: max-content; min-width: 100%; padding-top: 28px; }
+        .org-chart-children.has-branches::before { content: ''; position: absolute; top: 0; left: calc(var(--org-card-width) / 2); right: calc(var(--org-card-width) / 2); border-top: 1px solid #334155; }
+        .org-chart-branch { position: relative; flex: 0 0 var(--org-card-width); width: var(--org-card-width); display: flex; flex-direction: column; align-items: center; }
+        .org-chart-branch::before { content: ''; position: absolute; top: 0; left: 50%; height: 28px; border-left: 1px solid #334155; }
+        .org-chart-node-card { position: relative; z-index: 1; width: 100%; background: rgba(2, 6, 23, .88); border: 1px solid #334155; border-radius: 1rem; padding: .875rem; box-shadow: 0 12px 30px rgba(0,0,0,.18); }
+        .org-chart-node-children { width: 100%; display: flex; justify-content: center; }
+        @media (max-width: 640px) { :root { --org-card-width: 248px; } .org-chart-children { gap: .75rem; } }
+
         .animate-pulse-slow {
             animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
@@ -1030,8 +1043,10 @@
                         <span id="organogramaSyncLabel" class="text-[10px] text-slate-500"></span>
                     </div>
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-6">
-                        <div class="bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/30 rounded-xl p-4 max-w-sm mx-auto text-center"><div id="orgRegionalAvatar" class="flex justify-center mb-2"></div><div class="text-[10px] uppercase tracking-widest font-bold text-amber-300">Regional</div><div class="text-base font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-[10px] text-slate-500 mt-1">Responsável regional</div></div>
-                        <div class="h-6 border-l border-slate-700 mx-auto w-px"></div><div id="organogramaTree" class="flex flex-col items-center gap-4"></div>
+                        <div class="org-chart-scroll">
+                        <div class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/30 rounded-2xl p-4 text-center shadow-lg shadow-amber-950/10"><div id="orgRegionalAvatar" class="flex justify-center mb-2"></div><div class="text-[10px] uppercase tracking-widest font-bold text-amber-300">Regional</div><div class="text-base font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-[10px] text-slate-500 mt-1">Responsável regional</div></div>
+                        <div class="org-chart-root-connector"></div><div id="organogramaTree" class="org-chart-level"></div>
+                        </div>
                     </div>
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-5">
                         <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase mb-3"><i class="fa-solid fa-user-plus text-brand-400 mr-1"></i> Adicionar pessoa à estrutura</h3>
@@ -1863,24 +1878,27 @@
             const renderBranch = (parentId, seen = new Set()) => {
                 const children = organograma.filter(n => n.parentId === parentId && !seen.has(n.id));
                 if (!children.length) return '';
-                return `<div class="flex flex-wrap justify-center items-start gap-3 w-full">${children.map(node => {
+                const groupClass = children.length > 1 ? 'org-chart-children has-branches' : 'org-chart-children';
+                return `<div class="${groupClass}">${children.map(node => {
                     if (seen.has(node.id)) return '';
                     const nextSeen = new Set(seen); nextSeen.add(node.id);
                     const excluded = orgDescendants(node.id);
                     const parents = [{id:'regional', name:'Sadraque Ribeiro · Regional'}, ...organograma.filter(n => !excluded.has(n.id)).map(n => ({id:n.id, name:`${n.name} · ${n.role}`}))];
-                    return `<div class="w-full max-w-md">
-                        <div class="bg-slate-950/70 border border-slate-700 rounded-xl p-3 shadow-lg">
-                            <div class="flex items-center gap-2 mb-2"><span class="h-2 w-2 rounded-full ${node.role === 'Gerente' ? 'bg-violet-400' : node.role === 'Coordenador' ? 'bg-sky-400' : 'bg-emerald-400'}"></span><span class="text-[10px] uppercase font-bold tracking-widest text-slate-400">${orgEsc(node.role)}</span></div>
-                            <div class="w-full flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-2"><span class="shrink-0">${corretorAvatarInner(node.name, 'h-9 w-9', 'text-[10px]')}</span><span class="text-sm font-bold text-white truncate">${orgEsc(node.name)}</span></div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    return `<div class="org-chart-branch">
+                        <div class="org-chart-node-card">
+                            <div class="flex items-center gap-2 mb-2"><span class="h-2.5 w-2.5 rounded-full ${node.role === 'Gerente' ? 'bg-violet-400' : node.role === 'Coordenador' ? 'bg-sky-400' : 'bg-emerald-400'}"></span><span class="text-[10px] uppercase font-bold tracking-widest text-slate-400">${orgEsc(node.role)}</span></div>
+                            <div class="w-full flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-2.5 py-2.5"><span class="shrink-0">${corretorAvatarInner(node.name, 'h-10 w-10', 'text-[10px]')}</span><span class="text-sm font-bold text-white truncate">${orgEsc(node.name)}</span></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
                                 <select id="orgRole-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Coordenador','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
                                 <select id="orgParent-${orgEsc(node.id)}" ${isDiretor ? '' : 'disabled'} class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>Responde a: ${orgEsc(o.name)}</option>`).join('')}</select>
                             </div>
-                            <div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-2.5 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-2.5 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div>
-                        </div>${renderBranch(node.id, nextSeen)}</div>`;
+                            <div class="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-800"><button onclick="saveOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" ${isDiretor ? '' : 'disabled'} class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div>
+                        </div>
+                        <div class="org-chart-node-children">${renderBranch(node.id, nextSeen)}</div>
+                    </div>`;
                 }).join('')}</div>`;
             };
-            tree.innerHTML = organograma.length ? renderBranch('regional') : '<p class="text-xs text-slate-500 text-center py-2">A estrutura começa com você no nível Regional. Adicione o primeiro gerente, coordenador ou corretor abaixo.</p>';
+            tree.innerHTML = organograma.length ? renderBranch('regional') : '<p class="text-xs text-slate-500 text-center py-5 px-3 rounded-xl border border-dashed border-slate-700 w-full">A estrutura começa com você no nível Regional. Adicione o primeiro gerente, coordenador ou corretor abaixo.</p>';
             const sync = document.getElementById('organogramaSyncLabel'); if (sync && !sync.textContent) sync.textContent = `${organograma.length} pessoa${organograma.length === 1 ? '' : 's'} na estrutura`;
         }
         function addOrgMember() {
