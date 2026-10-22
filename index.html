@@ -1,7 +1,3 @@
-6699:                if (selEquipe && rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEquipe)) return false;
-10528:            const selectedBroker = document.getElementById('filterCorretor')?.value || (orgDashboardScope?.kind === 'broker' ? orgDashboardScope.name : '');
-10532:            const visibleTeams = getConfiguredRankingTeams().filter(team => selectedBroker ? !!effectiveTeam && rankingTeamKey(team) === rankingTeamKey(effectiveTeam) : (!effectiveTeam || rankingTeamKey(team) === rankingTeamKey(effectiveTeam)));
-10538:            const calendarRowNames = calendarDimension === 'equipe' ? visibleTeams : visibleBrokers;
 <!DOCTYPE html>
 <html lang="pt-PT" class="dark">
 <head>
