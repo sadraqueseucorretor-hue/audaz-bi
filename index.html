@@ -8183,7 +8183,7 @@
             // Agendamentos e visitas vêm da Agenda de Visitas, mas usam o mesmo vínculo
             // corretor → gerente → equipe do organograma usado pelas demais colunas.
             filteredAgendaDataset.forEach(row => {
-                if (!agendaMatchesRef(row, refDateTables)) return;
+                if (!agendaMatchesRef(row, currentRefDateAgenda || refDateTables)) return;
                 const eq = row.Corretor ? getRankingTeamForBroker(row.Corretor) : '';
                 if (!eq || (selectedTeamFilter && rankingTeamKey(eq) !== rankingTeamKey(selectedTeamFilter))) return;
                 if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
