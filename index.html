@@ -1,3 +1,7 @@
+6699:                if (selEquipe && rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEquipe)) return false;
+10528:            const selectedBroker = document.getElementById('filterCorretor')?.value || (orgDashboardScope?.kind === 'broker' ? orgDashboardScope.name : '');
+10532:            const visibleTeams = getConfiguredRankingTeams().filter(team => selectedBroker ? !!effectiveTeam && rankingTeamKey(team) === rankingTeamKey(effectiveTeam) : (!effectiveTeam || rankingTeamKey(team) === rankingTeamKey(effectiveTeam)));
+10538:            const calendarRowNames = calendarDimension === 'equipe' ? visibleTeams : visibleBrokers;
 <!DOCTYPE html>
 <html lang="pt-PT" class="dark">
 <head>
@@ -6696,6 +6700,7 @@
             // estruturais (não tem Equipe/Construtora) — filtra só por esses dois.
             filteredAgendaDataset = agendaDataset.filter(row => {
                 if (selCorretor && row.Corretor !== selCorretor) return false;
+                if (selEquipe && rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEquipe)) return false;
                 if (!matchesOrgDashboardScope(row)) return false;
                 if (!agendaMatchesEmpreendimento(row, selEmpreendimento)) return false;
                 return true;
@@ -10521,8 +10526,20 @@
                 return idx < 1 ? 1 : (idx > maxDia ? maxDia : idx);
             };
 
-            // A matriz agrega por equipe a partir do organograma, ou por corretor conforme o seletor.
-            const calendarRowNames = calendarDimension === 'equipe' ? getConfiguredRankingTeams() : activeCorretores;
+            // A matriz respeita equipe/corretor selecionados: sem filtro mostra todos; com equipe,
+            // mostra só aquela equipe ou seus corretores; com corretor, mostra só ele (ou sua equipe
+            // quando a dimensão estiver em Equipes).
+            const selectedBroker = document.getElementById('filterCorretor')?.value || (orgDashboardScope?.kind === 'broker' ? orgDashboardScope.name : '');
+            const selectedTeam = document.getElementById('filterEquipe')?.value || (orgDashboardScope?.kind === 'team' ? orgDashboardScope.team : '');
+            const teamForBroker = selectedBroker ? getRankingTeamForBroker(selectedBroker) : '';
+            const effectiveTeam = selectedTeam || teamForBroker;
+            const visibleTeams = getConfiguredRankingTeams().filter(team => selectedBroker ? !!effectiveTeam && rankingTeamKey(team) === rankingTeamKey(effectiveTeam) : (!effectiveTeam || rankingTeamKey(team) === rankingTeamKey(effectiveTeam)));
+            const visibleBrokers = activeCorretores.filter(broker => {
+                if (selectedBroker && orgPersonKey(broker) !== orgPersonKey(selectedBroker)) return false;
+                if (effectiveTeam && rankingTeamKey(getRankingTeamForBroker(broker)) !== rankingTeamKey(effectiveTeam)) return false;
+                return true;
+            });
+            const calendarRowNames = calendarDimension === 'equipe' ? visibleTeams : visibleBrokers;
             const calendarRowSet = new Set(calendarRowNames);
             const cellMatrix = {};
             const productionMatrix = {};
