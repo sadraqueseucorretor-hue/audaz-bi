@@ -2470,21 +2470,25 @@
             localStorage.setItem(`${appId}-quick-ranking-mode`, quickRankingMode);
             drawQuickRankings();
         }
-        function rankingTeamKey(team) { return stripDiacritics(String(team || '').trim()).replace(/\s+/g, ' ').toLocaleLowerCase(); }
+        function rankingTeamKey(team) { return stripDiacritics(String(team || '').trim()).replace(/^equipe\s+/i, '').replace(/\s+/g, ' ').toLocaleLowerCase(); }
+        function getConfiguredRankingTeams() {
+            const teams = new Map();
+            organograma.filter(n => n.role === 'Gerente' && n.parentId === 'regional').forEach(manager => {
+                const label = String(manager.equipe || manager.name || '').trim().replace(/^equipe\s+/i, '');
+                const key = rankingTeamKey(label);
+                if (key && !teams.has(key)) teams.set(key, label);
+            });
+            return [...teams.values()];
+        }
         function canonicalRankingTeamName(team) {
             const label = String(team || '').trim();
-            if (!label) return 'Sem equipe';
+            if (!label) return null;
             const key = rankingTeamKey(label);
-            const configured = organograma.find(n => n.role === 'Gerente' && n.equipe && rankingTeamKey(n.equipe) === key);
-            if (configured) return String(configured.equipe).trim();
-            const variants = new Map();
-            (dataset || []).forEach(row => {
-                const candidate = String(row.Equipe || '').trim();
-                if (candidate && rankingTeamKey(candidate) === key) variants.set(candidate, (variants.get(candidate) || 0) + 1);
-            });
-            return [...variants.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0],'pt-BR'))[0]?.[0] || label;
+            return getConfiguredRankingTeams().find(configured => rankingTeamKey(configured) === key) || null;
         }
         function getRankingTeamForBroker(name) {
+            const managerNode = organograma.find(n => n.role === 'Gerente' && orgPersonKey(n.name) === orgPersonKey(name));
+            if (managerNode) return canonicalRankingTeamName(managerNode.equipe || managerNode.name);
             const member = organograma.find(n => n.role === 'Corretor' && orgPersonKey(n.name) === orgPersonKey(name));
             const manager = member && organograma.find(n => n.id === member.parentId && n.role === 'Gerente');
             if (manager) return canonicalRankingTeamName(manager.equipe || manager.name);
@@ -2495,8 +2499,7 @@
                 teams.set(team, (teams.get(team) || 0) + 1);
             });
             const dataTeam = [...teams.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0],'pt-BR'))[0]?.[0];
-            if (dataTeam) return canonicalRankingTeamName(dataTeam);
-            return 'Sem equipe';
+            return dataTeam ? canonicalRankingTeamName(dataTeam) : null;
         }
         function drawQuickRankings() {
             if (activeView !== 'rankings') { quickRankingsPendente = true; return; }
@@ -2708,15 +2711,15 @@
             ];
 
             if (quickRankingMode === 'equipe') {
-                const teamNames = new Set(organograma.filter(node => node.role === 'Gerente').map(manager => canonicalRankingTeamName(manager.equipe || manager.name)));
-                ativos.forEach(nome => teamNames.add(getRankingTeamForBroker(nome)));
-                if (selEq) { teamNames.clear(); teamNames.add(selEq); }
+                const configuredTeams = getConfiguredRankingTeams();
+                const selectedTeam = selEq ? configuredTeams.find(team => rankingTeamKey(team) === rankingTeamKey(selEq)) : null;
+                const teamNames = new Set(selectedTeam ? [selectedTeam] : configuredTeams);
                 cards.forEach(card => {
                     const grouped = Object.fromEntries([...teamNames].map(team => [team, {count:0, vgv:0}]));
                     Object.entries(card.map).forEach(([broker, value]) => {
-                        const team = selEq || getRankingTeamForBroker(broker);
-                        if (selEq && rankingTeamKey(team) !== rankingTeamKey(selEq)) return;
-                        if (!grouped[team]) grouped[team] = {count:0, vgv:0};
+                        const team = getRankingTeamForBroker(broker);
+                        if (!team || !grouped[team]) return;
+                        if (selectedTeam && rankingTeamKey(team) !== rankingTeamKey(selectedTeam)) return;
                         grouped[team].count += value.count;
                         grouped[team].vgv += value.vgv;
                     });
@@ -8080,7 +8083,8 @@
 
             renderIPCComparativo();
 
-            let equipesMap = {};
+            const configuredRankingTeams = getConfiguredRankingTeams();
+            let equipesMap = Object.fromEntries(configuredRankingTeams.map(team => [team, { equipe:team, analises:0, aprovacoes:0, vendas:0, vgv:0 }]));
             filteredDataset.forEach(row => {
                 // Usa o vínculo corretor → gerente → equipe do organograma como fonte única.
                 // getRankingTeamForBroker também canonicaliza variantes como IMPARÁVEIS/IMPARAVEIS.
