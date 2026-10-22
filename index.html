@@ -10578,9 +10578,9 @@
 
                     const totalClick = totMetric > 0 ? `onclick="openCalendarCorretorDetail('${cEsc}', '${activeMonth}', ${yearNum})" class="p-3 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40 cursor-pointer hover:bg-slate-800/60 transition" title="Ver todos os clientes do mês"` : `class="p-3 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40"`;
 
-                    let corretorRowHtml = `<tr class="${calendarDimension === 'corretor' ? 'cal-corretor-row' : 'cal-equipe-row'} hover:bg-slate-900/10 transition">`;
+                    let corretorRowHtml = `<tr class="cal-data-row ${calendarDimension === 'corretor' ? 'cal-corretor-row' : 'cal-equipe-row'} hover:bg-slate-900/10 transition">`;
                     corretorRowHtml += calendarDimension === 'equipe' ? `
-                        <td title="Equipe vinculada no organograma" class="p-2.5 pl-4 text-left bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10">
+                        <td onclick="toggleCalRowHighlight(this)" title="Clique para destacar a equipe vinculada no organograma" class="p-2.5 pl-4 text-left bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 cursor-pointer hover:bg-slate-900/40 transition">
                             <div class="flex items-center gap-2.5">${medalhaRank(rank)}<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-500/10 text-brand-400"><i class="fa-solid fa-people-group"></i></span><div class="min-w-0"><div class="font-bold text-slate-200 text-[13px] truncate max-w-[140px]">Equipe ${orgEsc(c)}</div><div class="text-[10px] text-slate-500">${orgEsc(organograma.find(n => n.role === 'Gerente' && rankingTeamKey(n.equipe || n.name) === rankingTeamKey(c))?.name || '')}</div></div></div>
                         </td>` : `
                         <td onclick="toggleCalRowHighlight(this)" title="Clique para destacar a linha · ${st.title}" class="p-2.5 pl-4 text-left bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 cursor-pointer hover:bg-slate-900/40 transition">
@@ -10849,8 +10849,8 @@
             const tr = td.closest('tr');
             if (!tr) return;
             const jaAtivo = tr.classList.contains('cal-row-active');
-            const linhas = document.querySelectorAll('#calendarTableBody tr.cal-corretor-row');
-            // limpa estados de todas as linhas de corretor
+            const linhas = document.querySelectorAll('#calendarTableBody tr.cal-data-row');
+            // limpa estados das linhas de equipe ou corretor
             linhas.forEach(r => {
                 r.classList.remove('cal-row-active', 'bg-brand-500/10', 'ring-1', 'ring-brand-500/30', 'opacity-25');
             });
