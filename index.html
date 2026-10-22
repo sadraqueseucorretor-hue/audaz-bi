@@ -1238,10 +1238,16 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <!-- Seletor de métrica do calendário -->
-                        <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                        <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-wrap">
                             <button onclick="setCalendarMetric('analises')" id="calBtn-analises" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-sky-500 text-white">Análises</button>
                             <button onclick="setCalendarMetric('aprovados')" id="calBtn-aprovados" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovados</button>
                             <button onclick="setCalendarMetric('vendas')" id="calBtn-vendas" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
+                            <button onclick="setCalendarMetric('agendamentos')" id="calBtn-agendamentos" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Agendamentos</button>
+                            <button onclick="setCalendarMetric('visitas')" id="calBtn-visitas" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Visitas</button>
+                        </div>
+                        <div class="inline-flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 shrink-0">
+                            <button onclick="setCalendarDimension('equipe')" id="calDim-equipe" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Equipes</button>
+                            <button onclick="setCalendarDimension('corretor')" id="calDim-corretor" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Corretores</button>
                         </div>
                         <span class="flex items-center gap-2 text-xs bg-slate-800 text-slate-300 font-bold px-3 py-2 rounded-lg" id="calMonthLabel">
                             <i class="fa-solid fa-calendar-days text-slate-500"></i> Junho/2026
@@ -1250,7 +1256,7 @@
                 </div>
 
                 <!-- INDICADORES EXCLUSIVOS DO CALENDÁRIO -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
                         <div class="w-11 h-11 shrink-0 rounded-full bg-sky-500/15 text-sky-400 flex items-center justify-center text-lg"><i class="fa-solid fa-chart-line"></i></div>
@@ -1276,6 +1282,24 @@
                             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Vendas do Mês</p>
                             <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiVendasMes">0</h4>
                             <p class="text-[10px] text-slate-500">Total realizado</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
+                        <div class="w-11 h-11 shrink-0 rounded-full bg-violet-500/15 text-violet-400 flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Agendamentos do Mês</p>
+                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiAgendamentosMes">0</h4>
+                            <p class="text-[10px] text-slate-500">Total na agenda</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
+                        <div class="w-11 h-11 shrink-0 rounded-full bg-cyan-500/15 text-cyan-400 flex items-center justify-center text-lg"><i class="fa-solid fa-door-open"></i></div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Visitas do Mês</p>
+                            <h4 class="text-xl font-extrabold text-white leading-tight" id="calKpiVisitasMes">0</h4>
+                            <p class="text-[10px] text-slate-500">Comparecimentos</p>
                         </div>
                     </div>
 
@@ -2609,7 +2633,7 @@
             if (modeCorretorBtn) modeCorretorBtn.className = modeBase + (quickRankingMode === 'corretor' ? ' bg-brand-600 text-white' : ' text-slate-400 hover:text-white');
             if (modeEquipeBtn) modeEquipeBtn.className = modeBase + (quickRankingMode === 'equipe' ? ' bg-brand-600 text-white' : ' text-slate-400 hover:text-white');
             const metasCorretorBtn = document.getElementById('btnMetasPorCorretor');
-            if (metasCorretorBtn) { metasCorretorBtn.classList.remove('hidden'); metasCorretorBtn.innerHTML = `<i class="fa-solid fa-bullseye"></i> Metas por ${quickRankingMode === 'equipe' ? 'Equipe' : 'Corretor'}`; }
+            if (metasCorretorBtn) { metasCorretorBtn.classList.remove('hidden'); metasCorretorBtn.innerHTML = `<i class=\"fa-solid fa-bullseye\"></i> Metas por ${quickRankingMode === 'equipe' ? 'Equipe' : 'Corretor'}`; }
             const hojeReal = isMockDataActive ? new Date(2026, 5, 9) : new Date(); // cards "Hoje" = sempre hoje
             const refSM = quickRef || hojeReal;                                    // "Semana" e "Mês" = referência escolhida
             // Sem referência manual: mês comercial corrente (último dos dados). Com referência: mês da data escolhida.
@@ -10229,28 +10253,33 @@
             });
         }
 
-        // Detalhes do calendário por métrica (análises / aprovados / vendas)
+        // Detalhes do calendário por métrica.
         let calDetail = {
             analises:  { cell: {}, day: {}, month: [] },
             aprovados: { cell: {}, day: {}, month: [] },
-            vendas:    { cell: {}, day: {}, month: [] }
+            vendas:    { cell: {}, day: {}, month: [] },
+            agendamentos: { cell: {}, day: {}, month: [] },
+            visitas:   { cell: {}, day: {}, month: [] }
         };
         // Mantidos por compatibilidade (apontam para análises)
         let calendarDetailsMap = {};
         let calendarDayDetails = {};
         let calendarMonthDetails = [];
-        let calendarMetric = 'analises'; // 'analises' | 'aprovados' | 'vendas'
+        let calendarMetric = 'analises'; // análise, aprovação, venda, agendamento ou visita
+        let calendarDimension = localStorage.getItem(`${appId}-calendar-dimension`) === 'corretor' ? 'corretor' : 'equipe';
 
         const CAL_METRICS = {
-            analises:  { key: 'a',  label: 'Análises',  sub: 'data cadastro',  color: 'sky',     btnBg: 'bg-sky-500' },
-            aprovados: { key: 'ap', label: 'Aprovados', sub: 'data aprovação', color: 'amber',   btnBg: 'bg-amber-500' },
-            vendas:    { key: 'v',  label: 'Vendas',    sub: 'data ganho',     color: 'emerald', btnBg: 'bg-emerald-500' }
+            analises:     { key: 'a',  label: 'Análises',     sub: 'data cadastro',    color: 'sky',     btnBg: 'bg-sky-500' },
+            aprovados:    { key: 'ap', label: 'Aprovados',    sub: 'data aprovação',   color: 'amber',   btnBg: 'bg-amber-500' },
+            vendas:       { key: 'v',  label: 'Vendas',       sub: 'data ganho',       color: 'emerald', btnBg: 'bg-emerald-500' },
+            agendamentos: { key: 'ag', label: 'Agendamentos', sub: 'data da visita',  color: 'violet',  btnBg: 'bg-violet-500' },
+            visitas:      { key: 'vi', label: 'Visitas',      sub: 'data compareceu', color: 'cyan',    btnBg: 'bg-cyan-500' }
         };
 
         function setCalendarMetric(m) {
             if (!CAL_METRICS[m]) return;
             calendarMetric = m;
-            ['analises', 'aprovados', 'vendas'].forEach(k => {
+            Object.keys(CAL_METRICS).forEach(k => {
                 const btn = document.getElementById('calBtn-' + k);
                 if (!btn) return;
                 if (k === m) {
@@ -10260,6 +10289,20 @@
                 }
             });
             drawProductionCalendar();
+        }
+
+        function setCalendarDimension(dimension) {
+            calendarDimension = dimension === 'corretor' ? 'corretor' : 'equipe';
+            localStorage.setItem(`${appId}-calendar-dimension`, calendarDimension);
+            setCalendarDimensionButtonsOnly();
+            drawProductionCalendar();
+        }
+
+        function setCalendarDimensionButtonsOnly() {
+            ['equipe', 'corretor'].forEach(k => {
+                const btn = document.getElementById(`calDim-${k}`);
+                if (btn) btn.className = `px-3 py-1.5 rounded-lg text-xs font-bold transition ${calendarDimension === k ? 'bg-brand-600 text-white' : 'text-slate-400 hover:text-white'}`;
+            });
         }
 
         // Icone de medalha (top 3) ou numero de posicao (demais) -- usado na coluna Corretor,
@@ -10368,69 +10411,54 @@
                 return idx < 1 ? 1 : (idx > maxDia ? maxDia : idx);
             };
 
-            // Cada célula guarda 3 métricas: a=análises, ap=aprovados, v=vendas — cada uma pela sua própria data
-            let cellMatrix = {};       // `${c}_${d}` -> { a, ap, v }
-            let productionMatrix = {}; // só análises (mantém o heatmap e os KPIs de produção)
-            // Reinicia os mapas de detalhe das 3 métricas
-            calDetail = {
-                analises:  { cell: {}, day: {}, month: [] },
-                aprovados: { cell: {}, day: {}, month: [] },
-                vendas:    { cell: {}, day: {}, month: [] }
-            };
-
-            activeCorretores.forEach(c => {
+            // A matriz agrega por equipe a partir do organograma, ou por corretor conforme o seletor.
+            const calendarRowNames = calendarDimension === 'equipe' ? getConfiguredRankingTeams() : activeCorretores;
+            const calendarRowSet = new Set(calendarRowNames);
+            const cellMatrix = {};
+            const productionMatrix = {};
+            calDetail = Object.fromEntries(Object.keys(CAL_METRICS).map(k => [k, { cell: {}, day: {}, month: [] }]));
+            calendarRowNames.forEach(name => {
                 for (let d = 1; d <= maxDia; d++) {
-                    cellMatrix[`${c}_${d}`] = { a: 0, ap: 0, v: 0 };
-                    productionMatrix[`${c}_${d}`] = 0;
-                    calDetail.analises.cell[`${c}_${d}`] = [];
-                    calDetail.aprovados.cell[`${c}_${d}`] = [];
-                    calDetail.vendas.cell[`${c}_${d}`] = [];
+                    const key = `${name}_${d}`;
+                    cellMatrix[key] = { a: 0, ap: 0, v: 0, ag: 0, vi: 0 };
+                    productionMatrix[key] = 0;
+                    Object.values(calDetail).forEach(m => { m.cell[key] = []; });
                 }
             });
-            for (let d = 1; d <= maxDia; d++) {
-                calDetail.analises.day[d] = [];
-                calDetail.aprovados.day[d] = [];
-                calDetail.vendas.day[d] = [];
-            }
+            for (let d = 1; d <= maxDia; d++) Object.values(calDetail).forEach(m => { m.day[d] = []; });
 
+            const getCalendarRow = person => {
+                if (!person || inactiveCorretores.includes(person)) return null;
+                if (calendarDimension === 'corretor') return activeSet.has(person) ? person : null;
+                const isManager = organograma.some(n => n.role === 'Gerente' && orgPersonKey(n.name) === orgPersonKey(person));
+                if (!activeSet.has(person) && !isManager) return null;
+                const team = getRankingTeamForBroker(person);
+                return team && calendarRowSet.has(team) ? team : null;
+            };
+            const addCalendarEvent = (metric, person, dateValue, row) => {
+                const rowName = getCalendarRow(person), dt = parseDate(dateValue);
+                const fimDoPeriodo = new Date(janela.fimEstimado);
+                fimDoPeriodo.setHours(23, 59, 59, 999);
+                if (!rowName || !dt || dt < inicioMes || dt > fimDoPeriodo) return;
+                const day = diaDe(dateValue), key = `${rowName}_${day}`;
+                if (!cellMatrix[key]) return;
+                const metricName = Object.keys(CAL_METRICS).find(k => CAL_METRICS[k].key === metric);
+                if (!metricName) return;
+                cellMatrix[key][metric]++;
+                if (metric === 'a') productionMatrix[key]++;
+                calDetail[metricName].cell[key].push(row);
+                calDetail[metricName].day[day].push(row);
+                calDetail[metricName].month.push(row);
+            };
             filteredDataset.forEach(row => {
-                const corr = row.Corretor;
-                if (!activeSet.has(corr)) return;
-
-                // Análise -> Data Cadastro / Mês Cadastro
-                if (pertenceAoMesGenerico(true, row['Mês Cadastro'], row['Data Cadastro'])) {
-                    const day = diaDe(row['Data Cadastro']);
-                    const key = `${corr}_${day}`;
-                    if (cellMatrix[key]) {
-                        cellMatrix[key].a++;
-                        productionMatrix[key]++;
-                        calDetail.analises.cell[key].push(row);
-                        if (calDetail.analises.day[day]) calDetail.analises.day[day].push(row);
-                        calDetail.analises.month.push(row);
-                    }
-                }
-                // Aprovado -> Data Aprovação / Mês Aprovação (respalda em Cadastro se estiver em branco)
-                if (pertenceAoMesGenerico(isAprovado(row['Situação - Analise']), mesAprovacaoEfetivo(row), dataAprovacaoEfetiva(row))) {
-                    const day = diaDe(dataAprovacaoEfetiva(row));
-                    const key = `${corr}_${day}`;
-                    if (cellMatrix[key]) {
-                        cellMatrix[key].ap++;
-                        calDetail.aprovados.cell[key].push(row);
-                        if (calDetail.aprovados.day[day]) calDetail.aprovados.day[day].push(row);
-                        calDetail.aprovados.month.push(row);
-                    }
-                }
-                // Venda -> Data Ganho / Mês Ganho
-                if (pertenceAoMesGenerico(isGanho(row), row['Mês Ganho'], row['Data Ganho'])) {
-                    const day = diaDe(row['Data Ganho']);
-                    const key = `${corr}_${day}`;
-                    if (cellMatrix[key]) {
-                        cellMatrix[key].v++;
-                        calDetail.vendas.cell[key].push(row);
-                        if (calDetail.vendas.day[day]) calDetail.vendas.day[day].push(row);
-                        calDetail.vendas.month.push(row);
-                    }
-                }
+                if (pertenceAoMesGenerico(true, row['Mês Cadastro'], row['Data Cadastro'])) addCalendarEvent('a', row.Corretor, row['Data Cadastro'], row);
+                if (pertenceAoMesGenerico(isAprovado(row['Situação - Analise']), mesAprovacaoEfetivo(row), dataAprovacaoEfetiva(row))) addCalendarEvent('ap', row.Corretor, dataAprovacaoEfetiva(row), row);
+                if (pertenceAoMesGenerico(isGanho(row), row['Mês Ganho'], row['Data Ganho'])) addCalendarEvent('v', row.Corretor, row['Data Ganho'], row);
+            });
+            // Agendamentos seguem a data marcada; visitas são apenas registros com status compareceu.
+            filteredAgendaDataset.forEach(row => {
+                addCalendarEvent('ag', row.Corretor, row['Data'], row);
+                if (isCompareceu(row)) addCalendarEvent('vi', row.Corretor, row['Data'], row);
             });
 
             // Compat: mantém os mapas antigos apontando para análises
@@ -10442,23 +10470,24 @@
             const metricKey = CAL_METRICS[calendarMetric].key; // a | ap | v
             const cor = CAL_METRICS[calendarMetric].color;     // sky | amber | emerald
 
-            // Total por corretor na métrica ativa — usado pra ranquear as linhas (1º ao último).
+            // Total da métrica ativa — usado pra ranquear equipes/corretores.
             const totaisPorCorretor = {};
             const totalAnalisesPorCorretor = {}; // sempre em análises, independente da métrica ativa — usado no KPI "Corretores Ativos"
-            activeCorretores.forEach(c => {
+            calendarRowNames.forEach(c => {
                 let tot = 0, totA = 0;
                 for (let d = 1; d <= maxDia; d++) {
-                    const cell = cellMatrix[`${c}_${d}`] || { a: 0, ap: 0, v: 0 };
+                    const cell = cellMatrix[`${c}_${d}`] || { a: 0, ap: 0, v: 0, ag: 0, vi: 0 };
                     tot += cell[metricKey];
                     totA += cell.a;
                 }
                 totaisPorCorretor[c] = tot;
                 totalAnalisesPorCorretor[c] = totA;
             });
-            const corretoresRanqueados = [...activeCorretores].sort((x, y) => totaisPorCorretor[y] - totaisPorCorretor[x]);
+            const corretoresRanqueados = [...calendarRowNames].sort((x, y) => totaisPorCorretor[y] - totaisPorCorretor[x] || x.localeCompare(y, 'pt-BR'));
 
             const headerRow = document.getElementById('calendarHeaderRow');
-            headerRow.innerHTML = `<th class="p-3 pl-4 text-left min-w-[170px] bg-slate-950 sticky left-0 z-20">Corretor</th>`;
+            setCalendarDimensionButtonsOnly();
+            headerRow.innerHTML = `<th class="p-3 pl-4 text-left min-w-[170px] bg-slate-950 sticky left-0 z-20">${calendarDimension === 'equipe' ? 'Equipe' : 'Corretor'}</th>`;
 
             for (let d = 1; d <= maxDia; d++) {
                 const tempDateObj = new Date(inicioMes);
@@ -10482,8 +10511,7 @@
             headerRow.insertAdjacentHTML('beforeend', `
                 <th class="p-3 text-right min-w-[70px] bg-slate-950 border-l border-slate-800 font-bold text-white">Total</th>
                 <th class="p-3 text-right min-w-[75px] bg-slate-950 border-l border-slate-800 font-bold text-white">Média/Dia</th>
-                <th class="p-3 text-center min-w-[90px] bg-slate-950 border-l border-slate-800 font-bold text-white">Última Atividade</th>
-                <th class="p-3 pr-4 text-center min-w-[60px] bg-slate-950 border-l border-slate-800 font-bold text-white">Status</th>
+                ${calendarDimension === 'corretor' ? '<th class="p-3 text-center min-w-[90px] bg-slate-950 border-l border-slate-800 font-bold text-white">Última Atividade</th><th class="p-3 pr-4 text-center min-w-[60px] bg-slate-950 border-l border-slate-800 font-bold text-white">Status</th>' : ''}
             `);
 
             const tableBody = document.getElementById('calendarTableBody');
@@ -10493,6 +10521,8 @@
             let totalDiaA = Array(maxDia + 1).fill(0);
             let totalDiaAp = Array(maxDia + 1).fill(0);
             let totalDiaV = Array(maxDia + 1).fill(0);
+            let totalDiaAg = Array(maxDia + 1).fill(0);
+            let totalDiaVi = Array(maxDia + 1).fill(0);
 
             atualizarLegendaCalendario();
 
@@ -10507,8 +10537,8 @@
                 updEl.textContent = `Dados atualizados até ${dd}/${mm}/${yyyy} ${hh}:${mi}`;
             }
 
-            if (activeCorretores.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="${maxDia + 5}" class="text-center py-6 text-slate-500 text-xs">Nenhum corretor ativo neste período.</td></tr>`;
+            if (calendarRowNames.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="${maxDia + (calendarDimension === 'equipe' ? 3 : 5)}" class="text-center py-6 text-slate-500 text-xs">${calendarDimension === 'equipe' ? 'Nenhuma equipe configurada no organograma.' : 'Nenhum corretor ativo neste período.'}</td></tr>`;
             } else {
                 corretoresRanqueados.forEach((c, idx) => {
                     const rank = idx + 1;
@@ -10519,11 +10549,12 @@
 
                     let cellsHtml = '';
                     for (let d = 1; d <= maxDia; d++) {
-                        const cell = cellMatrix[`${c}_${d}`] || { a: 0, ap: 0, v: 0 };
+                        const cell = cellMatrix[`${c}_${d}`] || { a: 0, ap: 0, v: 0, ag: 0, vi: 0 };
                         const val = cell[metricKey];
                         totMetric += val;
                         totalDiarioList[d] += cell.a; // KPIs de produção continuam por análises
                         totalDiaA[d] += cell.a; totalDiaAp[d] += cell.ap; totalDiaV[d] += cell.v;
+                        totalDiaAg[d] += cell.ag; totalDiaVi[d] += cell.vi;
 
                         const ehHojeCol = d === diaHojeIdx;
                         const badgeClass = getHeatBadgeClass(val);
@@ -10534,13 +10565,16 @@
                     }
 
                     const mediaDia = maxDia > 0 ? (totMetric / maxDia) : 0;
-                    const ultimaAt = ultimaAnaliseCorretor[c];
+                    const ultimaAt = calendarDimension === 'corretor' ? ultimaAnaliseCorretor[c] : null;
                     const ultimaAtLbl = ultimaAt ? `${String(ultimaAt.getDate()).padStart(2, '0')}/${String(ultimaAt.getMonth() + 1).padStart(2, '0')}` : '–';
 
                     const totalClick = totMetric > 0 ? `onclick="openCalendarCorretorDetail('${cEsc}', '${activeMonth}', ${yearNum})" class="p-3 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40 cursor-pointer hover:bg-slate-800/60 transition" title="Ver todos os clientes do mês"` : `class="p-3 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40"`;
 
-                    let corretorRowHtml = `<tr class="cal-corretor-row hover:bg-slate-900/10 transition">`;
-                    corretorRowHtml += `
+                    let corretorRowHtml = `<tr class="${calendarDimension === 'corretor' ? 'cal-corretor-row' : 'cal-equipe-row'} hover:bg-slate-900/10 transition">`;
+                    corretorRowHtml += calendarDimension === 'equipe' ? `
+                        <td title="Equipe vinculada no organograma" class="p-2.5 pl-4 text-left bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10">
+                            <div class="flex items-center gap-2.5">${medalhaRank(rank)}<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-500/10 text-brand-400"><i class="fa-solid fa-people-group"></i></span><div class="min-w-0"><div class="font-bold text-slate-200 text-[13px] truncate max-w-[140px]">Equipe ${orgEsc(c)}</div><div class="text-[10px] text-slate-500">${orgEsc(organograma.find(n => n.role === 'Gerente' && rankingTeamKey(n.equipe || n.name) === rankingTeamKey(c))?.name || '')}</div></div></div>
+                        </td>` : `
                         <td onclick="toggleCalRowHighlight(this)" title="Clique para destacar a linha · ${st.title}" class="p-2.5 pl-4 text-left bg-slate-950 sticky left-0 border-r border-slate-800/60 z-10 cursor-pointer hover:bg-slate-900/40 transition">
                             <div class="flex items-center gap-2.5">
                                 ${medalhaRank(rank)}
@@ -10554,13 +10588,15 @@
                     corretorRowHtml += cellsHtml;
                     corretorRowHtml += `<td ${totalClick}>${totMetric}</td>`;
                     corretorRowHtml += `<td class="p-3 text-right font-semibold text-slate-400 border-l border-slate-800 bg-slate-950/40">${mediaDia.toFixed(2).replace('.', ',')}</td>`;
-                    corretorRowHtml += `<td class="p-3 text-center text-slate-400 border-l border-slate-800 bg-slate-950/40">${ultimaAtLbl}</td>`;
-                    corretorRowHtml += `<td class="p-3 pr-4 text-center border-l border-slate-800 bg-slate-950/40" title="${st.title}"><i class="fa-solid ${st.icon} ${stColor.icon}"></i></td>`;
+                    if (calendarDimension === 'corretor') {
+                        corretorRowHtml += `<td class="p-3 text-center text-slate-400 border-l border-slate-800 bg-slate-950/40">${ultimaAtLbl}</td>`;
+                        corretorRowHtml += `<td class="p-3 pr-4 text-center border-l border-slate-800 bg-slate-950/40" title="${st.title}"><i class="fa-solid ${st.icon} ${stColor.icon}"></i></td>`;
+                    }
                     corretorRowHtml += `</tr>`;
                     tableBody.insertAdjacentHTML('beforeend', corretorRowHtml);
                 });
 
-                const totalDiaMetric = (calendarMetric === 'analises') ? totalDiaA : (calendarMetric === 'aprovados' ? totalDiaAp : totalDiaV);
+                const totalDiaMetric = { analises: totalDiaA, aprovados: totalDiaAp, vendas: totalDiaV, agendamentos: totalDiaAg, visitas: totalDiaVi }[calendarMetric];
 
                 let totalRowHtml = `<tr class="bg-slate-950 font-bold border-t border-slate-700 text-white">`;
                 totalRowHtml += `<td class="p-3 pl-4 text-left text-xs uppercase font-extrabold tracking-wider bg-slate-950 sticky left-0 border-r border-slate-800 z-10">Total Geral</td>`;
@@ -10578,8 +10614,10 @@
                 }
 
                 totalRowHtml += `<td onclick="openCalendarMonthDetail('${activeMonth}', ${yearNum})" class="p-3 text-right font-black text-${cor}-400 bg-slate-950 border-l border-slate-800 cursor-pointer hover:bg-slate-800/60 transition">${somaMetric}</td>`;
-                totalRowHtml += `<td class="border-l border-slate-800 bg-slate-950"></td>`;
-                totalRowHtml += `<td class="border-l border-slate-800 bg-slate-950"></td>`;
+                if (calendarDimension === 'corretor') {
+                    totalRowHtml += `<td class="border-l border-slate-800 bg-slate-950"></td>`;
+                    totalRowHtml += `<td class="border-l border-slate-800 bg-slate-950"></td>`;
+                }
                 totalRowHtml += `<td class="border-l border-slate-800 bg-slate-950"></td>`;
                 totalRowHtml += `</tr>`;
                 tableBody.insertAdjacentHTML('beforeend', totalRowHtml);
@@ -10589,8 +10627,10 @@
             document.getElementById('calKpiAnalisesMes').textContent = calDetail.analises.month.length;
             document.getElementById('calKpiAprovadosMes').textContent = calDetail.aprovados.month.length;
             document.getElementById('calKpiVendasMes').textContent = calDetail.vendas.month.length;
+            document.getElementById('calKpiAgendamentosMes').textContent = calDetail.agendamentos.month.length;
+            document.getElementById('calKpiVisitasMes').textContent = calDetail.visitas.month.length;
 
-            const corretoresComAnalise = activeCorretores.filter(c => totalAnalisesPorCorretor[c] > 0).length;
+            const corretoresComAnalise = new Set(calDetail.analises.month.filter(r => activeSet.has(r.Corretor)).map(r => r.Corretor)).size;
             document.getElementById('calKpiCorretoresAtivos').textContent = `${corretoresComAnalise} / ${activeCorretores.length}`;
 
             let melhorSequencia = 0, melhorSequenciaCorretor = null;
@@ -10681,6 +10721,8 @@
         function renderCalendarDetail(nome, dataStr, rows, showCorretor) {
             const unidade = calendarMetric === 'aprovados' ? (rows.length === 1 ? 'aprovado' : 'aprovados')
                           : calendarMetric === 'vendas' ? (rows.length === 1 ? 'venda' : 'vendas')
+                          : calendarMetric === 'agendamentos' ? (rows.length === 1 ? 'agendamento' : 'agendamentos')
+                          : calendarMetric === 'visitas' ? (rows.length === 1 ? 'visita' : 'visitas')
                           : (rows.length === 1 ? 'análise' : 'análises');
             showDetailModal({
                 label1: 'Corretor', label2: 'Data Selecionada',
@@ -10754,10 +10796,12 @@
         function metricaDetalheLabel() {
             if (calendarMetric === 'aprovados') return { tit: 'Aprovados', verbo: 'aprovados' };
             if (calendarMetric === 'vendas') return { tit: 'Vendas', verbo: 'fechadas' };
+            if (calendarMetric === 'agendamentos') return { tit: 'Agendamentos', verbo: 'agendados' };
+            if (calendarMetric === 'visitas') return { tit: 'Visitas', verbo: 'realizadas' };
             return { tit: 'Análises', verbo: 'enviadas' };
         }
 
-        // Detalhe de uma célula (corretor + dia) — respeita a métrica ativa
+        // Detalhe de uma célula (corretor/equipe + dia) — respeita a métrica ativa
         // Converte o índice de dia CONTÍNUO (jun/1=1 ... jul/2=32) na data real "DD de mês de ano".
         function fmtDiaContinuo(dia, mesNome, ano) {
             const idx = MESES_IDX[mesNome];
@@ -10774,12 +10818,13 @@
             renderCalendarDetail(`${corretor} — ${lbl.tit}`, fmtDiaContinuo(dia, mes, ano), rows, false);
         }
 
-        // Detalhe do total do dia (todos os corretores) — respeita a métrica ativa
+        // Detalhe do total do dia — respeita a métrica ativa
         function openCalendarDayDetail(dia, mes, ano) {
             const m = calDetail[calendarMetric] || calDetail.analises;
             const rows = m.day[dia] || [];
             const lbl = metricaDetalheLabel();
-            renderCalendarDetail(`Todos os corretores — ${lbl.tit}`, fmtDiaContinuo(dia, mes, ano), rows, true);
+            const grupo = calendarDimension === 'equipe' ? 'Total das equipes' : 'Todos os corretores';
+            renderCalendarDetail(`${grupo} — ${lbl.tit}`, fmtDiaContinuo(dia, mes, ano), rows, true);
         }
 
         // Detalhe do total geral do mês — respeita a métrica ativa
@@ -10787,10 +10832,11 @@
             const m = calDetail[calendarMetric] || calDetail.analises;
             const rows = m.month || [];
             const lbl = metricaDetalheLabel();
-            renderCalendarDetail(`Todos os corretores — ${lbl.tit}`, `${mes} de ${ano} (mês inteiro)`, rows, true);
+            const grupo = calendarDimension === 'equipe' ? 'Total das equipes' : 'Todos os corretores';
+            renderCalendarDetail(`${grupo} — ${lbl.tit}`, `${mes} de ${ano} (mês inteiro)`, rows, true);
         }
 
-        // Destaca a linha do corretor e escurece as demais ao clicar no nome
+        // Destaca a linha selecionada e escurece as demais ao clicar no nome
         function toggleCalRowHighlight(td) {
             const tr = td.closest('tr');
             if (!tr) return;
