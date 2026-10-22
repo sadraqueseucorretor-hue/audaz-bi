@@ -5349,12 +5349,14 @@
             loadPlantaoInfoEscala();
             loadPlantaoEscalasCfg();
             loadIpcMesesCustom();
-            // TV bootando direto na Tela: abra o BI com ?tela=1 ou #tela e ele já entra no modo
-            // de exibição (os dados chegam depois e o applyFilters redesenha a Tela sozinho).
+            // A tela inicial do BI é o organograma. A URL ?tela=1 ou #tela continua abrindo
+            // diretamente no modo de exibição para TVs; o painel executivo segue acessível pela navegação.
+            let abrirTelaTV = false;
             try {
                 const qs = new URLSearchParams(location.search);
-                if (qs.get('tela') === '1' || location.hash === '#tela') setTimeout(() => switchView('tela'), 0);
+                abrirTelaTV = qs.get('tela') === '1' || location.hash === '#tela';
             } catch (e) {}
+            switchView(abrirTelaTV ? 'tela' : 'organograma');
             // Celular/tablet (12/10/2026): a barra lateral ocupava a 1ª tela inteira e empurrava o
             // "estou batendo?" pra baixo — agora começa escondida em telas < 1024px (abre no ☰),
             // a menos que a pessoa tenha escolhido deixá-la aberta neste aparelho.
