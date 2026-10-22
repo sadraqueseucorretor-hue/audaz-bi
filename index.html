@@ -2780,7 +2780,10 @@
             }
 
             rankingCardsSnapshot = [];
+            const stageKeyByCol = { PR: 'prospeccao', AG: 'agendamentos', CP: 'compareceu', AN: 'analises', AP: 'aprovacoes', VD: 'vendas' };
             grid.innerHTML = cards.map((card, cardIdx) => {
+                const stage = FUNIL_ETAPAS.find(e => e.key === stageKeyByCol[card.col]);
+                const stageColor = FUNIL_CORES[stage?.color] || FUNIL_CORES.sky;
                 const list = Object.entries(card.map)
                     .map(([nome, v]) => ({ nome, count: v.count, vgv: v.vgv }))
                     .sort((a, b) => {
@@ -2871,7 +2874,7 @@
                     bodyRows = list.map((r,i) => {
                         const base = card.vgv ? totalVgv : totalCount;
                         const part = base > 0 ? Math.round(((card.vgv ? r.vgv : r.count) / base) * 100) : 0;
-                        return `<tr class="border-b border-slate-800/60 hover:bg-slate-800/30 transition ${r.count === 0 ? 'opacity-60' : ''}"><td class="py-1.5 pl-2 font-extrabold ${r.count > 0 && i === 0 ? 'text-amber-400' : 'text-slate-500'} text-[11px] align-middle">${i+1}º</td><td class="py-1.5 pr-2"><div class="flex items-center gap-2 min-w-0"><span class="h-6 w-6 shrink-0 rounded-full bg-indigo-500/15 text-indigo-300 flex items-center justify-center"><i class="fa-solid fa-people-group text-[10px]"></i></span><span class="text-xs font-semibold ${r.count ? 'text-slate-100' : 'text-slate-400'} truncate">${orgEsc(r.nome)}</span></div></td><td class="py-1.5 text-center text-xs font-extrabold text-emerald-400 align-middle">${r.count}</td><td colspan="2" class="py-1.5 pr-3"><div class="flex items-center gap-2"><div class="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-gradient-to-r from-indigo-500 to-sky-400" style="width:${part}%"></div></div><span class="text-[10px] font-bold text-sky-300 w-8 text-right">${part}%</span></div></td>${card.vgv ? `<td class="py-1.5 pr-2 text-right text-[10px] font-semibold text-indigo-300 whitespace-nowrap align-middle">${fmtInt(r.vgv)}</td>` : ''}</tr>`;
+                        return `<tr class="border-b border-slate-800/60 hover:bg-slate-800/30 transition ${r.count === 0 ? 'opacity-60' : ''}"><td class="py-1.5 pl-2 font-extrabold ${r.count > 0 && i === 0 ? 'text-amber-400' : 'text-slate-500'} text-[11px] align-middle">${i+1}º</td><td class="py-1.5 pr-2"><div class="flex items-center gap-2 min-w-0"><span class="h-6 w-6 shrink-0 rounded-full bg-indigo-500/15 text-indigo-300 flex items-center justify-center"><i class="fa-solid fa-people-group text-[10px]"></i></span><span class="text-xs font-semibold ${r.count ? 'text-slate-100' : 'text-slate-400'} truncate">${orgEsc(r.nome)}</span></div></td><td class="py-1.5 text-center text-xs font-extrabold ${stageColor.text} align-middle">${r.count}</td><td colspan="2" class="py-1.5 pr-3"><div class="flex items-center gap-2"><div class="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden"><div class="h-full bg-gradient-to-r ${stageColor.progress}" style="width:${part}%"></div></div><span class="text-[10px] font-bold ${stageColor.text} w-8 text-right">${part}%</span></div></td>${card.vgv ? `<td class="py-1.5 pr-2 text-right text-[10px] font-semibold text-indigo-300 whitespace-nowrap align-middle">${fmtInt(r.vgv)}</td>` : ''}</tr>`;
                     }).join('');
                 } else {
                     bodyRows = list.map((r, i) => {
@@ -2883,12 +2886,12 @@
                         const metaC = (metasPorCorretor[r.nome] && metasPorCorretor[r.nome][card.key]) || 0;
                         const faltaC = metaC > 0 ? Math.max(0, metaC - r.count) : null;
                         const pctC = metaC > 0 ? Math.min(100, Math.round((r.count / metaC) * 100)) : null;
-                        const pctColor = pctC === null ? 'text-slate-600' : (pctC >= 100 ? 'text-emerald-400' : pctC >= 50 ? 'text-amber-300' : pctC > 0 ? 'text-orange-400' : 'text-rose-400');
+                        const pctColor = pctC === null ? 'text-slate-600' : stageColor.text;
                         const progBarMax = card.vgv ? 28 : 70;
                         const progPctCls = card.vgv ? 'text-[10px] w-7' : 'text-[11px] w-8';
                         const progressoCell = pctC === null
                             ? `<span class="text-[10px] text-slate-600">sem meta</span>`
-                            : `<div class="flex items-center gap-1"><div class="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden min-w-[20px] max-w-[${progBarMax}px]"><div class="h-full bg-gradient-to-r from-emerald-500 to-amber-400" style="width:${pctC}%"></div></div><span class="font-bold ${pctColor} ${progPctCls} text-right">${pctC}%</span></div>`;
+                            : `<div class="flex items-center gap-1"><div class="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden min-w-[20px] max-w-[${progBarMax}px]"><div class="h-full bg-gradient-to-r ${stageColor.progress}" style="width:${pctC}%"></div></div><span class="font-bold ${pctColor} ${progPctCls} text-right">${pctC}%</span></div>`;
 
                         return `<tr class="border-b border-slate-800/60 hover:bg-slate-800/30 transition ${zero && metaC === 0 ? 'opacity-70' : ''}">
                             <td class="py-1.5 pl-2 font-extrabold ${pos} text-[11px] align-middle">${i + 1}º</td>
@@ -2898,7 +2901,7 @@
                                         ${corretorAvatarInner(r.nome, 'h-6 w-6', 'text-[8px]', zero ? 'opacity-50' : '')}
                                         ${zero
                                             ? `<span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-slate-600 border-2 border-slate-900 flex items-center justify-center"><i class="fa-solid fa-minus text-slate-300" style="font-size:5px"></i></span>`
-                                            : `<span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center"><i class="fa-solid fa-check text-white" style="font-size:5px"></i></span>`}
+                                            : `<span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ${stageColor.solid} border-2 border-slate-900 flex items-center justify-center"><i class="fa-solid fa-check text-white" style="font-size:5px"></i></span>`}
                                     </div>
                                     <div class="min-w-0 flex items-center gap-1.5">
                                         <span class="text-xs font-semibold ${zero ? 'text-slate-400' : 'text-slate-100'} truncate">${nome}</span>
@@ -2906,7 +2909,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td onclick="openQuickRankingDetail('${card.key}', '${r.nome.replace(/'/g, "\\'")}', '${card.title.replace(/'/g, "\\'")}')" class="py-1.5 text-center text-xs font-extrabold text-emerald-400 align-middle cursor-pointer hover:underline hover:text-emerald-300 transition" title="Ver clientes">${r.count}</td>
+                            <td onclick="openQuickRankingDetail('${card.key}', '${r.nome.replace(/'/g, "\\'")}', '${card.title.replace(/'/g, "\\'")}')" class="py-1.5 text-center text-xs font-extrabold ${stageColor.text} align-middle cursor-pointer hover:underline transition" title="Ver clientes">${r.count}</td>
                             <td class="py-1.5 text-center text-xs font-extrabold text-amber-400 align-middle">${faltaC === null ? '–' : faltaC}</td>
                             <td class="py-1.5 ${card.vgv ? 'pr-1.5' : 'pr-3'} align-middle">${progressoCell}</td>
                             ${card.vgv ? `<td class="py-1.5 pr-2 text-right text-[10px] font-semibold text-indigo-300 whitespace-nowrap align-middle">${fmtInt(r.vgv)}</td>` : ''}
@@ -2915,7 +2918,7 @@
                 }
 
                 return `<div class="rk-card bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden flex flex-col" data-rk-title="${card.title}" data-rk-index="${cardIdx}">
-                    <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-2.5 py-2 flex items-center justify-between gap-2">
+                    <div class="bg-gradient-to-r ${stageColor.gradient} px-2.5 py-2 flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2 min-w-0">
                             <div class="h-7 w-7 rounded-lg bg-white/15 flex items-center justify-center shrink-0"><i class="fa-solid ${card.icon} text-white text-xs"></i></div>
                             <h4 class="text-sm font-extrabold text-white uppercase truncate">${quickRankingMode === 'equipe' ? 'Equipes · ' : ''}${card.title}</h4>
@@ -2931,15 +2934,15 @@
                     </div>
 
                     <div class="grid grid-cols-4 gap-2 p-2.5">
-                        <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 flex items-center gap-2">
-                            <div class="h-7 w-7 rounded-full bg-emerald-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-white text-[10px]"></i></div>
+                        <div class="${stageColor.tint} border ${stageColor.border} rounded-lg p-2 flex items-center gap-2">
+                            <div class="h-7 w-7 rounded-full ${stageColor.solid} flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-white text-[10px]"></i></div>
                             <div class="min-w-0">
                                 <div class="text-base font-extrabold text-white leading-none">${totalCount}</div>
-                                <div class="text-[9px] text-emerald-400 font-bold uppercase">Feitas</div>
+                                <div class="text-[9px] ${stageColor.text} font-bold uppercase">Feitas</div>
                             </div>
                         </div>
                         <div class="bg-slate-800/40 border border-slate-700 rounded-lg p-2 flex items-center justify-center">
-                            <div class="relative h-8 w-8 shrink-0" style="background:conic-gradient(#10b981 ${pct}%, #1e293b ${pct}% 100%); border-radius:9999px;">
+                            <div class="relative h-8 w-8 shrink-0" style="background:conic-gradient(${stageColor.hex} ${pct}%, #1e293b ${pct}% 100%); border-radius:9999px;">
                                 <div class="absolute inset-1 bg-slate-900 rounded-full flex items-center justify-center text-[9px] font-extrabold text-white">${pct}%</div>
                             </div>
                         </div>
@@ -2961,7 +2964,7 @@
 
                     <div class="px-2.5 pb-2">
                         <div class="relative h-2 rounded-full bg-slate-800 overflow-visible">
-                            <div class="h-full rounded-full bg-gradient-to-r ${batida ? 'from-emerald-600 to-emerald-400' : 'from-emerald-500 to-amber-500'}" style="width:${pct}%"></div>
+                            <div class="h-full rounded-full bg-gradient-to-r ${stageColor.progress}" style="width:${pct}%"></div>
                         </div>
                         <p class="text-center text-[10px] text-slate-500 mt-1">${totalCount} de ${meta || '–'} ${unidadePorCol[card.col]}</p>
                     </div>
@@ -2983,7 +2986,7 @@
 
                     <div class="grid grid-cols-3 gap-2 px-2.5 pb-2 pt-1.5 mt-auto text-[10px]">
                         <div class="min-w-0">
-                            <p class="text-emerald-400 font-bold flex items-center gap-1 uppercase truncate"><i class="fa-solid fa-trophy"></i> Melhor</p>
+                            <p class="${stageColor.text} font-bold flex items-center gap-1 uppercase truncate"><i class="fa-solid fa-trophy"></i> Melhor</p>
                             <p class="text-slate-300 truncate">${melhorNome}${melhorPct !== null ? ` (${melhorPct}%)` : ''}</p>
                         </div>
                         <div class="min-w-0">
@@ -8271,12 +8274,12 @@
             { key: 'vendas',       label: 'Vendas',        icon: 'fa-house-circle-check',    color: 'brand' }
         ];
         const FUNIL_CORES = {
-            pink:   { text: 'text-pink-400',   border: 'border-pink-500/20',   bar: 'bg-pink-500' },
-            violet: { text: 'text-violet-400', border: 'border-violet-500/20', bar: 'bg-violet-500' },
-            cyan:   { text: 'text-cyan-400',   border: 'border-cyan-500/20',   bar: 'bg-cyan-500' },
-            sky:    { text: 'text-sky-400',    border: 'border-sky-500/20',    bar: 'bg-sky-500' },
-            amber:  { text: 'text-amber-400',  border: 'border-amber-500/20',  bar: 'bg-amber-500' },
-            brand:  { text: 'text-brand-400',  border: 'border-brand-500/20',  bar: 'bg-brand-500' }
+            pink:   { text: 'text-pink-400',   border: 'border-pink-500/20',   bar: 'bg-pink-500', tint: 'bg-pink-500/10', solid: 'bg-pink-500', gradient: 'from-pink-600 to-pink-400', progress: 'from-pink-500 to-pink-300', hex: '#ec4899' },
+            violet: { text: 'text-violet-400', border: 'border-violet-500/20', bar: 'bg-violet-500', tint: 'bg-violet-500/10', solid: 'bg-violet-500', gradient: 'from-violet-700 to-violet-500', progress: 'from-violet-500 to-violet-300', hex: '#8b5cf6' },
+            cyan:   { text: 'text-cyan-400',   border: 'border-cyan-500/20',   bar: 'bg-cyan-500', tint: 'bg-cyan-500/10', solid: 'bg-cyan-500', gradient: 'from-cyan-700 to-cyan-500', progress: 'from-cyan-500 to-cyan-300', hex: '#06b6d4' },
+            sky:    { text: 'text-sky-400',    border: 'border-sky-500/20',    bar: 'bg-sky-500', tint: 'bg-sky-500/10', solid: 'bg-sky-500', gradient: 'from-sky-700 to-sky-500', progress: 'from-sky-500 to-sky-300', hex: '#0ea5e9' },
+            amber:  { text: 'text-amber-400',  border: 'border-amber-500/20',  bar: 'bg-amber-500', tint: 'bg-amber-500/10', solid: 'bg-amber-500', gradient: 'from-amber-700 to-amber-500', progress: 'from-amber-500 to-amber-300', hex: '#f59e0b' },
+            brand:  { text: 'text-brand-400',  border: 'border-brand-500/20',  bar: 'bg-brand-500', tint: 'bg-brand-500/10', solid: 'bg-brand-500', gradient: 'from-brand-700 to-brand-500', progress: 'from-brand-500 to-brand-300', hex: '#10b981' }
         };
 
         // 6 cards de tendência (uma por etapa do funil completo): valor do mês mais recente da
