@@ -830,6 +830,8 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Equipe</th>
+                                            <th class="pb-3 text-center">Agendamentos</th>
+                                            <th class="pb-3 text-center">Compareceu</th>
                                             <th class="pb-3 text-center">Análises</th>
                                             <th class="pb-3 text-center">Aprovs</th>
                                             <th class="pb-3 text-center">Vendas</th>
@@ -8142,7 +8144,7 @@
             renderIPCComparativo();
 
             const configuredRankingTeams = getConfiguredRankingTeams();
-            let equipesMap = Object.fromEntries(configuredRankingTeams.map(team => [team, { equipe:team, analises:0, aprovacoes:0, vendas:0, vgv:0 }]));
+            let equipesMap = Object.fromEntries(configuredRankingTeams.map(team => [team, { equipe:team, agendamentos:0, compareceu:0, analises:0, aprovacoes:0, vendas:0, vgv:0 }]));
             filteredDataset.forEach(row => {
                 // Usa o vínculo corretor → gerente → equipe do organograma como fonte única.
                 // getRankingTeamForBroker também canonicaliza variantes como IMPARÁVEIS/IMPARAVEIS.
@@ -8151,24 +8153,35 @@
 
                 // Análises/Aprovações: por safra (Mês Cadastro)
                 if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDateTables)) {
-                    if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                    if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].analises++;
                     getEqCache(eq).analises.push(row);
                 }
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
                 if (isAprovadoNoPeriodo(row, refDateTables)) {
-                    if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                    if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].aprovacoes++;
                     getEqCache(eq).aprovacoes.push(row);
                 }
 
                 // Vendas/VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
                 if (isVendaModo(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refDateTables)) {
-                    if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                    if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].vendas++;
                     equipesMap[eq].vgv += getVGV(row);
                     getEqCache(eq).vendas.push(row);
                 }
+            });
+
+            // Agendamentos e visitas vêm da Agenda de Visitas, mas usam o mesmo vínculo
+            // corretor → gerente → equipe do organograma usado pelas demais colunas.
+            filteredAgendaDataset.forEach(row => {
+                if (!agendaMatchesRef(row, refDateTables)) return;
+                const eq = row.Corretor ? getRankingTeamForBroker(row.Corretor) : '';
+                if (!eq) return;
+                if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                equipesMap[eq].agendamentos++;
+                if (isCompareceu(row)) equipesMap[eq].compareceu++;
             });
 
             let rankingEquipes = Object.values(equipesMap)
@@ -8179,7 +8192,7 @@
             eqBody.innerHTML = '';
 
             if (rankingEquipes.length === 0) {
-                eqBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-slate-500">Nenhuma equipe encontrada.</td></tr>`;
+                eqBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-slate-500">Nenhuma equipe encontrada.</td></tr>`;
             } else {
                 rankingEquipes.forEach((eq, index) => {
                     const conversao = eq.analises > 0 ? ((eq.vendas / eq.analises) * 100).toFixed(1) : 0;
@@ -8192,6 +8205,8 @@
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">Equipe ${eq.equipe}</td>
+                            <td class="py-3 text-center text-violet-400 font-semibold">${eq.agendamentos || 0}</td>
+                            <td class="py-3 text-center text-cyan-400 font-semibold">${eq.compareceu || 0}</td>
                             <td class="py-3 text-center text-slate-400 ${eq.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${eq.analises > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','analises')"` : ''} title="${eq.analises > 0 ? 'Ver clientes' : ''}">${eq.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold ${eq.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${eq.aprovacoes > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','aprovacoes')"` : ''} title="${eq.aprovacoes > 0 ? 'Ver clientes' : ''}">${eq.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${eq.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${eq.vendas > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','vendas')"` : ''} title="${eq.vendas > 0 ? 'Ver clientes' : ''}">${eq.vendas}</td>
