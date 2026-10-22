@@ -72,6 +72,10 @@
         .org-brand { color:#e2e8f0; font-size:1.35rem; font-weight:900; letter-spacing:.05em; line-height:1; }
         .org-brand strong { color:#fbbf24; }
         .org-brand-sub { color:#94a3b8; font-size:.56rem; font-weight:700; letter-spacing:.18em; margin-top:.65rem; }
+        .org-chart-root { cursor:pointer; transition:transform .16s,border-color .16s,box-shadow .16s; }
+        .org-chart-root:hover,.org-chart-root.org-selected { transform:translateY(-2px); border-color:#fbbf24; box-shadow:0 18px 45px rgba(245,158,11,.18); }
+        .org-manager-person,.org-broker-row { cursor:pointer; transition:transform .15s,background .15s,box-shadow .15s; }
+        .org-manager-person:hover,.org-manager-person.org-selected,.org-broker-row:hover,.org-broker-row.org-selected { transform:translateY(-1px); background:rgba(15,35,62,.94); box-shadow:0 0 0 1px color-mix(in srgb,var(--team-color) 65%,transparent); }
         .org-chart-root { width:100%; min-height:118px; display:flex; align-items:center; gap:1rem; text-align:left; padding:1rem 1.15rem; box-shadow:0 18px 45px rgba(245,158,11,.08); }
         .org-chart-root #orgRegionalAvatar img { width:5rem; height:5rem; border-radius:9999px; border:2px solid #fbbf24; object-fit:cover; }
         .org-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid #1e3a5f; background:rgba(2,6,23,.55); border-radius:1rem; padding:.85rem .5rem; }
@@ -298,28 +302,28 @@
                         <!-- Filtro Corretor -->
                         <div>
                             <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-user text-slate-600"></i> Corretor</label>
-                            <select id="filterCorretor" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
+                            <select id="filterCorretor" onchange="onDashboardFilterChange()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
                                 <option value="">Todos os corretores</option>
                             </select>
                         </div>
                         <!-- Filtro Equipe -->
                         <div>
                             <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-users text-slate-600"></i> Equipe</label>
-                            <select id="filterEquipe" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
+                            <select id="filterEquipe" onchange="onDashboardFilterChange()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
                                 <option value="">Todas as equipes</option>
                             </select>
                         </div>
                         <!-- Filtro Construtora -->
                         <div>
                             <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-building text-slate-600"></i> Construtora</label>
-                            <select id="filterConstrutora" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
+                            <select id="filterConstrutora" onchange="onDashboardFilterChange()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
                                 <option value="">Todas as construtoras</option>
                             </select>
                         </div>
                         <!-- Filtro Empreendimento -->
                         <div>
                             <label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 mb-1 uppercase"><i class="fa-solid fa-city text-slate-600"></i> Empreendimento</label>
-                            <select id="filterEmpreendimento" onchange="applyFilters()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
+                            <select id="filterEmpreendimento" onchange="onDashboardFilterChange()" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition outline-none cursor-pointer">
                                 <option value="">Todos os empreendimentos</option>
                             </select>
                         </div>
@@ -1082,7 +1086,7 @@
                         <div class="org-chart-scroll">
                             <div class="org-overview">
                                 <div class="text-center sm:text-left"><div class="org-brand"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> AUDAZ <strong>SQUAD</strong></div><div class="org-brand-sub">RESULTADOS · PESSOAS · EVOLUÇÃO</div></div>
-                                <div class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/40 rounded-2xl"><div id="orgRegionalAvatar" class="flex justify-center shrink-0"></div><div><div class="text-[10px] uppercase tracking-[.18em] font-extrabold text-amber-300">Regional</div><div class="text-lg font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-xs text-slate-300 mt-1">Gerente Regional</div><div class="text-[10px] text-slate-500 mt-1"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> Audaz Squad</div></div></div>
+                                <div data-org-scope="regional" role="button" tabindex="0" title="Ver os indicadores gerais da regional" class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/40 rounded-2xl"><div id="orgRegionalAvatar" class="flex justify-center shrink-0"></div><div><div class="text-[10px] uppercase tracking-[.18em] font-extrabold text-amber-300">Regional</div><div class="text-lg font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-xs text-slate-300 mt-1">Gerente Regional</div><div class="text-[10px] text-slate-500 mt-1"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> Audaz Squad</div></div></div>
                                 <div class="org-stats"><div class="org-stat"><div id="orgStatManagers" class="org-stat-value">0</div><div class="org-stat-label">Gerentes</div></div><div class="org-stat"><div id="orgStatBrokers" class="org-stat-value">0</div><div class="org-stat-label">Corretores</div></div><div class="org-stat"><div id="orgStatTotal" class="org-stat-value">0</div><div class="org-stat-label">Pessoas na equipe</div></div></div>
                             </div>
                             <div class="org-chart-root-connector"></div><div class="org-chart-columns"><div id="organogramaTree" class="org-chart-level"></div></div>
@@ -1931,7 +1935,10 @@
         }
         function renderOrganograma() {
             const tree = document.getElementById('organogramaTree'); if (!tree) return;
+            initOrgDashboardClicks();
             const hint = document.getElementById('organogramaEditHint'); if (hint) hint.classList.toggle('hidden', isDiretor);
+            const regionalCard = document.querySelector('#organogramaSection [data-org-scope="regional"]');
+            if (regionalCard) regionalCard.classList.toggle('org-selected', orgDashboardScope?.kind === 'regional');
             const regionalAvatar = document.getElementById('orgRegionalAvatar');
             if (regionalAvatar) regionalAvatar.innerHTML = corretorAvatarInner('Sadraque Ribeiro', 'h-14 w-14', 'text-base');
             const inactiveKeys = new Set(inactiveCorretores.map(orgPersonKey));
@@ -1970,10 +1977,10 @@
                     : `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2"><select id="orgRole-${orgEsc(node.id)}" onchange="updateOrgParentOptions(this.value,'${orgEsc(node.id)}')" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Gerente','Corretor'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select><select id="orgParent-${orgEsc(node.id)}" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.length ? parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>'}</select></div>`;
                 return `<details class="org-node-edit"><summary>${node.role === 'Gerente' ? 'Vincular equipe' : 'Editar vínculo'}</summary>${parentControl}<div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div></details>`;
             };
-            const renderBroker = (broker, color) => `<div class="org-broker-entry"><article class="org-broker-row" style="--team-color:${color}"><div class="org-broker-avatar shrink-0">${corretorAvatarInner(broker.name,'h-12 w-12','text-[10px]')}</div><div class="min-w-0"><div class="org-broker-name">${orgEsc(broker.name)}</div><div class="org-broker-role">Corretor</div><div class="org-broker-active">Ativo</div></div></article>${renderEdit(broker)}</div>`;
+            const renderBroker = (broker, color) => `<div class="org-broker-entry"><article data-org-scope="broker" data-org-name="${orgEsc(broker.name)}" role="button" tabindex="0" title="Ver indicadores de ${orgEsc(broker.name)}" class="org-broker-row${orgDashboardScope?.kind === 'broker' && orgPersonKey(orgDashboardScope.name) === orgPersonKey(broker.name) ? ' org-selected' : ''}" style="--team-color:${color}"><div class="org-broker-avatar shrink-0">${corretorAvatarInner(broker.name,'h-12 w-12','text-[10px]')}</div><div class="min-w-0"><div class="org-broker-name">${orgEsc(broker.name)}</div><div class="org-broker-role">Corretor</div><div class="org-broker-active">Ativo</div></div></article>${renderEdit(broker)}</div>`;
             tree.innerHTML = managers.length ? `<div class="org-chart-level-label">Gerentes</div><div class="org-chart-manager-grid">${teams.map(({manager,brokers},i) => {
                 const color = colors[i % colors.length];
-                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div class="org-manager-person"><div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'corretor' : 'corretores'}</div></div></div>${renderEdit(manager)}</article></section>`;
+                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div data-org-scope="team" data-org-name="${orgEsc(manager.name)}" data-org-manager-id="${orgEsc(manager.id)}" role="button" tabindex="0" title="Ver os indicadores da equipe de ${orgEsc(manager.name)}" class="org-manager-person${orgDashboardScope?.kind === 'team' && orgDashboardScope.managerId === manager.id ? ' org-selected' : ''}"><div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'corretor' : 'corretores'}</div></div></div>${renderEdit(manager)}</article></section>`;
             }).join('')}</div><div class="org-chart-level-label mt-5">Equipes do BI</div><div class="org-chart-team-grid">${teams.map(({manager,brokers},i) => {
                 const color = colors[i % colors.length], expanded = organogramaExpandedTeams.has(manager.id), visible = expanded ? brokers : brokers.slice(0,3);
                 return `<section class="org-team-group" style="--team-color:${color}"><article class="org-team-card"><div class="org-team-head"><span><i class="fa-solid fa-users mr-1.5"></i> ${orgEsc(manager.equipe || 'Sem equipe')}</span><span class="org-team-count">${brokers.length}</span></div><div class="text-[10px] text-slate-500 mb-2">${orgEsc(manager.name)}</div><div class="org-broker-list">${visible.length ? visible.map(b=>renderBroker(b,color)).join('') : `<div class="text-[11px] text-slate-500 text-center py-5">${manager.equipe ? 'Nenhum corretor ativo nesta equipe do BI' : 'Vincule uma equipe ao gerente acima'}</div>`}</div>${brokers.length > 3 ? `<div class="org-team-toggle"><button onclick="toggleOrgTeam('${orgEsc(manager.id)}')">${expanded ? 'Recolher equipe' : `Ver equipe completa · ${brokers.length}`} <i class="fa-solid fa-chevron-${expanded ? 'up' : 'down'} ml-1"></i></button></div>` : ''}</article></section>`;
@@ -2465,6 +2472,45 @@
         // ela estava fechada, fica pendente e é redesenhada ao entrar (ver switchView).
         let quickRankingsPendente = false;
         let quickRankingMode = localStorage.getItem(`${appId}-quick-ranking-mode`) === 'equipe' ? 'equipe' : 'corretor';
+        let orgDashboardScope = null;
+        function matchesOrgDashboardScope(row) {
+            if (!orgDashboardScope) return true;
+            if (orgDashboardScope.kind === 'broker') return orgPersonKey(row?.Corretor) === orgPersonKey(orgDashboardScope.name);
+            if (orgDashboardScope.kind === 'team') return rankingTeamKey(getRankingTeamForBroker(row?.Corretor)) === rankingTeamKey(orgDashboardScope.team);
+            return true;
+        }
+        function personMatchesOrgDashboardScope(name) {
+            if (!orgDashboardScope) return true;
+            if (orgDashboardScope.kind === 'broker') return orgPersonKey(name) === orgPersonKey(orgDashboardScope.name);
+            if (orgDashboardScope.kind === 'team') return rankingTeamKey(getRankingTeamForBroker(name)) === rankingTeamKey(orgDashboardScope.team);
+            return true;
+        }
+        function onDashboardFilterChange() { orgDashboardScope = null; applyFilters(); }
+        function clearOrgDashboardScope() { orgDashboardScope = null; applyFilters(); }
+        function selectOrgDashboardScope(element) {
+            const kind = element?.dataset?.orgScope; if (!kind) return;
+            const name = element.dataset.orgName || '';
+            if (kind === 'regional') { orgDashboardScope = {kind: 'regional'}; document.getElementById('filterCorretor').value = ''; document.getElementById('filterEquipe').value = ''; document.getElementById('filterConstrutora').value = ''; document.getElementById('filterEmpreendimento').value = ''; }
+            else if (kind === 'team') {
+                const manager = organograma.find(n => n.id === element.dataset.orgManagerId && n.role === 'Gerente');
+                if (!manager) return;
+                orgDashboardScope = {kind: 'team', managerId: manager.id, name: manager.name, team: manager.equipe || manager.name};
+                document.getElementById('filterCorretor').value = ''; document.getElementById('filterEquipe').value = ''; document.getElementById('filterConstrutora').value = ''; document.getElementById('filterEmpreendimento').value = ''; 
+            } else {
+                orgDashboardScope = {kind: 'broker', name};
+                document.getElementById('filterEquipe').value = ''; document.getElementById('filterConstrutora').value = ''; document.getElementById('filterEmpreendimento').value = ''; 
+                const select = document.getElementById('filterCorretor');
+                if (![...select.options].some(o => o.value === name)) { const option = document.createElement('option'); option.value = name; option.textContent = name; select.appendChild(option); }
+                select.value = name;
+            }
+            switchView('dashboard'); applyFilters();
+        }
+        function initOrgDashboardClicks() {
+            const section = document.getElementById('organogramaSection'); if (!section || section.dataset.scopeClicksReady) return;
+            section.dataset.scopeClicksReady = '1';
+            section.addEventListener('click', event => { const node = event.target.closest('[data-org-scope]'); if (node) selectOrgDashboardScope(node); });
+            section.addEventListener('keydown', event => { if (event.key !== 'Enter' && event.key !== ' ') return; const node = event.target.closest('[data-org-scope]'); if (node) { event.preventDefault(); selectOrgDashboardScope(node); } });
+        }
         function setQuickRankingMode(mode) {
             quickRankingMode = mode === 'equipe' ? 'equipe' : 'corretor';
             localStorage.setItem(`${appId}-quick-ranking-mode`, quickRankingMode);
@@ -2544,6 +2590,7 @@
                 if (selEq && (quickRankingMode === 'equipe' ? rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq) : row.Equipe !== selEq)) return false;
                 if (selCons && row.Construtora !== selCons) return false;
                 if (selEmp && row.Empreendimento !== selEmp) return false;
+                if (!matchesOrgDashboardScope(row)) return false;
                 return true;
             });
 
@@ -2565,6 +2612,7 @@
 
             // Pré-popula TODOS os corretores ativos com 0 (aparecem mesmo sem registro).
             let ativos = getActiveCorretores();
+            if (orgDashboardScope) ativos = ativos.filter(personMatchesOrgDashboardScope);
             if (selCorr) ativos = ativos.filter(n => n === selCorr);
             if (selEq && quickRankingMode === 'equipe') ativos = ativos.filter(n => rankingTeamKey(getRankingTeamForBroker(n)) === rankingTeamKey(selEq));
             const novoMapa = () => { const m = {}; ativos.forEach(n => { m[n] = { count: 0, vgv: 0 }; }); return m; };
@@ -6413,6 +6461,10 @@
             const empreendimento = document.getElementById('filterEmpreendimento').value;
 
             const chips = [];
+            if (orgDashboardScope) {
+                const label = orgDashboardScope.kind === 'regional' ? 'Regional · todos os indicadores' : (orgDashboardScope.kind === 'team' ? `Equipe · ${orgDashboardScope.team}` : `Corretor · ${orgDashboardScope.name}`);
+                chips.push({ label: `Organograma: ${label}`, remove: clearOrgDashboardScope });
+            }
             if (corretor) chips.push({ label: corretor, remove: () => { document.getElementById('filterCorretor').value = ''; applyFilters(); } });
             if (equipe) chips.push({ label: equipe, remove: () => { document.getElementById('filterEquipe').value = ''; applyFilters(); } });
             if (construtora) chips.push({ label: construtora, remove: () => { document.getElementById('filterConstrutora').value = ''; applyFilters(); } });
@@ -6441,6 +6493,7 @@
         }
 
         function clearAllFilters() {
+            orgDashboardScope = null;
             document.getElementById('filterCorretor').value = "";
             document.getElementById('filterEquipe').value = "";
             document.getElementById('filterConstrutora').value = "";
@@ -6498,6 +6551,7 @@
             filteredDataset = dataset.filter(row => {
                 if (selCorretor && row.Corretor !== selCorretor) return false;
                 if (selEquipe && row.Equipe !== selEquipe) return false;
+                if (!matchesOrgDashboardScope(row)) return false;
                 if (selConstrutora && row.Construtora !== selConstrutora) return false;
                 if (selEmpreendimento && row.Empreendimento !== selEmpreendimento) return false;
                 return true;
@@ -6506,6 +6560,7 @@
             // estruturais (não tem Equipe/Construtora) — filtra só por esses dois.
             filteredAgendaDataset = agendaDataset.filter(row => {
                 if (selCorretor && row.Corretor !== selCorretor) return false;
+                if (!matchesOrgDashboardScope(row)) return false;
                 if (!agendaMatchesEmpreendimento(row, selEmpreendimento)) return false;
                 return true;
             });
@@ -6513,6 +6568,7 @@
             filteredProspeccaoDataset = prospeccaoDataset.filter(row => {
                 if (selCorretor && row.Corretor !== selCorretor) return false;
                 if (selEquipe && row.Equipe !== selEquipe) return false;
+                if (!matchesOrgDashboardScope(row)) return false;
                 return true;
             });
 
