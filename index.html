@@ -100,6 +100,9 @@
         .org-manager-role { color:#cbd5e1; font-size:.68rem; margin-top:.25rem; }
         .org-manager-count { color:#bfdbfe; font-size:.68rem; margin-top:.4rem; display:flex; gap:.35rem; align-items:center; }
         .org-team-card { flex:1; min-height:210px; padding:.75rem; display:flex; flex-direction:column; }
+        .org-team-card.org-team-selected { border-color:var(--team-color); background:linear-gradient(145deg,color-mix(in srgb,var(--team-color) 17%,#081426),rgba(2,10,25,.98)); box-shadow:0 0 0 2px color-mix(in srgb,var(--team-color) 58%,transparent),0 16px 34px color-mix(in srgb,var(--team-color) 20%,transparent); }
+        .org-team-select { width:100%; display:flex; align-items:center; justify-content:space-between; gap:.5rem; text-align:left; color:var(--team-color); font-size:.69rem; font-weight:900; letter-spacing:.13em; text-transform:uppercase; margin-bottom:.65rem; border-radius:.55rem; padding:.2rem .25rem; }
+        .org-team-select:focus-visible { outline:2px solid var(--team-color); outline-offset:2px; }
         .org-team-head { display:flex; align-items:center; justify-content:space-between; color:var(--team-color); font-size:.69rem; font-weight:900; letter-spacing:.13em; text-transform:uppercase; margin-bottom:.65rem; }
         .org-team-count { display:inline-flex; align-items:center; justify-content:center; min-width:1.55rem; height:1.55rem; border-radius:9999px; background:color-mix(in srgb,var(--team-color) 16%,#020617); border:1px solid color-mix(in srgb,var(--team-color) 35%,transparent); }
         .org-broker-list { display:grid; gap:.45rem; }
@@ -1870,6 +1873,7 @@
         // Organograma: hierarquia configurável, com regional fixo no topo.
         let organograma = [];
         let organogramaExpandedTeams = new Set();
+        let organogramaSelectedTeamId = null;
         function loadOrganograma() {
             try { const saved = JSON.parse(localStorage.getItem(`${appId}-organograma`) || '[]'); organograma = Array.isArray(saved) ? saved : []; }
             catch (e) { organograma = []; }
@@ -2011,9 +2015,13 @@
                 return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div data-org-scope="team" data-org-name="${orgEsc(manager.name)}" data-org-manager-id="${orgEsc(manager.id)}" role="button" tabindex="0" title="Ver os indicadores da equipe de ${orgEsc(manager.name)}" class="org-manager-person${orgDashboardScope?.kind === 'team' && orgDashboardScope.managerId === manager.id ? ' org-selected' : ''}"><div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'corretor' : 'corretores'}</div></div></div>${renderEdit(manager)}</article></section>`;
             }).join('')}</div><div class="org-chart-level-label mt-5">Equipes do BI</div><div class="org-chart-team-grid">${teams.map(({manager,brokers},i) => {
                 const color = colors[i % colors.length], expanded = organogramaExpandedTeams.has(manager.id), visible = expanded ? brokers : brokers.slice(0,3);
-                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-team-card"><div class="org-team-head"><span><i class="fa-solid fa-users mr-1.5"></i> ${orgEsc(manager.equipe || 'Sem equipe')}</span><span class="org-team-count">${brokers.length}</span></div><div class="text-[10px] text-slate-500 mb-2">${orgEsc(manager.name)}</div><div class="org-broker-list">${visible.length ? visible.map(b=>renderBroker(b,color)).join('') : `<div class="text-[11px] text-slate-500 text-center py-5">${manager.equipe ? 'Nenhum corretor ativo nesta equipe do BI' : 'Vincule uma equipe ao gerente acima'}</div>`}</div>${brokers.length > 3 ? `<div class="org-team-toggle"><button onclick="toggleOrgTeam('${orgEsc(manager.id)}')">${expanded ? 'Recolher equipe' : `Ver equipe completa · ${brokers.length}`} <i class="fa-solid fa-chevron-${expanded ? 'up' : 'down'} ml-1"></i></button></div>` : ''}</article></section>`;
+                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-team-card${organogramaSelectedTeamId === manager.id ? ' org-team-selected' : ''}"><button type="button" class="org-team-select" aria-pressed="${organogramaSelectedTeamId === manager.id}" title="Destacar esta equipe" onclick="selectOrgTeamCard('${orgEsc(manager.id)}')"><span><i class="fa-solid fa-users mr-1.5"></i> ${orgEsc(manager.equipe || 'Sem equipe')}</span><span class="org-team-count">${brokers.length}</span></button><div class="text-[10px] text-slate-500 mb-2">${orgEsc(manager.name)}</div><div class="org-broker-list">${visible.length ? visible.map(b=>renderBroker(b,color)).join('') : `<div class="text-[11px] text-slate-500 text-center py-5">${manager.equipe ? 'Nenhum corretor ativo nesta equipe do BI' : 'Vincule uma equipe ao gerente acima'}</div>`}</div>${brokers.length > 3 ? `<div class="org-team-toggle"><button onclick="toggleOrgTeam('${orgEsc(manager.id)}')">${expanded ? 'Recolher equipe' : `Ver equipe completa · ${brokers.length}`} <i class="fa-solid fa-chevron-${expanded ? 'up' : 'down'} ml-1"></i></button></div>` : ''}</article></section>`;
             }).join('')}</div>` : '<p class="org-chart-empty text-xs text-slate-500 text-center py-8 px-4 rounded-xl border border-dashed border-slate-700">Adicione gerentes abaixo de você. Eles ficarão alinhados na mesma faixa.</p>';
             const sync = document.getElementById('organogramaSyncLabel'); if (sync && (!sync.textContent || /^\d+ pessoas? na estrutura$/.test(sync.textContent))) sync.textContent = `${managers.length + totalBrokers} pessoas ativas exibidas`;
+        }
+        function selectOrgTeamCard(id) {
+            organogramaSelectedTeamId = organogramaSelectedTeamId === id ? null : id;
+            renderOrganograma();
         }
         function toggleOrgTeam(id) {
             if (organogramaExpandedTeams.has(id)) organogramaExpandedTeams.delete(id); else organogramaExpandedTeams.add(id);
