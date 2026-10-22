@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AUDAZ BI - Central de Inteligência Imobiliária</title>
-    <!-- Evita que o navegador restaure a rolagem anterior ao abrir o BI. -->
-    <script>if ('scrollRestoration' in history) history.scrollRestoration = 'manual';</script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -91,9 +89,9 @@
         .org-chart-level-label::before,.org-chart-level-label::after { content:''; height:1px; flex:1; background:linear-gradient(90deg,transparent,#334155); }
         .org-chart-level-label::after { background:linear-gradient(90deg,#334155,transparent); }
         .org-chart-scroll { overflow-x:auto; }
-        .org-chart-columns { width:100%; min-width:calc(var(--org-team-count,5) * 220px); }
-        .org-chart-manager-grid,.org-chart-team-grid { display:grid; grid-template-columns:repeat(var(--org-team-count,5),minmax(220px,1fr)); gap:.8rem; align-items:stretch; }
-        .org-team-group { --team-color:#3b82f6; min-width:0; max-width:440px; width:100%; justify-self:center; display:flex; flex-direction:column; gap:.65rem; }
+        .org-chart-columns { min-width:1120px; }
+        .org-chart-manager-grid,.org-chart-team-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.8rem; align-items:stretch; }
+        .org-team-group { --team-color:#3b82f6; min-width:0; display:flex; flex-direction:column; gap:.65rem; }
         .org-manager-card,.org-team-card { border:1px solid color-mix(in srgb,var(--team-color) 65%,#1e293b); border-radius:1rem; background:linear-gradient(145deg,rgba(8,20,38,.96),rgba(2,10,25,.98)); overflow:hidden; }
         .org-manager-card { position:relative; min-height:112px; padding:.85rem .75rem .8rem .9rem; border-left:5px solid var(--team-color); box-shadow:0 12px 28px rgba(0,0,0,.18); }
         .org-manager-person { display:flex; align-items:center; gap:.65rem; min-width:0; }
@@ -120,7 +118,7 @@
         .org-node-edit[open] summary { margin-bottom:.5rem; color:#cbd5e1; }
         .org-chart-empty { width:min(100%,720px); margin:0 auto; }
         @media (max-width:1150px) { .org-overview { grid-template-columns:minmax(120px,.65fr) minmax(250px,1.25fr); } .org-stats { grid-column:1/-1; } }
-        @media (max-width:620px) { .org-chart-scroll { padding:.65rem; } .org-overview { grid-template-columns:minmax(0,1fr); text-align:center; } .org-brand { margin:.35rem auto; } .org-chart-root { max-width:390px; margin:auto; text-align:left; } .org-stats { grid-column:auto; } .org-chart-manager-grid,.org-chart-team-grid { grid-template-columns:repeat(var(--org-team-count,5),minmax(190px,1fr)); gap:.65rem; } .org-team-card { min-height:0; } }
+        @media (max-width:620px) { .org-chart-scroll { padding:.65rem; } .org-overview { grid-template-columns:minmax(0,1fr); text-align:center; } .org-brand { margin:.35rem auto; } .org-chart-root { max-width:390px; margin:auto; text-align:left; } .org-stats { grid-column:auto; } .org-chart-manager-grid,.org-chart-team-grid { grid-template-columns:repeat(5,minmax(190px,1fr)); gap:.65rem; } .org-team-card { min-height:0; } }
 
         .animate-pulse-slow {
             animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -1844,7 +1842,6 @@
         // Organograma: hierarquia configurável, com regional fixo no topo.
         let organograma = [];
         let organogramaExpandedTeams = new Set();
-        let isDiretor = false; // declarado antes da renderização inicial do organograma
         function loadOrganograma() {
             try { const saved = JSON.parse(localStorage.getItem(`${appId}-organograma`) || '[]'); organograma = Array.isArray(saved) ? saved : []; }
             catch (e) { organograma = []; }
@@ -1970,7 +1967,6 @@
             updateOrgParentOptions(document.getElementById('orgNewRole')?.value || 'Gerente');
             const addButton = document.querySelector('#organogramaSection button[onclick="addOrgMember()"]');
             if (addButton) addButton.disabled = !isDiretor || availableNames.length === 0 || (document.getElementById('orgNewRole')?.value === 'Corretor' && !organograma.some(n => n.role === 'Gerente'));
-            tree.style.setProperty('--org-team-count', Math.max(1, managers.length));
             const colors = ['#3b82f6','#f59e0b','#14b8a6','#8b5cf6','#ec4899','#06b6d4'];
             const renderEdit = node => {
                 if (!isDiretor) return '';
@@ -4783,7 +4779,7 @@
             if (b) b.classList.toggle('hidden', soUma);
         }
 
-        function switchView(viewName, options = {}) {
+        function switchView(viewName) {
             activeView = viewName;
             // O Mapa de Calor só existe nas views "dashboard" e "calendar" (é inline no painel) —
             // redesenhá-lo ao entrar em Rankings/Corretor/Plantões era ~12ms jogados fora em TODA
@@ -4854,7 +4850,7 @@
             const targetId = viewName === 'calendar' ? 'calendarView' : (viewName === 'rankings' ? 'quickRankingsSection' : (viewName === 'corretor' ? 'corretorSection' : (viewName === 'plantoes' ? 'plantoesSection' : (viewName === 'tela' ? 'telaSection' : 'dashboardView'))));
             const target = document.getElementById(targetId);
             // Tela (TV) rola instantâneo dentro de ajustarEscalaTela() — o smooth aqui brigaria com ela.
-            if (target && viewName !== 'tela' && options.scroll !== false) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (target && viewName !== 'tela') target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         // ====== PLANTÕES: semana inteira (7 colunas), as 3 escalas (Diamond/Roleta/Represados)
@@ -5337,29 +5333,8 @@
             localStorage.setItem(`${appId}-sidebar-hidden`, hide ? '1' : '0');
         }
 
-        function getRequestedStartupView() {
-            try {
-                const qs = new URLSearchParams(location.search);
-                if (qs.get('tela') === '1' || location.hash === '#tela') return 'tela';
-            } catch (e) {}
-            return 'organograma';
-        }
-
-        // Monta a primeira tela agora, sem esperar o evento window.load nem o Firebase.
-        // window.load pode atrasar por scripts/fontes externos; se isso acontecesse, a tela de
-        // segurança removia o overlay e deixava o Dashboard padrão aparecendo por engano.
-        const initialView = getRequestedStartupView();
-        if (initialView === 'organograma') {
-            loadCorretorRoster();
-            loadOrganograma();
-        }
-        switchView(initialView, {scroll: false});
-        if (initialView === 'organograma') {
-            window.scrollTo(0, 0);
-            requestAnimationFrame(() => window.scrollTo(0, 0));
-        }
-        // Firebase entra depois apenas para sincronizar configurações e permitir edição.
-        window.addEventListener('load', initFirebaseAdmin, {once: true});
+        // Boot: painel é PÚBLICO. Firebase entra só para ler configs e permitir edição via senha de admin.
+        window.onload = function() { initFirebaseAdmin(); };
 
         function bootApp() {
             restoreRefreshRate();
@@ -5374,16 +5349,12 @@
             loadPlantaoInfoEscala();
             loadPlantaoEscalasCfg();
             loadIpcMesesCustom();
-            // A tela inicial do BI é o organograma. A URL ?tela=1 ou #tela continua abrindo
-            // diretamente no modo de exibição para TVs; o painel executivo segue acessível pela navegação.
-            const abrirTelaTV = getRequestedStartupView() === 'tela';
-            switchView(abrirTelaTV ? 'tela' : 'organograma', {scroll: false});
-            if (!abrirTelaTV) {
-                // Alguns navegadores restauram o scroll antigo depois de montar o conteúdo.
-                // Reposiciona no início da tela inicial sem interferir no modo TV.
-                window.scrollTo(0, 0);
-                requestAnimationFrame(() => window.scrollTo(0, 0));
-            }
+            // TV bootando direto na Tela: abra o BI com ?tela=1 ou #tela e ele já entra no modo
+            // de exibição (os dados chegam depois e o applyFilters redesenha a Tela sozinho).
+            try {
+                const qs = new URLSearchParams(location.search);
+                if (qs.get('tela') === '1' || location.hash === '#tela') setTimeout(() => switchView('tela'), 0);
+            } catch (e) {}
             // Celular/tablet (12/10/2026): a barra lateral ocupava a 1ª tela inteira e empurrava o
             // "estou batendo?" pra baixo — agora começa escondida em telas < 1024px (abre no ☰),
             // a menos que a pessoa tenha escolhido deixá-la aberta neste aparelho.
@@ -5434,6 +5405,7 @@
             measurementId: "G-YPSG2D1WXV"
         };
         let fbDb = null, cloudUnsub = null, appBooted = false, applyingCloud = false;
+        let isDiretor = false; // true só depois de login via Firebase Auth — controla quem pode editar
 
         function initFirebaseAdmin() {
             if (typeof firebase === 'undefined' || !firebase.initializeApp) {
