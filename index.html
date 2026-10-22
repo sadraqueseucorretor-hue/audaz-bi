@@ -5336,8 +5336,26 @@
             localStorage.setItem(`${appId}-sidebar-hidden`, hide ? '1' : '0');
         }
 
+        function getRequestedStartupView() {
+            try {
+                const qs = new URLSearchParams(location.search);
+                if (qs.get('tela') === '1' || location.hash === '#tela') return 'tela';
+            } catch (e) {}
+            return 'organograma';
+        }
+
+        // Seleciona o organograma antes de iniciar a sincronização remota. Assim, mesmo que o
+        // Firebase demore ou falhe, a primeira página não depende dele para abrir no lugar correto.
         // Boot: painel é PÚBLICO. Firebase entra só para ler configs e permitir edição via senha de admin.
-        window.onload = function() { initFirebaseAdmin(); };
+        window.onload = function() {
+            const initialView = getRequestedStartupView();
+            switchView(initialView, {scroll: false});
+            if (initialView === 'organograma') {
+                window.scrollTo(0, 0);
+                requestAnimationFrame(() => window.scrollTo(0, 0));
+            }
+            initFirebaseAdmin();
+        };
 
         function bootApp() {
             restoreRefreshRate();
@@ -5354,11 +5372,7 @@
             loadIpcMesesCustom();
             // A tela inicial do BI é o organograma. A URL ?tela=1 ou #tela continua abrindo
             // diretamente no modo de exibição para TVs; o painel executivo segue acessível pela navegação.
-            let abrirTelaTV = false;
-            try {
-                const qs = new URLSearchParams(location.search);
-                abrirTelaTV = qs.get('tela') === '1' || location.hash === '#tela';
-            } catch (e) {}
+            const abrirTelaTV = getRequestedStartupView() === 'tela';
             switchView(abrirTelaTV ? 'tela' : 'organograma', {scroll: false});
             if (!abrirTelaTV) {
                 // Alguns navegadores restauram o scroll antigo depois de montar o conteúdo.
