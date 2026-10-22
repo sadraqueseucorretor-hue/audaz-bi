@@ -1234,21 +1234,25 @@
                 <!-- Cabeçalho: título + seletor de métrica + mês -->
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div>
-                        <h2 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                        <h2 id="calendarTitle" class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
                             <i class="fa-solid fa-fire text-orange-400"></i> Mapa de Calor Operacional
                         </h2>
-                        <p class="text-xs text-slate-400">Acompanhe a produtividade diária da equipe.</p>
+                        <p id="calendarSubtitle" class="text-xs text-slate-400">Acompanhe a produtividade diária da equipe.</p>
+                        <div class="inline-flex items-center gap-1 mt-3 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                            <button onclick="setCalendarTab('production')" id="calTab-production" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Produção</button>
+                            <button onclick="setCalendarTab('forecast')" id="calTab-forecast" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Previsão de atendimentos</button>
+                        </div>
                     </div>
                     <div class="flex items-center gap-3">
                         <!-- Seletor de métrica do calendário -->
-                        <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-wrap">
+                        <div id="calendarMetricSelector" class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-wrap">
                             <button onclick="setCalendarMetric('agendamentos')" id="calBtn-agendamentos" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Agendamentos</button>
                             <button onclick="setCalendarMetric('visitas')" id="calBtn-visitas" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Visitas</button>
                             <button onclick="setCalendarMetric('analises')" id="calBtn-analises" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-sky-500 text-white">Pasta</button>
                             <button onclick="setCalendarMetric('aprovados')" id="calBtn-aprovados" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Aprovados</button>
                             <button onclick="setCalendarMetric('vendas')" id="calBtn-vendas" class="cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400">Vendas</button>
                         </div>
-                        <div class="inline-flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 shrink-0">
+                        <div id="calendarDimensionSelector" class="inline-flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 shrink-0">
                             <button onclick="setCalendarDimension('equipe')" id="calDim-equipe" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Equipes</button>
                             <button onclick="setCalendarDimension('corretor')" id="calDim-corretor" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Corretores</button>
                         </div>
@@ -1258,8 +1262,36 @@
                     </div>
                 </div>
 
+                <section id="calendarForecastPanel" class="hidden space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-900/40 rounded-2xl border border-slate-800 p-4">
+                        <div>
+                            <h3 class="text-sm font-extrabold text-white">Atendimentos agendados</h3>
+                            <p class="text-[11px] text-slate-400 mt-1">Previsão baseada na data marcada e em agendamentos ainda pendentes.</p>
+                        </div>
+                        <div class="inline-flex items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-slate-800">
+                            <button onclick="setForecastDays(7)" id="calForecastDays-7" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">7 dias</button>
+                            <button onclick="setForecastDays(30)" id="calForecastDays-30" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">30 dias</button>
+                            <button onclick="setForecastDays(90)" id="calForecastDays-90" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">90 dias</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <article class="bg-slate-900/40 rounded-xl border border-slate-800 p-4"><p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Hoje</p><p id="calForecastToday" class="text-2xl font-extrabold text-violet-300 mt-1">0</p><p class="text-[10px] text-slate-500">atendimentos pendentes</p></article>
+                        <article class="bg-slate-900/40 rounded-xl border border-slate-800 p-4"><p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Próximos 7 dias</p><p id="calForecastWeek" class="text-2xl font-extrabold text-sky-300 mt-1">0</p><p class="text-[10px] text-slate-500">atendimentos previstos</p></article>
+                        <article class="bg-slate-900/40 rounded-xl border border-slate-800 p-4"><p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">No período</p><p id="calForecastPeriod" class="text-2xl font-extrabold text-emerald-300 mt-1">0</p><p class="text-[10px] text-slate-500">atendimentos previstos</p></article>
+                    </div>
+                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-4 sm:p-6">
+                        <div class="flex items-center justify-between gap-3 mb-4"><h3 class="text-sm font-extrabold text-white">Agenda prevista</h3><span id="calForecastRangeLabel" class="text-[10px] text-slate-400"></span></div>
+                        <div class="overflow-x-auto rounded-xl border border-slate-800/80">
+                            <table class="w-full min-w-[760px] text-left border-collapse">
+                                <thead><tr class="bg-slate-950/80 border-b border-slate-800 text-[10px] text-slate-400 font-bold uppercase tracking-wider"><th class="p-3">Data</th><th class="p-3">Hora</th><th class="p-3">Cliente</th><th class="p-3">Equipe</th><th class="p-3">Corretor</th><th class="p-3">Empreendimento</th></tr></thead>
+                                <tbody id="calForecastTableBody" class="divide-y divide-slate-800/40"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- INDICADORES EXCLUSIVOS DO CALENDÁRIO -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div id="calendarKpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
                     <div class="bg-slate-900/40 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
                         <div class="w-11 h-11 shrink-0 rounded-full bg-sky-500/15 text-sky-400 flex items-center justify-center text-lg"><i class="fa-solid fa-chart-line"></i></div>
@@ -1327,7 +1359,7 @@
                 </div>
 
                 <!-- CONTÊINER DA MATRIZ DO CALENDÁRIO COM ROLAGEM HORIZONTAL -->
-                <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                <div id="calendarHeatmapPanel" class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
 
                     <!-- Tabela com scroll horizontal suave -->
                     <div class="overflow-x-auto rounded-xl border border-slate-800/80">
@@ -4885,7 +4917,7 @@
             // O Mapa de Calor só existe nas views "dashboard" e "calendar" (é inline no painel) —
             // redesenhá-lo ao entrar em Rankings/Corretor/Plantões era ~12ms jogados fora em TODA
             // troca de aba, contribuindo pro travamento que o usuário reportou.
-            if (viewName === 'calendar') drawProductionCalendar();
+            if (viewName === 'calendar') renderCalendarTab();
             const onCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-100";
             const offCls = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200";
             const linkDashboard = document.getElementById('navLinkDashboard');
@@ -6686,7 +6718,7 @@
             renderCharts();
             renderAlerts(referenceDate);
 
-            if (activeView === 'calendar') drawProductionCalendar();   // Mapa de Calor só existe na aba Calendário
+            if (activeView === 'calendar') renderCalendarTab();   // Atualiza a produção ou previsão no Calendário
             renderFiltersSummary();
             renderCorretorCards();
             ajustarBlocosEquipe();
@@ -10272,12 +10304,85 @@
         let calendarMonthDetails = [];
         let calendarMetric = 'analises'; // análise, aprovação, venda, agendamento ou visita
         let calendarDimension = localStorage.getItem(`${appId}-calendar-dimension`) === 'corretor' ? 'corretor' : 'equipe';
+        let calendarTab = 'production';
+        let calendarForecastDays = 30;
+
+        function agendaPlannedVisitDate(row) {
+            const normalized = Object.fromEntries(Object.entries(row || {}).map(([key, value]) => [stripDiacritics(key).toLowerCase().replace(/[^a-z0-9]/g, ''), value]));
+            for (const key of ['dataagendada','datadavisita','datavisita','dataagendamento','data']) if (normalized[key]) return normalized[key];
+            return null;
+        }
+
+        function setCalendarTab(tab) {
+            calendarTab = tab === 'forecast' ? 'forecast' : 'production';
+            renderCalendarTab();
+        }
+
+        function renderCalendarTab() {
+            const forecast = calendarTab === 'forecast';
+            const productionBtn = document.getElementById('calTab-production');
+            const forecastBtn = document.getElementById('calTab-forecast');
+            if (productionBtn) productionBtn.className = `px-3 py-1.5 rounded-lg text-xs font-bold transition ${!forecast ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-white'}`;
+            if (forecastBtn) forecastBtn.className = `px-3 py-1.5 rounded-lg text-xs font-bold transition ${forecast ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`;
+            document.getElementById('calendarMetricSelector')?.classList.toggle('hidden', forecast);
+            document.getElementById('calendarDimensionSelector')?.classList.toggle('hidden', forecast);
+            document.getElementById('calMonthLabel')?.classList.toggle('hidden', forecast);
+            document.getElementById('calendarForecastPanel')?.classList.toggle('hidden', !forecast);
+            document.getElementById('calendarKpis')?.classList.toggle('hidden', forecast);
+            document.getElementById('calendarHeatmapPanel')?.classList.toggle('hidden', forecast);
+            const title = document.getElementById('calendarTitle');
+            const subtitle = document.getElementById('calendarSubtitle');
+            if (title) title.innerHTML = forecast ? '<i class="fa-solid fa-calendar-check text-violet-400"></i> Previsão de Atendimentos' : '<i class="fa-solid fa-fire text-orange-400"></i> Mapa de Calor Operacional';
+            if (subtitle) subtitle.textContent = forecast ? 'Veja os atendimentos pendentes pela data marcada e organize os próximos dias.' : 'Acompanhe a produtividade diária da equipe.';
+            if (forecast) drawAttendanceForecast(); else drawProductionCalendar();
+        }
+
+        function setForecastDays(days) {
+            calendarForecastDays = [7, 30, 90].includes(Number(days)) ? Number(days) : 30;
+            drawAttendanceForecast();
+        }
+
+        function drawAttendanceForecast() {
+            const body = document.getElementById('calForecastTableBody');
+            if (!body) return;
+            [7, 30, 90].forEach(days => {
+                const btn = document.getElementById(`calForecastDays-${days}`);
+                if (btn) btn.className = `px-3 py-1.5 rounded-lg text-xs font-bold transition ${calendarForecastDays === days ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`;
+            });
+            const start = new Date(); start.setHours(0, 0, 0, 0);
+            const end = new Date(start); end.setDate(end.getDate() + calendarForecastDays - 1); end.setHours(23, 59, 59, 999);
+            const scheduled = filteredAgendaDataset.filter(row => {
+                if (!isAgendaPendente(row)) return false;
+                const date = parseDate(agendaPlannedVisitDate(row));
+                return date && date >= start && date <= end;
+            }).map(row => {
+                const date = parseDate(agendaPlannedVisitDate(row));
+                return { row, date, team: getRankingTeamForBroker(row.Corretor) || 'Sem equipe' };
+            }).sort((a, b) => a.date - b.date || String(a.row['Hora'] || '').localeCompare(String(b.row['Hora'] || '')) || String(a.row.Cliente || '').localeCompare(String(b.row.Cliente || ''), 'pt-BR'));
+            const countThrough = days => scheduled.filter(item => item.date < new Date(start.getFullYear(), start.getMonth(), start.getDate() + days)).length;
+            document.getElementById('calForecastToday').textContent = scheduled.filter(item => item.date.toDateString() === start.toDateString()).length;
+            document.getElementById('calForecastWeek').textContent = countThrough(7);
+            document.getElementById('calForecastPeriod').textContent = scheduled.length;
+            document.getElementById('calForecastRangeLabel').textContent = `${start.toLocaleDateString('pt-BR')} a ${end.toLocaleDateString('pt-BR')} · ${scheduled.length} previstos`;
+            if (!scheduled.length) {
+                body.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-xs text-slate-500">Nenhum atendimento pendente previsto neste período.</td></tr>`;
+                return;
+            }
+            body.innerHTML = scheduled.map(({row, date, team}) => {
+                const dateLabel = date.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' });
+                const time = String(row.Hora || '').trim() || '—';
+                const client = String(row.Cliente || '').trim() || 'Cliente não informado';
+                const broker = String(row.Corretor || '').trim() || 'Sem corretor';
+                const project = String(row.Empreendimento || row['empreendimento preferencia'] || '').trim() || '—';
+                return `<tr class="hover:bg-slate-800/30 transition"><td class="p-3 text-violet-200 font-bold whitespace-nowrap">${orgEsc(dateLabel)}</td><td class="p-3 text-slate-300 whitespace-nowrap">${orgEsc(time)}</td><td class="p-3 text-slate-100 font-semibold">${orgEsc(client)}</td><td class="p-3 text-slate-300">${orgEsc(team)}</td><td class="p-3 text-slate-300">${orgEsc(broker)}</td><td class="p-3 text-slate-400">${orgEsc(project)}</td></tr>`;
+            }).join('');
+        }
 
         const CAL_METRICS = {
             analises:     { key: 'a',  label: 'Análises',     sub: 'data cadastro',    color: 'sky',     btnBg: 'bg-sky-500' },
             aprovados:    { key: 'ap', label: 'Aprovados',    sub: 'data aprovação',   color: 'amber',   btnBg: 'bg-amber-500' },
             vendas:       { key: 'v',  label: 'Vendas',       sub: 'data ganho',       color: 'emerald', btnBg: 'bg-emerald-500' },
-            agendamentos: { key: 'ag', label: 'Agendamentos', sub: 'data da visita',  color: 'violet',  btnBg: 'bg-violet-500' },
+            agendamentos: { key: 'ag', label: 'Agendamentos', sub: 'data do agendamento', color: 'violet', btnBg: 'bg-violet-500' },
             visitas:      { key: 'vi', label: 'Visitas',      sub: 'data compareceu', color: 'cyan',    btnBg: 'bg-cyan-500' }
         };
 
@@ -10293,14 +10398,14 @@
                     btn.className = 'cal-metric-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-400';
                 }
             });
-            drawProductionCalendar();
+            renderCalendarTab();
         }
 
         function setCalendarDimension(dimension) {
             calendarDimension = dimension === 'corretor' ? 'corretor' : 'equipe';
             localStorage.setItem(`${appId}-calendar-dimension`, calendarDimension);
             setCalendarDimensionButtonsOnly();
-            drawProductionCalendar();
+            renderCalendarTab();
         }
 
         function setCalendarDimensionButtonsOnly() {
