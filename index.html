@@ -5344,18 +5344,21 @@
             return 'organograma';
         }
 
-        // Seleciona o organograma antes de iniciar a sincronização remota. Assim, mesmo que o
-        // Firebase demore ou falhe, a primeira página não depende dele para abrir no lugar correto.
-        // Boot: painel é PÚBLICO. Firebase entra só para ler configs e permitir edição via senha de admin.
-        window.onload = function() {
-            const initialView = getRequestedStartupView();
-            switchView(initialView, {scroll: false});
-            if (initialView === 'organograma') {
-                window.scrollTo(0, 0);
-                requestAnimationFrame(() => window.scrollTo(0, 0));
-            }
-            initFirebaseAdmin();
-        };
+        // Monta a primeira tela agora, sem esperar o evento window.load nem o Firebase.
+        // window.load pode atrasar por scripts/fontes externos; se isso acontecesse, a tela de
+        // segurança removia o overlay e deixava o Dashboard padrão aparecendo por engano.
+        const initialView = getRequestedStartupView();
+        if (initialView === 'organograma') {
+            loadCorretorRoster();
+            loadOrganograma();
+        }
+        switchView(initialView, {scroll: false});
+        if (initialView === 'organograma') {
+            window.scrollTo(0, 0);
+            requestAnimationFrame(() => window.scrollTo(0, 0));
+        }
+        // Firebase entra depois apenas para sincronizar configurações e permitir edição.
+        window.addEventListener('load', initFirebaseAdmin, {once: true});
 
         function bootApp() {
             restoreRefreshRate();
