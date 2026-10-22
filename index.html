@@ -8045,6 +8045,7 @@
         function drawTables() {
             const searchCorretorTerm = document.getElementById('searchCorretor').value.toLowerCase();
             const searchEquipeTerm = document.getElementById('searchEquipe').value.toLowerCase();
+            const selectedTeamFilter = document.getElementById('filterEquipe').value;
 
             const refDateTables = currentRefDate;
             rankingRowsCache = { corretor: {}, equipe: {} };
@@ -8178,7 +8179,7 @@
             filteredAgendaDataset.forEach(row => {
                 if (!agendaMatchesRef(row, refDateTables)) return;
                 const eq = row.Corretor ? getRankingTeamForBroker(row.Corretor) : '';
-                if (!eq) return;
+                if (!eq || (selectedTeamFilter && rankingTeamKey(eq) !== rankingTeamKey(selectedTeamFilter))) return;
                 if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                 equipesMap[eq].agendamentos++;
                 if (isCompareceu(row)) equipesMap[eq].compareceu++;
