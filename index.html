@@ -1844,6 +1844,7 @@
         // Organograma: hierarquia configurável, com regional fixo no topo.
         let organograma = [];
         let organogramaExpandedTeams = new Set();
+        let isDiretor = false; // declarado antes da renderização inicial do organograma
         function loadOrganograma() {
             try { const saved = JSON.parse(localStorage.getItem(`${appId}-organograma`) || '[]'); organograma = Array.isArray(saved) ? saved : []; }
             catch (e) { organograma = []; }
@@ -5433,7 +5434,6 @@
             measurementId: "G-YPSG2D1WXV"
         };
         let fbDb = null, cloudUnsub = null, appBooted = false, applyingCloud = false;
-        let isDiretor = false; // true só depois de login via Firebase Auth — controla quem pode editar
 
         function initFirebaseAdmin() {
             if (typeof firebase === 'undefined' || !firebase.initializeApp) {
