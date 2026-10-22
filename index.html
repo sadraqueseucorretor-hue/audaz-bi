@@ -1543,7 +1543,8 @@
                 </div>
                 <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1">
                     <p class="font-bold text-slate-300">Colunas esperadas:</p>
-                    <p class="font-mono text-violet-400">ID | Corretor | Cliente | Data | Hora | empreendimento preferencia | Local | Empreendimento | Status | Obs</p>
+                    <p class="font-mono text-violet-400">ID | Corretor | Cliente | Data de Cadastro | Data | Hora | empreendimento preferencia | Local | Empreendimento | Status | Obs</p>
+                    <p class="text-slate-500">Data de Cadastro = dia em que o agendamento foi feito; Data = dia marcado para a visita.</p>
                     <p>Status: <span class="font-mono text-slate-300">agendada</span> · <span class="font-mono text-slate-300">compareceu</span> · <span class="font-mono text-slate-300">nao_compareceu</span></p>
                 </div>
                 <button onclick="connectAgendaGoogleSheets()" class="w-full py-2.5 px-4 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-violet-500/20 transition flex items-center justify-center gap-2">
@@ -2734,24 +2735,24 @@
             // Usa a JANELA REAL do mês comercial (mesma resolução do Funil/Ritmo do Mês), não o
             // mês do calendário inteiro — senão o card "· Mês" contaria linhas fora do período
             // configurado em "Meses Comerciais".
-            const janelaAgendaMes = resolveJanelaAgendaMes(mesAtualAgenda, anoAtualAgenda);
-            const ehMesAgenda = (row) => {
-                const d = parseDate(row['Data']);
-                return d && d >= janelaAgendaMes.inicioReal && d <= janelaAgendaMes.fimEstimado;
+            const janelaAgendamentoMes = resolveJanelaAgendaMes(mesAtualAgenda, anoAtualAgenda, 'agendamentos');
+            const janelaVisitaMes = resolveJanelaAgendaMes(mesAtualAgenda, anoAtualAgenda, 'compareceu');
+            const ehMesAgenda = (row, metric) => {
+                const d = parseDate(agendaDateForMetric(row, metric));
+                const janela = metric === 'compareceu' ? janelaVisitaMes : janelaAgendamentoMes;
+                return d && d >= janela.inicioReal && d <= janela.fimEstimado;
             };
             baseAgenda.forEach(row => {
                 const c = row.Corretor;
-                // "Agendamentos · Hoje" usa a DATA DE CADASTRO (quando o corretor cadastrou o
-                // agendamento), não a Data da visita — é uma métrica de produtividade do dia
-                // (quantos agendamentos ele criou hoje), diferente de Semana/Mês (que continuam
-                // pela Data da visita, igual ao resto do app).
-                if (checkPeriodMatch(row['Data de Cadastro'], 'hoje', hojeReal)) addTo(agHoje, c, 0, 'agHoje', row);
-                if (checkPeriodMatch(row['Data'], 'semana', refSM)) addTo(agSem, c, 0, 'agSem', row);
-                if (ehMesAgenda(row)) addTo(agMes, c, 0, 'agMes', row);
+                const dataAgendamento = agendaDateForMetric(row, 'agendamentos');
+                const dataVisita = agendaDateForMetric(row, 'compareceu');
+                if (checkPeriodMatch(dataAgendamento, 'hoje', hojeReal)) addTo(agHoje, c, 0, 'agHoje', row);
+                if (checkPeriodMatch(dataAgendamento, 'semana', refSM)) addTo(agSem, c, 0, 'agSem', row);
+                if (ehMesAgenda(row, 'agendamentos')) addTo(agMes, c, 0, 'agMes', row);
                 if (isCompareceu(row)) {
-                    if (checkPeriodMatch(row['Data'], 'hoje', hojeReal)) addTo(coHoje, c, 0, 'coHoje', row);
-                    if (checkPeriodMatch(row['Data'], 'semana', refSM)) addTo(coSem, c, 0, 'coSem', row);
-                    if (ehMesAgenda(row)) addTo(coMes, c, 0, 'coMes', row);
+                    if (checkPeriodMatch(dataVisita, 'hoje', hojeReal)) addTo(coHoje, c, 0, 'coHoje', row);
+                    if (checkPeriodMatch(dataVisita, 'semana', refSM)) addTo(coSem, c, 0, 'coSem', row);
+                    if (ehMesAgenda(row, 'compareceu')) addTo(coMes, c, 0, 'coMes', row);
                 }
             });
 
@@ -4016,11 +4017,20 @@
         function isNaoCompareceu(row) { return normalizeAgendaStatus(row['Status']) === 'nao_compareceu'; }
         function isAgendaPendente(row) { return normalizeAgendaStatus(row['Status']) === 'agendada'; }
 
-        // Mês/ano derivado da própria Data (a agenda não tem coluna de texto "Mês X" como a
-        // planilha principal) — reaproveita checkMesPeriodMatch/multi-seleção de meses tratando
-        // essa string sintética como se fosse a coluna de mês de qualquer outra métrica.
-        function agendaMesStr(row) {
-            const d = parseDate(row['Data']);
+        // A agenda separa o dia em que o compromisso foi cadastrado do dia da visita marcada.
+        // Se a planilha trouxer uma coluna específica para visita realizada, ela tem prioridade.
+        function agendaDateForMetric(row, metric = 'agendamentos') {
+            const normalized = Object.fromEntries(Object.entries(row || {}).map(([key, value]) => [stripDiacritics(key).toLowerCase().replace(/[^a-z0-9]/g, ''), value]));
+            const keys = metric === 'compareceu'
+                ? ['datadavisita','datavisita','datacompareceu','datacomparecimento','datarealizacaovisita','datarealizadavisita','data']
+                : ['datadecadastro','datacadastro','dataemquefoiagendado','dataagendamento','dataagendada','data'];
+            for (const key of keys) if (normalized[key]) return normalized[key];
+            return null;
+        }
+        // Mês/ano derivado da data própria da etapa da agenda — agendamentos pela data de cadastro,
+        // visitas pela data em que compareceu. Mantém compatibilidade se a origem só tiver "Data".
+        function agendaMesStr(row, metric = (isCompareceu(row) ? 'compareceu' : 'agendamentos')) {
+            const d = parseDate(agendaDateForMetric(row, metric));
             if (!d) return null;
             return `${getMesName(d.getMonth() + 1)}/${d.getFullYear()}`;
         }
@@ -4030,7 +4040,7 @@
         // parte. Reaproveitada tanto por getJanelaMesComercial() (Funil/Ritmo do Mês) quanto por
         // agendaMatchesRef() — pra a CONTAGEM nunca discordar do INTERVALO mostrado na tela (antes,
         // a contagem usava o mês do calendário inteiro enquanto a tela já mostrava a janela real).
-        function resolveJanelaAgendaMes(mesNome, ano) {
+        function resolveJanelaAgendaMes(mesNome, ano, metric = 'agendamentos') {
             const monthIdx = MESES_IDX[mesNome];
             const configMes = getMesComercialConfig(mesNome, ano);
             if (configMes) {
@@ -4041,9 +4051,9 @@
             const diasNoMesCalendario = new Date(ano, monthIdx + 1, 0).getDate();
             let inicioReal = new Date(ano, monthIdx, 1);
             filteredAgendaDataset.forEach(row => {
-                const ms = agendaMesStr(row);
+                const ms = agendaMesStr(row, metric);
                 if (normalizeMes(ms) !== mesNome || (getMesAno(ms) || ano) !== ano) return;
-                const d = parseDate(row['Data']);
+                const d = parseDate(agendaDateForMetric(row, metric));
                 if (d && d < inicioReal) inicioReal = d;
             });
             const inicioMinPermitido = new Date(ano, monthIdx, 1);
@@ -4058,8 +4068,8 @@
         // Confere Hoje/Semana/Mês/Ano (+ multi-seleção de Mês Comercial e pills de Semana) pela
         // Data da visita. Pra Mês/Ano usa a JANELA REAL (resolveJanelaAgendaMes), não o mês do
         // calendário — senão contaria linhas fora do período que a tela mostra.
-        function agendaMatchesRef(row, refDate) {
-            const d = parseDate(row['Data']);
+        function agendaMatchesRef(row, refDate, metric = (isCompareceu(row) ? 'compareceu' : 'agendamentos')) {
+            const d = parseDate(agendaDateForMetric(row, metric));
             if (!d) return false;
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
             let matchesPeriod = false;
@@ -4075,19 +4085,19 @@
                         matchesPeriod = selMeses.some(m => {
                             const nome = normalizeMes(m), ano = getMesAno(m);
                             if (!nome || ano === null) return false;
-                            const { inicioReal, fimEstimado } = resolveJanelaAgendaMes(nome, ano);
+                            const { inicioReal, fimEstimado } = resolveJanelaAgendaMes(nome, ano, metric);
                             return d >= inicioReal && d <= fimEstimado;
                         });
                     } else {
                         // Usa o mesmo mês comercial de referência do Painel.
                         const nome = getMesName(refDate.getMonth() + 1);
                         const ano = refDate.getFullYear();
-                        const { inicioReal, fimEstimado } = resolveJanelaAgendaMes(nome, ano);
+                        const { inicioReal, fimEstimado } = resolveJanelaAgendaMes(nome, ano, metric);
                         matchesPeriod = d >= inicioReal && d <= fimEstimado;
                     }
                 }
             } else {
-                matchesPeriod = checkPeriodMatch(row['Data'], currentPeriod, refDate);
+                matchesPeriod = checkPeriodMatch(agendaDateForMetric(row, metric), currentPeriod, refDate);
             }
             if (!matchesPeriod) return false;
 
@@ -4095,7 +4105,7 @@
             // dessas janelas ignorava o filtro semanal na Agenda de Visitas.
             const selSemana = document.getElementById('filterSemana').value;
             if (selSemana) {
-                const semanaObj = getSemanaRangeParaMetrica('agendamentos', selSemana);
+                const semanaObj = getSemanaRangeParaMetrica(metric, selSemana);
                 if (!semanaObj || d < semanaObj.inicio || d > semanaObj.fim) return false;
             }
             return true;
@@ -4678,9 +4688,8 @@
                 if (metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', currentRefDateProspeccao)) somar(row['Cadastro'], 'prospeccao', row.Corretor);
             });
             filteredAgendaDataset.forEach(row => {
-                if (!agendaMatchesRef(row, currentRefDateAgenda)) return;
-                somar(row['Data'], 'agendamentos', row.Corretor);
-                if (isCompareceu(row)) somar(row['Data'], 'compareceu', row.Corretor);
+                if (agendaMatchesRef(row, currentRefDateAgenda, 'agendamentos')) somar(agendaDateForMetric(row, 'agendamentos'), 'agendamentos', row.Corretor);
+                if (isCompareceu(row) && agendaMatchesRef(row, currentRefDateAgenda, 'compareceu')) somar(agendaDateForMetric(row, 'compareceu'), 'compareceu', row.Corretor);
             });
             filteredDataset.forEach(row => {
                 if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', currentRefDate)) somar(row['Data Cadastro'], 'analises', row.Corretor);
@@ -6818,10 +6827,9 @@
         function calculateAgendaKPIs(refDate) {
             let agendamentos = 0, compareceu = 0, naoCompareceu = 0;
             filteredAgendaDataset.forEach(row => {
-                if (!agendaMatchesRef(row, refDate)) return;
-                agendamentos++;
-                if (isCompareceu(row)) compareceu++;
-                else if (isNaoCompareceu(row)) naoCompareceu++;
+                if (agendaMatchesRef(row, refDate, 'agendamentos')) agendamentos++;
+                if (isCompareceu(row) && agendaMatchesRef(row, refDate, 'compareceu')) compareceu++;
+                else if (isNaoCompareceu(row) && agendaMatchesRef(row, refDate, 'agendamentos')) naoCompareceu++;
             });
             kpiValues.agendamentos = agendamentos;
             kpiValues.compareceu = compareceu;
@@ -7042,10 +7050,10 @@
                 rows = filteredProspeccaoDataset.filter(row => row.Corretor === corretorNome && metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', refDate));
                 label = 'Prospecção';
             } else if (metrica === 'agendamentos') {
-                rows = filteredAgendaDataset.filter(row => row.Corretor === corretorNome && agendaMatchesRef(row, refDate));
+                rows = filteredAgendaDataset.filter(row => row.Corretor === corretorNome && agendaMatchesRef(row, refDate, 'agendamentos'));
                 label = 'Agendamentos';
             } else if (metrica === 'compareceu') {
-                rows = filteredAgendaDataset.filter(row => row.Corretor === corretorNome && agendaMatchesRef(row, refDate) && isCompareceu(row));
+                rows = filteredAgendaDataset.filter(row => row.Corretor === corretorNome && agendaMatchesRef(row, refDate, 'compareceu') && isCompareceu(row));
                 label = 'Compareceram';
             } else if (metrica === 'analises') {
                 rows = filteredDataset.filter(row => row.Corretor === corretorNome && metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDate));
@@ -7103,9 +7111,8 @@
                 : getActiveCorretores().concat(inativosComProducaoNoPeriodo);
             let dados = corretores.map(c => {
                 const prospeccao = filteredProspeccaoDataset.filter(row => row.Corretor === c && metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', currentRefDateProspeccao)).length;
-                const agendaRows = filteredAgendaDataset.filter(row => row.Corretor === c && agendaMatchesRef(row, currentRefDateAgenda));
-                const agendamentos = agendaRows.length;
-                const compareceu = agendaRows.filter(isCompareceu).length;
+                const agendamentos = filteredAgendaDataset.filter(row => row.Corretor === c && agendaMatchesRef(row, currentRefDateAgenda, 'agendamentos')).length;
+                const compareceu = filteredAgendaDataset.filter(row => row.Corretor === c && isCompareceu(row) && agendaMatchesRef(row, currentRefDateAgenda, 'compareceu')).length;
                 const analises = filteredDataset.filter(row => row.Corretor === c && metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', currentRefDate)).length;
                 const aprovacoes = filteredDataset.filter(row => row.Corretor === c && isAprovadoNoPeriodo(row, currentRefDate)).length;
                 const vendaRows = filteredDataset.filter(row => row.Corretor === c && isVendaGanhaReal(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', currentRefDate));
@@ -7216,10 +7223,10 @@
                 rows = filteredProspeccaoDataset.filter(row => metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', refDate));
                 label = 'Prospecção';
             } else if (metrica === 'agendamentos') {
-                rows = filteredAgendaDataset.filter(row => agendaMatchesRef(row, refDate));
+                rows = filteredAgendaDataset.filter(row => agendaMatchesRef(row, refDate, 'agendamentos'));
                 label = 'Agendamentos';
             } else if (metrica === 'compareceu') {
-                rows = filteredAgendaDataset.filter(row => agendaMatchesRef(row, refDate) && isCompareceu(row));
+                rows = filteredAgendaDataset.filter(row => agendaMatchesRef(row, refDate, 'compareceu') && isCompareceu(row));
                 label = 'Compareceram';
             } else if (metrica === 'analises') {
                 rows = filteredDataset.filter(row => metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDate));
@@ -7267,10 +7274,10 @@
                 rows = filteredProspeccaoDataset.filter(row => normalizeMes(row['_MesComercialNorm']) === mesNome && (getMesAno(row['_MesComercialNorm']) || 0) === mesAno);
                 label = 'Prospecção';
             } else if (metrica === 'agendamentos') {
-                rows = filteredAgendaDataset.filter(row => { const m = agendaMesStr(row); return normalizeMes(m) === mesNome && (getMesAno(m) || 0) === mesAno; });
+                rows = filteredAgendaDataset.filter(row => { const m = agendaMesStr(row, 'agendamentos'); return normalizeMes(m) === mesNome && (getMesAno(m) || 0) === mesAno; });
                 label = 'Agendamentos';
             } else if (metrica === 'compareceu') {
-                rows = filteredAgendaDataset.filter(row => { const m = agendaMesStr(row); return isCompareceu(row) && normalizeMes(m) === mesNome && (getMesAno(m) || 0) === mesAno; });
+                rows = filteredAgendaDataset.filter(row => { const m = agendaMesStr(row, 'compareceu'); return isCompareceu(row) && normalizeMes(m) === mesNome && (getMesAno(m) || 0) === mesAno; });
                 label = 'Compareceram';
             } else if (metrica === 'analises') {
                 rows = filteredDataset.filter(row => normalizeMes(row['Mês Cadastro']) === mesNome && (getMesAno(row['Mês Cadastro']) || 0) === mesAno);
@@ -7331,11 +7338,8 @@
                 if (isVendaGanhaReal(row) && checkPeriodMatch(row['Data Ganho'], 'hoje', hojeReal)) funnelHojeRowsCache.vendas.push(row);
             });
             filteredAgendaDataset.forEach(row => {
-                // Agendamentos hoje = quando o corretor CADASTROU o agendamento (Data de Cadastro),
-                // não a data da visita — é produtividade do dia. Compareceu hoje continua pela Data
-                // da visita (é o dia em que o cliente efetivamente apareceu).
-                if (checkPeriodMatch(row['Data de Cadastro'], 'hoje', hojeReal)) funnelHojeRowsCache.agendamentos.push(row);
-                if (isCompareceu(row) && checkPeriodMatch(row['Data'], 'hoje', hojeReal)) funnelHojeRowsCache.compareceu.push(row);
+                if (checkPeriodMatch(agendaDateForMetric(row, 'agendamentos'), 'hoje', hojeReal)) funnelHojeRowsCache.agendamentos.push(row);
+                if (isCompareceu(row) && checkPeriodMatch(agendaDateForMetric(row, 'compareceu'), 'hoje', hojeReal)) funnelHojeRowsCache.compareceu.push(row);
             });
             filteredProspeccaoDataset.forEach(row => {
                 if (checkPeriodMatch(row['Cadastro'], 'hoje', hojeReal)) funnelHojeRowsCache.prospeccao.push(row);
@@ -8268,12 +8272,12 @@
             // Agendamentos e visitas vêm da Agenda de Visitas, mas usam o mesmo vínculo
             // corretor → gerente → equipe do organograma usado pelas demais colunas.
             filteredAgendaDataset.forEach(row => {
-                if (!agendaMatchesRef(row, currentRefDateAgenda || refDateTables)) return;
+                if (!agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'agendamentos') && !(isCompareceu(row) && agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'compareceu'))) return;
                 const eq = row.Corretor ? getRankingTeamForBroker(row.Corretor) : '';
                 if (!eq || (selectedTeamFilter && rankingTeamKey(eq) !== rankingTeamKey(selectedTeamFilter))) return;
                 if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
-                equipesMap[eq].agendamentos++;
-                if (isCompareceu(row)) equipesMap[eq].compareceu++;
+                if (agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'agendamentos')) equipesMap[eq].agendamentos++;
+                if (isCompareceu(row) && agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'compareceu')) equipesMap[eq].compareceu++;
             });
 
             let rankingEquipes = Object.values(equipesMap)
@@ -8757,8 +8761,8 @@
             function linhaDoRow(row) {
                 if (metrica === 'analises') return { ok: true, mesRef: row['Mês Cadastro'], dataRef: row['Data Cadastro'] };
                 if (metrica === 'aprovacoes') return { ok: isAprovado(row['Situação - Analise']), mesRef: mesAprovacaoEfetivo(row), dataRef: dataAprovacaoEfetiva(row) };
-                if (metrica === 'agendamentos') return { ok: true, mesRef: agendaMesStr(row), dataRef: row['Data'] };
-                if (metrica === 'compareceu') return { ok: isCompareceu(row), mesRef: agendaMesStr(row), dataRef: row['Data'] };
+                if (metrica === 'agendamentos') return { ok: true, mesRef: agendaMesStr(row, 'agendamentos'), dataRef: agendaDateForMetric(row, 'agendamentos') };
+                if (metrica === 'compareceu') return { ok: isCompareceu(row), mesRef: agendaMesStr(row, 'compareceu'), dataRef: agendaDateForMetric(row, 'compareceu') };
                 if (metrica === 'prospeccao') return { ok: true, mesRef: row['_MesComercialNorm'], dataRef: row['Cadastro'] };
                 return { ok: isGanho(row), mesRef: row['Mês Ganho'], dataRef: row['Data Ganho'] };
             }
@@ -9627,9 +9631,8 @@
                 if (metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', currentRefDateProspeccao)) somarPorDia(row['Cadastro'], 'prospeccao');
             });
             filteredAgendaDataset.forEach(row => {
-                if (!agendaMatchesRef(row, currentRefDateAgenda)) return;
-                somarPorDia(row['Data'], 'agendamentos');
-                if (isCompareceu(row)) somarPorDia(row['Data'], 'compareceu');
+                if (agendaMatchesRef(row, currentRefDateAgenda, 'agendamentos')) somarPorDia(agendaDateForMetric(row, 'agendamentos'), 'agendamentos');
+                if (isCompareceu(row) && agendaMatchesRef(row, currentRefDateAgenda, 'compareceu')) somarPorDia(agendaDateForMetric(row, 'compareceu'), 'compareceu');
             });
             filteredDataset.forEach(row => {
                 if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', currentRefDate)) somarPorDia(row['Data Cadastro'], 'analises');
@@ -9817,9 +9820,8 @@
                 addEvolucao(row['_MesComercialNorm'], 'prospeccao');
             });
             filteredAgendaDataset.forEach(row => {
-                const mesStr = agendaMesStr(row);
-                addEvolucao(mesStr, 'agendamentos');
-                if (isCompareceu(row)) addEvolucao(mesStr, 'compareceu');
+                addEvolucao(agendaMesStr(row, 'agendamentos'), 'agendamentos');
+                if (isCompareceu(row)) addEvolucao(agendaMesStr(row, 'compareceu'), 'compareceu');
             });
 
             const evolucaoOrdenada = Object.values(evolucaoMesMap).sort((a, b) => (a.ano - b.ano) || (a.idx - b.idx));
@@ -10460,8 +10462,8 @@
             });
             // Agendamentos seguem a data marcada; visitas são apenas registros com status compareceu.
             filteredAgendaDataset.forEach(row => {
-                addCalendarEvent('ag', row.Corretor, row['Data'], row);
-                if (isCompareceu(row)) addCalendarEvent('vi', row.Corretor, row['Data'], row);
+                addCalendarEvent('ag', row.Corretor, agendaDateForMetric(row, 'agendamentos'), row);
+                if (isCompareceu(row)) addCalendarEvent('vi', row.Corretor, agendaDateForMetric(row, 'compareceu'), row);
             });
 
             // Compat: mantém os mapas antigos apontando para análises
