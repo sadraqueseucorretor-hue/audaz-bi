@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AUDAZ BI - Central de Inteligência Imobiliária</title>
+    <!-- Evita que o navegador restaure a rolagem anterior ao abrir o BI. -->
+    <script>if ('scrollRestoration' in history) history.scrollRestoration = 'manual';</script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -5358,6 +5360,12 @@
                 abrirTelaTV = qs.get('tela') === '1' || location.hash === '#tela';
             } catch (e) {}
             switchView(abrirTelaTV ? 'tela' : 'organograma', {scroll: false});
+            if (!abrirTelaTV) {
+                // Alguns navegadores restauram o scroll antigo depois de montar o conteúdo.
+                // Reposiciona no início da tela inicial sem interferir no modo TV.
+                window.scrollTo(0, 0);
+                requestAnimationFrame(() => window.scrollTo(0, 0));
+            }
             // Celular/tablet (12/10/2026): a barra lateral ocupava a 1ª tela inteira e empurrava o
             // "estou batendo?" pra baixo — agora começa escondida em telas < 1024px (abre no ☰),
             // a menos que a pessoa tenha escolhido deixá-la aberta neste aparelho.
