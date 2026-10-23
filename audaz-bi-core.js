@@ -189,7 +189,7 @@
                 const color = colors[i % colors.length];
                 return `<section class="org-team-group" style="--team-color:${color}"><article class="org-team-card${organogramaSelectedTeamId === manager.id ? ' org-team-selected' : ''}"><button type="button" class="org-team-select" aria-pressed="${organogramaSelectedTeamId === manager.id}" title="Abrir o painel e destacar esta equipe" onclick="selectOrgTeamCard('${orgEsc(manager.id)}')"><span><i class="fa-solid fa-users mr-1.5"></i> ${orgEsc(manager.equipe || 'Sem equipe')}</span><span class="org-team-count">${brokers.length}</span></button><div class="text-[10px] text-slate-500 mb-2">${orgEsc(manager.name)}</div><div class="org-broker-list">${brokers.length ? brokers.map(b=>renderBroker(b,color)).join('') : `<div class="text-[11px] text-slate-500 text-center py-5">${manager.equipe ? 'Nenhum corretor ativo nesta equipe do BI' : 'Vincule uma equipe ao gerente acima'}</div>`}</div></article></section>`;
             }).join('')}</div>` : '<p class="org-chart-empty text-xs text-slate-500 text-center py-8 px-4 rounded-xl border border-dashed border-slate-700">Adicione gerentes abaixo de você. Eles ficarão alinhados na mesma faixa.</p>';
-            const sync = document.getElementById('organogramaSyncLabel'); if (sync && (!sync.textContent || /^\d+ pessoas? na estrutura$/.test(sync.textContent))) sync.textContent = `${managers.length + totalBrokers} pessoas ativas exibidas`;
+            const sync = document.getElementById('organogramaSyncLabel'); if (sync) sync.textContent = `${managers.length + totalBrokers} pessoas ativas exibidas`;
         }
         function selectOrgTeamCard(id) {
             organogramaSelectedTeamId = id;
