@@ -469,7 +469,7 @@
             ];
 
             grid.innerHTML = cards.map(c => {
-                const meta = metasMensais[c.campo] || 0;
+                const meta = getDashboardMeta(c.campo, 'Mes', metasMensais[c.campo] || 0);
                 const atual = c.atual || 0;
                 const pct = meta > 0 ? (atual / meta) * 100 : (atual > 0 ? 100 : 0);
                 const pctClamp = Math.min(100, pct);
@@ -593,6 +593,37 @@
             const wanted = rankingTeamKey(nome);
             const storedName = Object.keys(metasPorEquipe).find(n => rankingTeamKey(n) === wanted);
             return Number((metasPorEquipe[storedName || nome] || {})[campo]) || 0;
+        }
+        // Resolve metas do Painel para o contexto escolhido no Organograma ou nos filtros.
+        // Metas individuais e por equipe usam as mesmas chaves pr/ag/co/an/ap/vd + Hoje/Sem/Mes.
+        function getDashboardMetaContext() {
+            const brokerFilter = document.getElementById('filterCorretor')?.value || '';
+            const brokerName = brokerFilter || (orgDashboardScope?.kind === 'broker' ? orgDashboardScope.name : '');
+            if (brokerName) {
+                const storedName = Object.keys(metasPorCorretor).find(n => orgPersonKey(n) === orgPersonKey(brokerName));
+                if (storedName) return { kind: 'broker', name: brokerName, record: metasPorCorretor[storedName] || {} };
+            }
+            const teamFilter = document.getElementById('filterEquipe')?.value || '';
+            const teamName = teamFilter || (orgDashboardScope?.kind === 'team' ? orgDashboardScope.team : '');
+            if (teamName) {
+                const wanted = rankingTeamKey(teamName);
+                const storedName = Object.keys(metasPorEquipe).find(n => rankingTeamKey(n) === wanted);
+                if (storedName) return { kind: 'team', name: teamName, record: metasPorEquipe[storedName] || {} };
+            }
+            return null;
+        }
+        function getDashboardMeta(metric, cadence, fallback) {
+            const prefixes = { prospeccao: 'pr', agendamentos: 'ag', compareceu: 'co', analises: 'an', aprovacoes: 'ap', vendas: 'vd' };
+            const prefix = prefixes[metric];
+            if (!prefix) return Number(fallback) || 0;
+            const context = getDashboardMetaContext();
+            if (!context) return Number(fallback) || 0;
+            return Number(context.record[prefix + cadence]) || 0;
+        }
+        function getDashboardMetaContextLabel() {
+            const context = getDashboardMetaContext();
+            if (!context) return 'Metas gerais';
+            return context.kind === 'broker' ? `Metas de ${context.name}` : `Metas da equipe ${context.name}`;
         }
         function setMetaEquipe(nome, campo, val) {
             const n = parseInt(String(val).replace(/\D/g, '')) || 0;
