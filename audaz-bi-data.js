@@ -151,7 +151,9 @@
             // (e só os ATIVOS são pré-populados com zero mais abaixo) — sem apagar nada do passado.
             const base = dataset.filter(row => {
                 if (selCorr && row.Corretor !== selCorr) return false;
-                if (selEq && (quickRankingMode === 'equipe' ? rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq) : row.Equipe !== selEq)) return false;
+                // O vínculo oficial de equipe vem do organograma. A coluna Equipe da planilha
+                // pode estar desatualizada, então nunca deve trazer pessoas de outra equipe.
+                if (selEq && rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq)) return false;
                 if (selCons && row.Construtora !== selCons) return false;
                 if (selEmp && row.Empreendimento !== selEmp) return false;
                 if (!matchesOrgDashboardScope(row)) return false;
@@ -178,7 +180,7 @@
             let ativos = getActiveCorretores();
             if (orgDashboardScope) ativos = ativos.filter(personMatchesOrgDashboardScope);
             if (selCorr) ativos = ativos.filter(n => n === selCorr);
-            if (selEq && quickRankingMode === 'equipe') ativos = ativos.filter(n => rankingTeamKey(getRankingTeamForBroker(n)) === rankingTeamKey(selEq));
+            if (selEq) ativos = ativos.filter(n => rankingTeamKey(getRankingTeamForBroker(n)) === rankingTeamKey(selEq));
             const novoMapa = () => { const m = {}; ativos.forEach(n => { m[n] = { count: 0, vgv: 0 }; }); return m; };
             const prHoje = novoMapa(), prSem = novoMapa(), prMes = novoMapa();
             const agHoje = novoMapa(), agSem = novoMapa(), agMes = novoMapa(), coHoje = novoMapa(), coSem = novoMapa(), coMes = novoMapa();
@@ -214,6 +216,7 @@
             const baseAgenda = agendaDataset.filter(row => {
                 if (selCorr && row.Corretor !== selCorr) return false;
                 if (selEq && rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq)) return false;
+                if (!matchesOrgDashboardScope(row)) return false;
                 if (!agendaMatchesEmpreendimento(row, selEmp)) return false;
                 return true; // histórico de corretor desativado continua contando (ver comentário acima)
             });
@@ -246,7 +249,8 @@
             // sem precisar de janela por data como a Agenda precisa.
             const baseProspeccao = prospeccaoDataset.filter(row => {
                 if (selCorr && row.Corretor !== selCorr) return false;
-                if (selEq && (quickRankingMode === 'equipe' ? rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq) : row.Equipe !== selEq)) return false;
+                if (selEq && rankingTeamKey(getRankingTeamForBroker(row.Corretor)) !== rankingTeamKey(selEq)) return false;
+                if (!matchesOrgDashboardScope(row)) return false;
                 return true; // histórico de corretor desativado continua contando (ver comentário acima)
             });
             const ehMesProspeccao = (row) => {
