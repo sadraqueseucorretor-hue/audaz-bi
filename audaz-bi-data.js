@@ -2958,7 +2958,7 @@
             try {
                 const qs = new URLSearchParams(location.search);
                 if (qs.get('tela') === '1' || location.hash === '#tela') setTimeout(() => switchView('tela'), 0);
-                else switchView('dashboard');
+                else switchView('organograma');
             } catch (e) {}
             // Celular/tablet (12/10/2026): a barra lateral ocupava a 1ª tela inteira e empurrava o
             // "estou batendo?" pra baixo — agora começa escondida em telas < 1024px (abre no ☰),
