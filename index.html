@@ -234,6 +234,9 @@
 
                     <!-- Navegação Executiva: fixa no topo, funciona mesmo com a sidebar oculta -->
                     <nav class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 gap-0.5 shrink-0">
+                        <button onclick="switchView('organograma')" id="navLinkOrganograma" title="Organograma da equipe" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-sitemap text-amber-400"></i><span class="hidden lg:inline">Equipe</span>
+                        </button>
                         <button onclick="switchView('dashboard')" id="navLinkDashboard" title="Painel Executivo" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-slate-100">
                             <i class="fa-solid fa-cube text-brand-500"></i><span class="hidden lg:inline">Painel</span>
                         </button>
@@ -245,9 +248,6 @@
                         </button>
                         <button onclick="switchView('corretor')" id="navLinkCorretor" title="Painel do Corretor" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-user text-sky-400"></i><span class="hidden lg:inline">Corretor</span>
-                        </button>
-                        <button onclick="switchView('organograma')" id="navLinkOrganograma" title="Organograma da equipe" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
-                            <i class="fa-solid fa-sitemap text-amber-400"></i><span class="hidden lg:inline">Equipe</span>
                         </button>
                         <button onclick="switchView('plantoes')" id="navLinkPlantoes" title="Plantões (Diamond / Roleta / Represados)" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-clipboard-list text-violet-400"></i><span class="hidden lg:inline">Plantões</span>
