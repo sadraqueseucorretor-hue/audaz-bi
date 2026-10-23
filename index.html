@@ -1886,7 +1886,7 @@
         let prospeccaoPorMes = {};
         let prospeccaoDataset = []; // derivado: todas as linhas de todos os meses juntas
         let filteredProspeccaoDataset = [];
-        let activeView = 'dashboard'; // dashboard, calendar
+        let activeView = 'organograma'; // painel inicial: organograma
 
         // Motores de Sincronização Automática em Tempo Real
         let autoRefreshInterval = 15; // padrão: 15 segundos (full-time)
@@ -5488,6 +5488,7 @@
             try {
                 const qs = new URLSearchParams(location.search);
                 if (qs.get('tela') === '1' || location.hash === '#tela') setTimeout(() => switchView('tela'), 0);
+                else switchView('organograma');
             } catch (e) {}
             // Celular/tablet (12/10/2026): a barra lateral ocupava a 1ª tela inteira e empurrava o
             // "estou batendo?" pra baixo — agora começa escondida em telas < 1024px (abre no ☰),
@@ -6720,6 +6721,7 @@
             renderAlerts(referenceDate);
 
             if (activeView === 'calendar') renderCalendarTab();   // Atualiza a produção ou previsão no Calendário
+            if (activeView === 'organograma') renderOrganograma();
             renderFiltersSummary();
             renderCorretorCards();
             ajustarBlocosEquipe();
