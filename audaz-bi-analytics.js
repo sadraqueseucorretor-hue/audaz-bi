@@ -201,13 +201,25 @@
             return { modo, janelaManual, divisor, lista, porCorretor, mediaEquipe, totalVendas };
         }
 
+        // Recorta o IPC pelo mesmo escopo do ranking: corretor/equipe selecionados no organograma
+        // e equipe escolhida no filtro. Mantém o snapshot completo como fonte dos cálculos.
+        function getIPCVisibleSnapshot() {
+            const teamFilter = document.getElementById('filterEquipe')?.value || '';
+            const lista = (ipcSnapshot.lista || []).filter(c =>
+                personMatchesOrgDashboardScope(c.corretor) &&
+                (!teamFilter || rankingTeamKey(getRankingTeamForBroker(c.corretor)) === rankingTeamKey(teamFilter))
+            ).map((c, i) => ({ ...c, posicao: i + 1 }));
+            const mediaEquipe = lista.length ? lista.reduce((s, c) => s + c.ipc, 0) / lista.length : 0;
+            return { ...ipcSnapshot, lista, mediaEquipe, totalVendas: lista.reduce((s, c) => s + c.vendas3m, 0) };
+        }
+
         // Tabela do IPC (o que o usuário pediu pra ver): Ranking · Corretor · Última venda · Mês de
         // referência · Mês 1/2/3 (com as vendas de cada um) · Vendas 3M · IPC com barra comparativa
         // contra a média da equipe. Lê o ipcSnapshot já calculado em drawTables().
         function renderIPCComparativo() {
             const box = document.getElementById('ipcRankingList');
             if (!box) return;
-            const snap = ipcSnapshot || { lista: [], mediaEquipe: 0, totalVendas: 0, divisor: 3, modo: 'auto' };
+            const snap = getIPCVisibleSnapshot();
             const media = snap.mediaEquipe || 0;
             const auto = snap.modo !== 'manual';
             const divisor = snap.divisor || IPC_MESES_JANELA;
@@ -234,7 +246,7 @@
                     ? 'Vendas na janela do IPC: 3 meses anteriores ao atual, ou mês atual + 2 anteriores se o corretor vendeu neste mês (independente do período filtrado acima)'
                     : `Vendas em ${ipcJanelaTexto(snap.janelaManual)} — janela fixa do IPC, independente do período filtrado acima`;
             }
-            setTxt('ipcAcimaCount', snap.lista.filter(c => c.ipc >= media && media > 0).length);
+            setTxt('ipcAcimaCount', snap.lista.filter(c => c.ipc > media).length);
             setTxt('ipcAbaixoCount', snap.lista.filter(c => c.ipc < media).length);
 
             if (!snap.lista.length) {
@@ -302,7 +314,7 @@
                             <th class="pb-2 text-center" title="Mês que fecha a janela: o mês atual se o corretor vendeu nele, senão o mês anterior">Mês ref.</th>
                             ${thMeses}
                             <th class="pb-2 text-center">Vendas ${divisor}M</th>
-                            <th class="pb-2 pr-2 w-[26%]">IPC ${divisor}M · vs média da equipe</th>
+                            <th class="pb-2 pr-2 w-[26%]">IPC ${divisor}M · vs média do recorte</th>
                         </tr>
                     </thead>
                     <tbody>${linhas}</tbody>
@@ -443,6 +455,7 @@
                 c.ipcNaoSeAplica = !isCorretorActive(c.corretor);
             });
 
+            const ipcVisibleSnapshot = getIPCVisibleSnapshot();
             let rankingCorretores = Object.values(corretoresMap)
                 .filter(c => c.corretor && personMatchesOrgDashboardScope(c.corretor) && (!selectedTeamFilter || rankingTeamKey(getRankingTeamForBroker(c.corretor)) === rankingTeamKey(selectedTeamFilter)) && c.corretor.toLowerCase().includes(searchCorretorTerm))
                 .sort(rankSorter);
@@ -465,17 +478,17 @@
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">${c.corretor}</td>
+                            <td class="py-3 text-center text-violet-400 font-semibold">${c.agendamentos || 0}</td>
+                            <td class="py-3 text-center text-cyan-400 font-semibold">${c.compareceu || 0}</td>
                             <td class="py-3 text-center text-slate-400 ${c.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${c.analises > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','analises')"` : ''} title="${c.analises > 0 ? 'Ver clientes' : ''}">${c.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
-                            <td class="py-3 text-center text-violet-400 font-semibold">${c.agendamentos || 0}</td>
-                            <td class="py-3 text-center text-cyan-400 font-semibold">${c.compareceu || 0}</td>
                             <td class="py-3 text-center font-medium">${conversao}%</td>
                             <td class="py-3 text-center text-slate-400">${c.ipcNaoSeAplica ? '<span class="text-slate-600">—</span>' : (c.vendas3m || 0)}</td>
                             <td class="py-3 text-center">
                                 ${c.ipcNaoSeAplica
                                     ? `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded text-slate-600" title="Corretor desativado — o IPC mede a produtividade da equipe atual e não se aplica a ele. O histórico dele segue nas demais colunas.">—</span>`
-                                    : `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${c.ipcJanelaTxt} ÷ ${c.ipcDivisor} — média da equipe: ${fmtIPC(ipcSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>`}
+                                    : `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcVisibleSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${c.ipcJanelaTxt} ÷ ${c.ipcDivisor} — média do recorte: ${fmtIPC(ipcVisibleSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>`}
                             </td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
                         </tr>
