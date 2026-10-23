@@ -783,6 +783,8 @@
                                 <button id="rankSort-vendas" onclick="setRankSort('vendas')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Vendas</button>
                                 <button id="rankSort-aprovacoes" onclick="setRankSort('aprovacoes')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Aprovações</button>
                                 <button id="rankSort-analises" onclick="setRankSort('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Análises</button>
+                                <button id="rankSort-agendamentos" onclick="setRankSort('agendamentos')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Agendamentos</button>
+                                <button id="rankSort-compareceu" onclick="setRankSort('compareceu')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Visitas</button>
                                 <button id="rankSort-ipc" onclick="setRankSort('ipc')" title="Índice de Produtividade do Corretor — média mensal de vendas nos últimos 3 meses comerciais" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">IPC</button>
                             </div>
 
@@ -795,6 +797,8 @@
                                             <th class="pb-3 text-center">Análises</th>
                                             <th class="pb-3 text-center">Aprovs</th>
                                             <th class="pb-3 text-center">Vendas</th>
+                                            <th class="pb-3 text-center">Agend.</th>
+                                            <th class="pb-3 text-center">Visitas</th>
                                             <th class="pb-3 text-center">Conversão</th>
                                             <th class="pb-3 text-center whitespace-nowrap" id="thVendasJanelaIPC" title="Vendas na janela do IPC — independente do período filtrado acima">Vendas 3M</th>
                                             <th class="pb-3 text-center whitespace-nowrap" title="IPC — Índice de Produtividade do Corretor: vendas dos últimos 3 meses comerciais ÷ 3 (média mensal)">IPC</th>
@@ -8120,7 +8124,7 @@
         }
 
         // Ordenação dos rankings (corretores e equipes)
-        let rankSort = 'vgv'; // vgv | vendas | aprovacoes | analises | ipc
+        let rankSort = 'vgv'; // vgv | vendas | aprovacoes | analises | agendamentos | compareceu | ipc
         function rankSorter(a, b) {
             const diff = (b[rankSort] || 0) - (a[rankSort] || 0);
             if (diff !== 0) return diff;
@@ -8130,7 +8134,7 @@
         function setRankSort(campo) {
             rankSort = campo;
             // atualiza visual dos botões
-            ['analises','aprovacoes','vendas','vgv','ipc'].forEach(k => {
+            ['analises','aprovacoes','vendas','agendamentos','compareceu','vgv','ipc'].forEach(k => {
                 const b = document.getElementById('rankSort-' + k);
                 if (b) b.className = (k === campo)
                     ? 'rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition'
@@ -8179,17 +8183,21 @@
 
             const refDateTables = currentRefDate;
             rankingRowsCache = { corretor: {}, equipe: {} };
-            const getCorrCache = nome => (rankingRowsCache.corretor[nome] = rankingRowsCache.corretor[nome] || { analises: [], aprovacoes: [], vendas: [] });
+            const getCorrCache = nome => (rankingRowsCache.corretor[nome] = rankingRowsCache.corretor[nome] || { analises: [], aprovacoes: [], vendas: [], agendamentos: [], compareceu: [] });
             const getEqCache = nome => (rankingRowsCache.equipe[nome] = rankingRowsCache.equipe[nome] || { analises: [], aprovacoes: [], vendas: [] });
 
             let corretoresMap = {};
             // Pré-cadastra todos os corretores ATIVOS (assim os pré-cadastrados aparecem com 0)
             getActiveCorretores().forEach(nome => {
-                corretoresMap[nome] = { corretor: nome, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                if (!personMatchesOrgDashboardScope(nome)) return;
+                if (selectedTeamFilter && rankingTeamKey(getRankingTeamForBroker(nome)) !== rankingTeamKey(selectedTeamFilter)) return;
+                corretoresMap[nome] = { corretor: nome, analises: 0, aprovacoes: 0, vendas: 0, agendamentos: 0, compareceu: 0, vgv: 0 };
             });
 
             filteredDataset.forEach(row => {
                 const c = row.Corretor;
+                if (!personMatchesOrgDashboardScope(c)) return;
+                if (selectedTeamFilter && rankingTeamKey(getRankingTeamForBroker(c)) !== rankingTeamKey(selectedTeamFilter)) return;
                 // DESATIVAR ≠ EXCLUIR: a produção já realizada (análises, aprovações, vendas, VGV)
                 // continua contando aqui mesmo se o corretor foi desativado depois. Só os ATIVOS são
                 // pré-cadastrados com zero acima, então quem saiu deixa de aparecer nos períodos em
@@ -8197,24 +8205,39 @@
 
                 // Análises/Aprovações: por safra (Mês Cadastro)
                 if (metricMatchesRef(row, 'Mês Cadastro', 'Data Cadastro', refDateTables)) {
-                    if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                    if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, agendamentos: 0, compareceu: 0, vgv: 0 };
                     corretoresMap[c].analises++;
                     getCorrCache(c).analises.push(row);
                 }
                 // Aprovações: por DATA DE APROVAÇÃO (quando aprovou)
                 if (isAprovadoNoPeriodo(row, refDateTables)) {
-                    if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                    if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, agendamentos: 0, compareceu: 0, vgv: 0 };
                     corretoresMap[c].aprovacoes++;
                     getCorrCache(c).aprovacoes.push(row);
                 }
 
                 // Vendas/VGV: conforme o modo (toggle), por Mês Ganho (faturamento)
                 if (isVendaModo(row) && metricMatchesRef(row, 'Mês Ganho', 'Data Ganho', refDateTables)) {
-                    if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                    if (!corretoresMap[c]) corretoresMap[c] = { corretor: c, analises: 0, aprovacoes: 0, vendas: 0, agendamentos: 0, compareceu: 0, vgv: 0 };
                     corretoresMap[c].vendas++;
                     corretoresMap[c].vgv += getVGV(row);
                     getCorrCache(c).vendas.push(row);
                 }
+            });
+
+            // Agendamentos contam pela data em que foram marcados; visitas pela data em que ocorreram.
+            // A composição do time vem do organograma, igual ao filtro e ao ranking de equipes.
+            const refDateAgendaRank = currentRefDateAgenda || refDateTables;
+            filteredAgendaDataset.forEach(row => {
+                const nome = row.Corretor;
+                if (!nome || !personMatchesOrgDashboardScope(nome)) return;
+                if (selectedTeamFilter && rankingTeamKey(getRankingTeamForBroker(nome)) !== rankingTeamKey(selectedTeamFilter)) return;
+                const agendado = agendaMatchesRef(row, refDateAgendaRank, 'agendamentos');
+                const visitou = isCompareceu(row) && agendaMatchesRef(row, refDateAgendaRank, 'compareceu');
+                if (!agendado && !visitou) return;
+                if (!corretoresMap[nome]) corretoresMap[nome] = { corretor: nome, analises: 0, aprovacoes: 0, vendas: 0, agendamentos: 0, compareceu: 0, vgv: 0 };
+                if (agendado) { corretoresMap[nome].agendamentos++; getCorrCache(nome).agendamentos.push(row); }
+                if (visitou) { corretoresMap[nome].compareceu++; getCorrCache(nome).compareceu.push(row); }
             });
 
             // IPC (janela móvel de 3 meses comerciais) — calculado uma vez por render e anexado a
@@ -8234,14 +8257,14 @@
             });
 
             let rankingCorretores = Object.values(corretoresMap)
-                .filter(c => c.corretor && c.corretor.toLowerCase().includes(searchCorretorTerm))
+                .filter(c => c.corretor && personMatchesOrgDashboardScope(c.corretor) && (!selectedTeamFilter || rankingTeamKey(getRankingTeamForBroker(c.corretor)) === rankingTeamKey(selectedTeamFilter)) && c.corretor.toLowerCase().includes(searchCorretorTerm))
                 .sort(rankSorter);
 
             const corrBody = document.getElementById('rankingCorretoresBody');
             corrBody.innerHTML = '';
 
             if (rankingCorretores.length === 0) {
-                corrBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
+                corrBody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
             } else {
                 rankingCorretores.forEach((c, index) => {
                     const conversao = c.analises > 0 ? ((c.vendas / c.analises) * 100).toFixed(1) : 0;
@@ -8258,6 +8281,8 @@
                             <td class="py-3 text-center text-slate-400 ${c.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${c.analises > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','analises')"` : ''} title="${c.analises > 0 ? 'Ver clientes' : ''}">${c.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
+                            <td class="py-3 text-center text-violet-400 font-semibold">${c.agendamentos || 0}</td>
+                            <td class="py-3 text-center text-cyan-400 font-semibold">${c.compareceu || 0}</td>
                             <td class="py-3 text-center font-medium">${conversao}%</td>
                             <td class="py-3 text-center text-slate-400">${c.ipcNaoSeAplica ? '<span class="text-slate-600">—</span>' : (c.vendas3m || 0)}</td>
                             <td class="py-3 text-center">
