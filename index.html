@@ -694,12 +694,12 @@
                             <!-- Botões de ordenação do ranking -->
                             <div class="flex items-center gap-1.5 mb-3 flex-wrap">
                                 <span class="text-[10px] text-slate-500 font-bold uppercase mr-1">Ordenar por:</span>
-                                <button id="rankSort-vgv" onclick="setRankSort('vgv')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition">VGV</button>
-                                <button id="rankSort-vendas" onclick="setRankSort('vendas')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Vendas</button>
-                                <button id="rankSort-aprovacoes" onclick="setRankSort('aprovacoes')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Aprovações</button>
-                                <button id="rankSort-analises" onclick="setRankSort('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Análises</button>
                                 <button id="rankSort-agendamentos" onclick="setRankSort('agendamentos')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Agendamentos</button>
                                 <button id="rankSort-compareceu" onclick="setRankSort('compareceu')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Visitas</button>
+                                <button id="rankSort-analises" onclick="setRankSort('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Análises</button>
+                                <button id="rankSort-aprovacoes" onclick="setRankSort('aprovacoes')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Aprovações</button>
+                                <button id="rankSort-vendas" onclick="setRankSort('vendas')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Vendas</button>
+                                <button id="rankSort-vgv" onclick="setRankSort('vgv')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition">VGV</button>
                                 <button id="rankSort-ipc" onclick="setRankSort('ipc')" title="Índice de Produtividade do Corretor — média mensal de vendas nos últimos 3 meses comerciais" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">IPC</button>
                             </div>
 
@@ -709,11 +709,11 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Corretor</th>
+                                            <th class="pb-3 text-center" title="Data em que o atendimento foi agendado">Agend.</th>
+                                            <th class="pb-3 text-center" title="Data em que a visita ocorreu">Visitas</th>
                                             <th class="pb-3 text-center" title="Data de cadastro">Análises</th>
                                             <th class="pb-3 text-center" title="Data de aprovação; usa cadastro como respaldo quando a data não está preenchida">Aprovs</th>
                                             <th class="pb-3 text-center" title="Data de ganho da venda; respeita o modo Geral/Finalizadas">Vendas</th>
-                                            <th class="pb-3 text-center" title="Data em que o atendimento foi agendado">Agend.</th>
-                                            <th class="pb-3 text-center" title="Data em que a visita ocorreu">Visitas</th>
                                             <th class="pb-3 text-center">Conversão</th>
                                             <th class="pb-3 text-center whitespace-nowrap" id="thVendasJanelaIPC" title="Vendas na janela do IPC — independente do período filtrado acima">Vendas 3M</th>
                                             <th class="pb-3 text-center whitespace-nowrap" title="IPC — Índice de Produtividade do Corretor: vendas dos últimos 3 meses comerciais ÷ 3 (média mensal)">IPC</th>
@@ -784,7 +784,7 @@
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <div class="text-center px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800">
-                                <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Média da equipe</p>
+                                <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Média do recorte</p>
                                 <p class="text-lg font-extrabold text-brand-400 tabular-nums leading-tight" id="ipcMediaEquipe">0,00</p>
                             </div>
                             <div class="text-center px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800">
@@ -818,7 +818,7 @@
                         <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-brand-500"></span> Na média ou acima</span>
                         <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-amber-500"></span> Abaixo da média</span>
                         <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span> Crítico (inclui IPC 0,00 — barra vazia)</span>
-                        <span class="flex items-center gap-1.5 ml-auto"><i class="fa-solid fa-grip-lines-vertical text-slate-300"></i> Linha branca = média da equipe</span>
+                        <span class="flex items-center gap-1.5 ml-auto"><i class="fa-solid fa-grip-lines-vertical text-slate-300"></i> Linha branca = média do recorte</span>
                     </div>
                 </section>
 
@@ -1754,7 +1754,7 @@
     <script src="./audaz-bi-core.js?v=metas-contexto-20261023"></script>
     <script src="./audaz-bi-data.js?v=metas-contexto-20261023-team-scope-fix1"></script>
     <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
-    <script src="./audaz-bi-analytics.js?v=metas-contexto-20261023"></script>
+    <script src="./audaz-bi-analytics.js?v=ranking-recorte-20261023-1"></script>
     <script src="./audaz-bi-calendar.js?v=metas-contexto-20261023"></script>
 </body>
 </html>
