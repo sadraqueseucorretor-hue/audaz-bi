@@ -636,7 +636,7 @@
                 icon: e.icon,
                 color: e.color,
                 valor: atual[e.key],
-                meta: metasMensais[e.key] || 0,
+                meta: getDashboardMeta(e.key, 'Mes', metasMensais[e.key] || 0),
                 trendPct: trend(atual[e.key], anterior ? anterior[e.key] : 0),
                 serie: janela.map(m => m[e.key])
             }));
@@ -1196,11 +1196,9 @@
             // em vez da meta da empresa inteira — mesmo padrão já aplicado no Funil de Vendas e na
             // Evolução Semanal do Mês.
             const RITMO_METAS_CORRETOR_KEYS = { analises: 'anMes', aprovacoes: 'apMes', vendas: 'vdMes' };
-            const selCorretorFiltroRitmo = document.getElementById('filterCorretor').value;
-            const metasCorretorRitmo = (selCorretorFiltroRitmo && metasPorCorretor[selCorretorFiltroRitmo]) ? metasPorCorretor[selCorretorFiltroRitmo] : null;
-            const meta = metasCorretorRitmo ? (metasCorretorRitmo[RITMO_METAS_CORRETOR_KEYS[ritmoMetric]] || 0) : (metasMensais[ritmoMetric] || 0);
+            const meta = getDashboardMeta(ritmoMetric, 'Mes', metasMensais[ritmoMetric] || 0);
             const ritmoMetaFonteEl = document.getElementById('ritmoMesMetaFonteLabel');
-            if (ritmoMetaFonteEl) ritmoMetaFonteEl.textContent = metasCorretorRitmo ? `· Meta de ${selCorretorFiltroRitmo}` : '· Meta da equipe';
+            if (ritmoMetaFonteEl) ritmoMetaFonteEl.textContent = `· ${getDashboardMetaContextLabel()}`;
 
             const porDia = new Array(diasNoMes + 1).fill(0); // índice 1..diasNoMes, dia 1 = inicioReal
             filteredDataset.forEach(row => {
@@ -1433,13 +1431,9 @@
 
             // Meta semanal já cadastrada (não a mensal ÷ 7) — mesma convenção da Evolução Semanal do
             // Mês: meta individual do corretor filtrado sobrepõe a meta da equipe.
-            const selCorretorFiltroRitmoSem = document.getElementById('filterCorretor').value;
-            const metasCorretorRitmoSem = (selCorretorFiltroRitmoSem && metasPorCorretor[selCorretorFiltroRitmoSem]) ? metasPorCorretor[selCorretorFiltroRitmoSem] : null;
-            const meta = metasCorretorRitmoSem
-                ? (metasCorretorRitmoSem[RITMO_SEMANA_METAS_KEYS[ritmoMetric]] || 0)
-                : (rankingsMetas[RITMO_SEMANA_METAS_KEYS[ritmoMetric]] || 0);
+            const meta = getDashboardMeta(ritmoMetric, 'Sem', rankingsMetas[RITMO_SEMANA_METAS_KEYS[ritmoMetric]] || 0);
             const metaFonteEl = document.getElementById('ritmoSemanaMetaFonteLabel');
-            if (metaFonteEl) metaFonteEl.textContent = metasCorretorRitmoSem ? `Meta semanal de ${selCorretorFiltroRitmoSem}` : 'Meta semanal da equipe';
+            if (metaFonteEl) metaFonteEl.textContent = `${getDashboardMetaContextLabel()} · semanal`;
 
             // Mesma extração de "a linha pertence a essa métrica" já usada no Ritmo do Mês (Análises:
             // Data Cadastro; Aprovações: data efetiva de aprovação; Vendas: Data Ganho) — só que aqui
@@ -1898,19 +1892,15 @@
             // (metasPorCorretor[nome], mesmas chaves *Sem — painel "Metas por Corretor") em vez da
             // meta da equipe inteira, pra dar pra acompanhar a linha de tendência dele sozinho.
             const METAS_SEMANAIS_KEYS = { prospeccao: 'prSem', agendamentos: 'agSem', compareceu: 'coSem', analises: 'anSem', aprovacoes: 'apSem', vendas: 'vdSem' };
-            const selCorretorFiltroMeta = document.getElementById('filterCorretor').value;
-            const metasFonte = (selCorretorFiltroMeta && metasPorCorretor[selCorretorFiltroMeta]) ? metasPorCorretor[selCorretorFiltroMeta] : rankingsMetas;
             const metaSemanal = {};
             FUNIL_ETAPAS.forEach(e => {
-                metaSemanal[e.key] = metasFonte[METAS_SEMANAIS_KEYS[e.key]] || 0;
+                metaSemanal[e.key] = getDashboardMeta(e.key, 'Sem', rankingsMetas[METAS_SEMANAIS_KEYS[e.key]] || 0);
             });
             const metaLineData = key => new Array(numSemanas).fill(Math.round(metaSemanal[key]));
 
             const metaFonteLabelEl = document.getElementById('evolucaoSemanalMetaFonteLabel');
             if (metaFonteLabelEl) {
-                metaFonteLabelEl.textContent = (selCorretorFiltroMeta && metasFonte !== rankingsMetas)
-                    ? `Metas individuais de ${selCorretorFiltroMeta}.`
-                    : 'Metas da equipe.';
+                metaFonteLabelEl.textContent = `${getDashboardMetaContextLabel()} · semanais.`;
             }
 
             // ===== 6 CARDS DE RESUMO (total do mês + valor da 1ª semana) =====
@@ -2433,11 +2423,11 @@
 
             // 3) Etapas do funil abaixo do ideal de hoje (mesma conta do Funil/Ritmo do Mês)
             const etapasAl = [
-                { metrica: 'analises', label: 'Análises', real: kpiValues.analyses, meta: metasMensais.analises },
-                { metrica: 'aprovacoes', label: 'Aprovações', real: kpiValues.approvals, meta: metasMensais.aprovacoes },
-                { metrica: 'vendas', label: 'Vendas', real: kpiValues.sales, meta: metasMensais.vendas },
-                { metrica: 'agendamentos', label: 'Agendamentos', real: kpiValues.agendamentos, meta: metasMensais.agendamentos },
-                { metrica: 'compareceu', label: 'Visitas', real: kpiValues.compareceu, meta: metasMensais.compareceu }
+                { metrica: 'analises', label: 'Análises', real: kpiValues.analyses, meta: getDashboardMeta('analises', 'Mes', metasMensais.analises) },
+                { metrica: 'aprovacoes', label: 'Aprovações', real: kpiValues.approvals, meta: getDashboardMeta('aprovacoes', 'Mes', metasMensais.aprovacoes) },
+                { metrica: 'vendas', label: 'Vendas', real: kpiValues.sales, meta: getDashboardMeta('vendas', 'Mes', metasMensais.vendas) },
+                { metrica: 'agendamentos', label: 'Agendamentos', real: kpiValues.agendamentos, meta: getDashboardMeta('agendamentos', 'Mes', metasMensais.agendamentos) },
+                { metrica: 'compareceu', label: 'Visitas', real: kpiValues.compareceu, meta: getDashboardMeta('compareceu', 'Mes', metasMensais.compareceu) }
             ];
             let janelaRef = null;
             const atrasadas = [];
