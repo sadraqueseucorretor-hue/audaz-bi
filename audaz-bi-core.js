@@ -26,7 +26,7 @@
         let prospeccaoPorMes = {};
         let prospeccaoDataset = []; // derivado: todas as linhas de todos os meses juntas
         let filteredProspeccaoDataset = [];
-        let activeView = 'dashboard'; // página inicial: Painel Executivo / Funil
+        let activeView = 'organograma'; // página inicial: Organograma da equipe
 
         // Motores de Sincronização Automática em Tempo Real
         let autoRefreshInterval = 15; // padrão: 15 segundos (full-time)
