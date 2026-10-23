@@ -1339,6 +1339,8 @@
             const avisoCorretorEl = document.getElementById('funnelCorretorSemProducaoAviso');
             const avisoCorretorTextoEl = document.getElementById('funnelCorretorSemProducaoTexto');
             if (avisoCorretorEl && avisoCorretorTextoEl) {
+                const selCorretorFiltroFunil = document.getElementById('filterCorretor')?.value
+                    || (orgDashboardScope?.kind === 'broker' ? orgDashboardScope.name : '');
                 const semProducao = selCorretorFiltroFunil && !getReferenceMesComercial()
                     && prospeccao === 0 && agendamentos === 0 && compareceu === 0
                     && analyses === 0 && approvals === 0 && sales === 0;
