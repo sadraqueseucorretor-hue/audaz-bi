@@ -1269,16 +1269,14 @@
             // corretor (metasPorCorretor[nome].prMes/agMes/coMes/anMes/apMes/vdMes — painel "Metas
             // por Corretor") em vez da meta da empresa inteira (metasMensais), mesmo padrão já
             // usado na Evolução Semanal do Mês.
-            const selCorretorFiltroFunil = document.getElementById('filterCorretor').value;
-            const metasFonteFunil = (selCorretorFiltroFunil && metasPorCorretor[selCorretorFiltroFunil]) ? metasPorCorretor[selCorretorFiltroFunil] : null;
-            const metaProspeccao = metasFonteFunil ? (metasFonteFunil.prMes || 0) : (metasMensais.prospeccao || 0);
-            const metaAgendamentos = metasFonteFunil ? (metasFonteFunil.agMes || 0) : (metasMensais.agendamentos || 0);
-            const metaCompareceu = metasFonteFunil ? (metasFonteFunil.coMes || 0) : (metasMensais.compareceu || 0);
-            const metaAnalises = metasFonteFunil ? (metasFonteFunil.anMes || 0) : (metasMensais.analises || 0);
-            const metaAprovacoes = metasFonteFunil ? (metasFonteFunil.apMes || 0) : (metasMensais.aprovacoes || 0);
-            const metaVendas = metasFonteFunil ? (metasFonteFunil.vdMes || 0) : (metasMensais.vendas || 0);
+            const metaProspeccao = getDashboardMeta('prospeccao', 'Mes', metasMensais.prospeccao);
+            const metaAgendamentos = getDashboardMeta('agendamentos', 'Mes', metasMensais.agendamentos);
+            const metaCompareceu = getDashboardMeta('compareceu', 'Mes', metasMensais.compareceu);
+            const metaAnalises = getDashboardMeta('analises', 'Mes', metasMensais.analises);
+            const metaAprovacoes = getDashboardMeta('aprovacoes', 'Mes', metasMensais.aprovacoes);
+            const metaVendas = getDashboardMeta('vendas', 'Mes', metasMensais.vendas);
             const funnelMetaFonteEl = document.getElementById('funnelMetaFonteLabel');
-            if (funnelMetaFonteEl) funnelMetaFonteEl.textContent = metasFonteFunil ? `· Metas de ${selCorretorFiltroFunil}` : '· Metas da equipe';
+            if (funnelMetaFonteEl) funnelMetaFonteEl.textContent = `· ${getDashboardMetaContextLabel()}`;
             const janelaProspeccao = getJanelaMesComercial('prospeccao');
             const janelaAgendamentos = getJanelaMesComercial('agendamentos');
             const janelaCompareceu = getJanelaMesComercial('compareceu');
