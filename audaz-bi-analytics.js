@@ -503,15 +503,20 @@
             let equipesMap = Object.fromEntries(configuredRankingTeams.map(team => [team, { equipe:team, agendamentos:0, compareceu:0, analises:0, aprovacoes:0, vendas:0, vgv:0 }]));
             const equipeMembrosAtivos = new Map();
             const equipeMembrosProdutivos = new Map();
-            const equipePessoaKey = nome => String(nome || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
-            getActiveCorretores().forEach(nome => {
-                if (!personMatchesOrgDashboardScope(nome)) return;
-                const equipe = getRankingTeamForBroker(nome);
+            const equipePessoaKey = nome => orgPersonKey(nome);
+            const nomesAtivosPorChave = new Map(getActiveCorretores().map(nome => [equipePessoaKey(nome), nome]));
+            // A produtividade usa os integrantes ativos do organograma, com vínculo oficial de equipe.
+            // O gerente conta como parte da equipe, assim como captadores e estagiários cadastrados.
+            organograma.forEach(pessoa => {
+                if (!['Gerente','Corretor','Captador','Estagiário'].includes(pessoa.role)) return;
+                const nomeAtivo = nomesAtivosPorChave.get(equipePessoaKey(pessoa.name));
+                if (!nomeAtivo || !personMatchesOrgDashboardScope(nomeAtivo)) return;
+                const equipe = getRankingTeamForBroker(nomeAtivo);
                 if (!equipe) return;
                 const equipeKey = rankingTeamKey(equipe);
                 if (selectedTeamFilter && equipeKey !== rankingTeamKey(selectedTeamFilter)) return;
                 if (!equipeMembrosAtivos.has(equipeKey)) equipeMembrosAtivos.set(equipeKey, new Set());
-                equipeMembrosAtivos.get(equipeKey).add(equipePessoaKey(nome));
+                equipeMembrosAtivos.get(equipeKey).add(equipePessoaKey(nomeAtivo));
             });
             filteredDataset.forEach(row => {
                 // Usa o vínculo corretor → gerente → equipe do organograma como fonte única.
@@ -538,7 +543,7 @@
                     equipesMap[eq].vendas++;
                     equipesMap[eq].vgv += getVGV(row);
                     const equipeKey = rankingTeamKey(eq);
-                    const pessoaKey = equipePessoaKey(row.Corretor);
+                    const pessoaKey = orgPersonKey(row.Corretor);
                     if (equipeMembrosAtivos.get(equipeKey)?.has(pessoaKey)) {
                         if (!equipeMembrosProdutivos.has(equipeKey)) equipeMembrosProdutivos.set(equipeKey, new Set());
                         equipeMembrosProdutivos.get(equipeKey).add(pessoaKey);
@@ -588,7 +593,7 @@
                             <td class="py-3 text-center text-slate-400 ${eq.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${eq.analises > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','analises')"` : ''} title="${eq.analises > 0 ? 'Ver clientes' : ''}">${eq.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold ${eq.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${eq.aprovacoes > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','aprovacoes')"` : ''} title="${eq.aprovacoes > 0 ? 'Ver clientes' : ''}">${eq.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${eq.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${eq.vendas > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','vendas')"` : ''} title="${eq.vendas > 0 ? 'Ver clientes' : ''}">${eq.vendas}</td>
-                            <td class="py-3 text-center" title="${integrantesProdutivos} de ${totalIntegrantes} integrantes ativos venderam no período"><div class="font-bold ${classeProdutividade}">${percentualProdutivo}%</div><div class="text-[9px] text-slate-500">${integrantesProdutivos}/${totalIntegrantes} corretores</div></td>
+                            <td class="py-3 text-center" title="${integrantesProdutivos} de ${totalIntegrantes} integrantes ativos (incluindo o gerente) fizeram venda no período"><div class="font-bold ${classeProdutividade}">${percentualProdutivo}%</div><div class="text-[9px] text-slate-500">${integrantesProdutivos}/${totalIntegrantes} integrantes</div></td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(eq.vgv)}</td>
                         </tr>
                     `;
