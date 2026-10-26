@@ -1013,7 +1013,7 @@
                             <div class="org-overview">
                                 <div class="text-center sm:text-left"><div class="org-brand"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> AUDAZ <strong>SQUAD</strong></div><div class="org-brand-sub">RESULTADOS · PESSOAS · EVOLUÇÃO</div></div>
                                 <div data-org-scope="regional" role="button" tabindex="0" title="Ver os indicadores gerais da regional" class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/40 rounded-2xl"><div id="orgRegionalAvatar" class="flex justify-center shrink-0"></div><div><div class="text-[10px] uppercase tracking-[.18em] font-extrabold text-amber-300">Regional</div><div class="text-lg font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-xs text-slate-300 mt-1">Gerente Regional</div><div class="text-[10px] text-slate-500 mt-1"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> Audaz Squad</div></div></div>
-                                <div class="org-stats"><div class="org-stat"><div id="orgStatManagers" class="org-stat-value">0</div><div class="org-stat-label">Gerentes</div></div><div class="org-stat"><div id="orgStatBrokers" class="org-stat-value">0</div><div class="org-stat-label">Corretores</div></div><div class="org-stat"><div id="orgStatTotal" class="org-stat-value">0</div><div class="org-stat-label">Pessoas na equipe</div></div></div>
+                                <div class="org-stats"><div class="org-stat"><div id="orgStatManagers" class="org-stat-value">0</div><div class="org-stat-label">Gerentes</div></div><div class="org-stat"><div id="orgStatBrokers" class="org-stat-value">0</div><div class="org-stat-label">Integrantes</div></div><div class="org-stat"><div id="orgStatTotal" class="org-stat-value">0</div><div class="org-stat-label">Pessoas na equipe</div></div></div>
                             </div>
                             <div class="org-chart-root-connector"></div><div class="org-chart-columns"><div id="organogramaTree" class="org-chart-level"></div></div>
                         </div>
@@ -1028,11 +1028,11 @@
                                 </button>
                                 <div id="orgMemberPickerMenu" class="hidden absolute z-30 top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700 rounded-xl shadow-2xl overflow-hidden"><div id="orgMemberPickerOptions" class="max-h-64 overflow-y-auto p-1.5"></div></div>
                             </div>
-                            <select id="orgNewRole" onchange="updateOrgParentOptions(this.value)" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><option value="Gerente">Gerente</option><option value="Corretor">Corretor</option></select>
+                            <select id="orgNewRole" onchange="updateOrgParentOptions(this.value)" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><option value="Gerente">Gerente</option><option value="Corretor">Corretor</option><option value="Captador">Captador</option><option value="Estagiário">Estagiário</option></select>
                             <select id="orgNewParent" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"></select>
                             <button onclick="addOrgMember()" class="diretor-locked bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-lg px-3 py-2 transition"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
                         </div>
-                        <p class="text-[10px] text-slate-600 mt-2">Os cinco gerentes ficam alinhados na mesma faixa. Vincule cada gerente a uma equipe do BI; os corretores ativos dessa equipe aparecem agrupados logo abaixo. A lista mostra as fotos cadastradas.</p>
+                        <p class="text-[10px] text-slate-600 mt-2">Os gerentes ficam alinhados na mesma faixa. Vincule cada gerente a uma equipe do BI; os integrantes ativos aparecem agrupados logo abaixo. No cadastro, escolha se a pessoa é corretor, captador ou estagiário.</p>
                         <p id="organogramaEditHint" class="text-[10px] text-amber-400 mt-2 hidden">Entre como diretor para editar e sincronizar esta estrutura.</p>
                     </div>
                 </section>
@@ -1751,7 +1751,7 @@
     </div>
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
-    <script src="./audaz-bi-core.js?v=metas-contexto-20261023"></script>
+    <script src="./audaz-bi-core.js?v=organograma-cargos-20261026"></script>
     <script src="./audaz-bi-data.js?v=metas-contexto-20261023-team-scope-fix1"></script>
     <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
     <script src="./audaz-bi-analytics.js?v=ranking-recorte-20261023-1"></script>
