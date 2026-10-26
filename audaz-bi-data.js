@@ -99,7 +99,7 @@
         function getRankingTeamForBroker(name) {
             const managerNode = organograma.find(n => n.role === 'Gerente' && orgPersonKey(n.name) === orgPersonKey(name));
             if (managerNode) return canonicalRankingTeamName(managerNode.equipe || managerNode.name);
-            const member = organograma.find(n => n.role === 'Corretor' && orgPersonKey(n.name) === orgPersonKey(name));
+            const member = organograma.find(n => ['Corretor','Captador','Estagiário'].includes(n.role) && orgPersonKey(n.name) === orgPersonKey(name));
             const manager = member && organograma.find(n => n.id === member.parentId && n.role === 'Gerente');
             if (manager) return canonicalRankingTeamName(manager.equipe || manager.name);
             const teams = new Map();
