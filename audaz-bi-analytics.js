@@ -501,6 +501,18 @@
 
             const configuredRankingTeams = getConfiguredRankingTeams();
             let equipesMap = Object.fromEntries(configuredRankingTeams.map(team => [team, { equipe:team, agendamentos:0, compareceu:0, analises:0, aprovacoes:0, vendas:0, vgv:0 }]));
+            const equipeMembrosAtivos = new Map();
+            const equipeMembrosProdutivos = new Map();
+            const equipePessoaKey = nome => String(nome || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('pt-BR');
+            getActiveCorretores().forEach(nome => {
+                if (!personMatchesOrgDashboardScope(nome)) return;
+                const equipe = getRankingTeamForBroker(nome);
+                if (!equipe) return;
+                const equipeKey = rankingTeamKey(equipe);
+                if (selectedTeamFilter && equipeKey !== rankingTeamKey(selectedTeamFilter)) return;
+                if (!equipeMembrosAtivos.has(equipeKey)) equipeMembrosAtivos.set(equipeKey, new Set());
+                equipeMembrosAtivos.get(equipeKey).add(equipePessoaKey(nome));
+            });
             filteredDataset.forEach(row => {
                 // Usa o vínculo corretor → gerente → equipe do organograma como fonte única.
                 // getRankingTeamForBroker também canonicaliza variantes como IMPARÁVEIS/IMPARAVEIS.
@@ -525,6 +537,12 @@
                     if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
                     equipesMap[eq].vendas++;
                     equipesMap[eq].vgv += getVGV(row);
+                    const equipeKey = rankingTeamKey(eq);
+                    const pessoaKey = equipePessoaKey(row.Corretor);
+                    if (equipeMembrosAtivos.get(equipeKey)?.has(pessoaKey)) {
+                        if (!equipeMembrosProdutivos.has(equipeKey)) equipeMembrosProdutivos.set(equipeKey, new Set());
+                        equipeMembrosProdutivos.get(equipeKey).add(pessoaKey);
+                    }
                     getEqCache(eq).vendas.push(row);
                 }
             });
@@ -551,7 +569,11 @@
                 eqBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-slate-500">Nenhuma equipe encontrada.</td></tr>`;
             } else {
                 rankingEquipes.forEach((eq, index) => {
-                    const conversao = eq.analises > 0 ? ((eq.vendas / eq.analises) * 100).toFixed(1) : 0;
+                    const equipeKey = rankingTeamKey(eq.equipe);
+                    const totalIntegrantes = equipeMembrosAtivos.get(equipeKey)?.size || 0;
+                    const integrantesProdutivos = equipeMembrosProdutivos.get(equipeKey)?.size || 0;
+                    const percentualProdutivo = totalIntegrantes ? ((integrantesProdutivos / totalIntegrantes) * 100).toFixed(1) : '0.0';
+                    const classeProdutividade = !totalIntegrantes ? 'text-slate-500' : integrantesProdutivos ? 'text-emerald-400' : 'text-rose-400';
                     let badgeClass = "text-slate-400";
                     if (index === 0) badgeClass = "text-amber-400 font-extrabold";
                     if (index === 1) badgeClass = "text-slate-300 font-extrabold";
@@ -566,7 +588,7 @@
                             <td class="py-3 text-center text-slate-400 ${eq.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${eq.analises > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','analises')"` : ''} title="${eq.analises > 0 ? 'Ver clientes' : ''}">${eq.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold ${eq.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${eq.aprovacoes > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','aprovacoes')"` : ''} title="${eq.aprovacoes > 0 ? 'Ver clientes' : ''}">${eq.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${eq.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${eq.vendas > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','vendas')"` : ''} title="${eq.vendas > 0 ? 'Ver clientes' : ''}">${eq.vendas}</td>
-                            <td class="py-3 text-center font-medium">${conversao}%</td>
+                            <td class="py-3 text-center" title="${integrantesProdutivos} de ${totalIntegrantes} integrantes ativos venderam no período"><div class="font-bold ${classeProdutividade}">${percentualProdutivo}%</div><div class="text-[9px] text-slate-500">${integrantesProdutivos}/${totalIntegrantes} corretores</div></td>
                             <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(eq.vgv)}</td>
                         </tr>
                     `;
