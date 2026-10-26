@@ -464,10 +464,9 @@
             corrBody.innerHTML = '';
 
             if (rankingCorretores.length === 0) {
-                corrBody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
+                corrBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
             } else {
                 rankingCorretores.forEach((c, index) => {
-                    const conversao = c.analises > 0 ? ((c.vendas / c.analises) * 100).toFixed(1) : 0;
                     let badgeClass = "text-slate-400";
                     if (index === 0) badgeClass = "text-amber-400 font-extrabold";
                     if (index === 1) badgeClass = "text-slate-300 font-extrabold";
@@ -483,7 +482,6 @@
                             <td class="py-3 text-center text-slate-400 ${c.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${c.analises > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','analises')"` : ''} title="${c.analises > 0 ? 'Ver clientes' : ''}">${c.analises}</td>
                             <td class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
                             <td class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
-                            <td class="py-3 text-center font-medium">${conversao}%</td>
                             <td class="py-3 text-center text-slate-400">${c.ipcNaoSeAplica ? '<span class="text-slate-600">—</span>' : (c.vendas3m || 0)}</td>
                             <td class="py-3 text-center">
                                 ${c.ipcNaoSeAplica
@@ -566,6 +564,24 @@
             let rankingEquipes = Object.values(equipesMap)
                 .filter(eq => eq.equipe.toLowerCase().includes(searchEquipeTerm))
                 .sort(rankSorter);
+
+            const equipePessoas = new Set([...equipeMembrosAtivos.values()].flatMap(set => [...set]));
+            const pessoasProdutivas = new Set([...equipeMembrosProdutivos.values()].flatMap(set => [...set]));
+            const totalPessoasAtivas = equipePessoas.size;
+            const totalPessoasProdutivas = [...pessoasProdutivas].filter(key => equipePessoas.has(key)).length;
+            const percentualProdutivoGeral = totalPessoasAtivas ? (totalPessoasProdutivas / totalPessoasAtivas) * 100 : 0;
+            const equipeSelecionada = selectedTeamFilter || (orgDashboardScope?.kind === 'team' ? orgDashboardScope.team : '');
+            const rotuloProdutividade = equipeSelecionada
+                ? `Produtividade da equipe ${canonicalRankingTeamName(equipeSelecionada) || equipeSelecionada}`
+                : (orgDashboardScope?.kind === 'broker' ? `Produtividade de ${orgDashboardScope.name}` : 'Produtividade geral da regional');
+            const summaryLabel = document.getElementById('rankingEquipeProductivityLabel');
+            const summaryDetail = document.getElementById('rankingEquipeProductivityDetail');
+            const summaryValue = document.getElementById('rankingEquipeProductivityValue');
+            const summaryBar = document.getElementById('rankingEquipeProductivityBar');
+            if (summaryLabel) summaryLabel.textContent = rotuloProdutividade;
+            if (summaryDetail) summaryDetail.textContent = `${totalPessoasProdutivas} de ${totalPessoasAtivas} integrantes ativos fizeram ao menos uma venda no período selecionado`;
+            if (summaryValue) summaryValue.textContent = `${percentualProdutivoGeral.toFixed(1)}%`;
+            if (summaryBar) summaryBar.style.width = `${Math.min(100, percentualProdutivoGeral)}%`;
 
             const eqBody = document.getElementById('rankingEquipesBody');
             eqBody.innerHTML = '';
