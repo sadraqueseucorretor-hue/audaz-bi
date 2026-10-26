@@ -714,7 +714,7 @@
                                             <th class="pb-3 text-center" title="Data de cadastro">Análises</th>
                                             <th class="pb-3 text-center" title="Data de aprovação; usa cadastro como respaldo quando a data não está preenchida">Aprovs</th>
                                             <th class="pb-3 text-center" title="Data de ganho da venda; respeita o modo Geral/Finalizadas">Vendas</th>
-                                            <th class="pb-3 text-center">Conversão</th>
+                                            
                                             <th class="pb-3 text-center whitespace-nowrap" id="thVendasJanelaIPC" title="Vendas na janela do IPC — independente do período filtrado acima">Vendas 3M</th>
                                             <th class="pb-3 text-center whitespace-nowrap" title="IPC — Índice de Produtividade do Corretor: vendas dos últimos 3 meses comerciais ÷ 3 (média mensal)">IPC</th>
                                             <th class="pb-3 text-right pr-2">VGV</th>
@@ -744,6 +744,17 @@
                                     </span>
                                     <input type="text" id="searchEquipe" oninput="drawTables()" placeholder="Procurar equipe..." class="bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-300 w-full sm:w-48 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition">
                                 </div>
+                            </div>
+
+                            <div id="rankingEquipeProductivitySummary" class="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3" role="status" aria-live="polite">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div class="min-w-0">
+                                        <p id="rankingEquipeProductivityLabel" class="text-[10px] font-bold uppercase tracking-wider text-emerald-300">Produtividade geral da regional</p>
+                                        <p id="rankingEquipeProductivityDetail" class="mt-1 text-[10px] text-slate-400">Aguardando os dados do período</p>
+                                    </div>
+                                    <strong id="rankingEquipeProductivityValue" class="shrink-0 text-xl font-black tabular-nums text-emerald-300">0%</strong>
+                                </div>
+                                <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800"><div id="rankingEquipeProductivityBar" class="h-full rounded-full bg-emerald-400 transition-all" style="width:0%"></div></div>
                             </div>
 
                             <div class="overflow-x-auto">
@@ -1754,7 +1765,7 @@
     <script src="./audaz-bi-core.js?v=organograma-cargos-20261026"></script>
     <script src="./audaz-bi-data.js?v=metas-contexto-20261023-team-scope-fix1"></script>
     <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
-    <script src="./audaz-bi-analytics.js?v=ranking-equipe-produtiva-20261026-2"></script>
+    <script src="./audaz-bi-analytics.js?v=ranking-equipe-produtiva-20261026-3"></script>
     <script src="./audaz-bi-calendar.js?v=metas-contexto-20261023"></script>
 </body>
 </html>
