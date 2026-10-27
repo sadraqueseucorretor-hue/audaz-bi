@@ -357,12 +357,9 @@
                 const totalCount = Object.values(card.map).reduce((s, v) => s + v.count, 0);
                 const totalVgv = Object.values(card.map).reduce((s, v) => s + v.vgv, 0);
 
-                const equipesComMeta = getConfiguredRankingTeams().filter(team => !selEq || rankingTeamKey(team) === rankingTeamKey(selEq));
-                const metasEquipesCard = equipesComMeta.map(team => getMetaEquipe(team, card.key));
-                const temMetaEquipe = metasEquipesCard.some(v => v > 0);
-                const meta = quickRankingMode === 'equipe' && temMetaEquipe
-                    ? metasEquipesCard.reduce((sum, v) => sum + v, 0)
-                    : getRankingMeta(card.key);
+                // O indicador do topo sempre representa a meta geral do período.
+                // As metas por equipe continuam independentes e aparecem nas linhas da tabela.
+                const meta = getRankingMeta(card.key);
                 const pct = meta > 0 ? Math.min(100, Math.round((totalCount / meta) * 100)) : 0;
                 const falta = Math.max(0, meta - totalCount);
                 const batida = meta > 0 && totalCount >= meta;
