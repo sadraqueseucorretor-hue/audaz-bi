@@ -501,6 +501,7 @@
             let equipesMap = Object.fromEntries(configuredRankingTeams.map(team => [team, { equipe:team, agendamentos:0, compareceu:0, analises:0, aprovacoes:0, vendas:0, vgv:0 }]));
             const equipeMembrosAtivos = new Map();
             const equipeCorretoresAtivos = new Map();
+            const equipeCorretoresProdutivos = new Map();
             const equipeMembrosProdutivos = new Map();
             const equipePessoaKey = nome => orgPersonKey(nome);
             const nomesAtivosPorChave = new Map(getActiveCorretores().map(nome => [equipePessoaKey(nome), nome]));
@@ -509,18 +510,19 @@
             organograma.forEach(pessoa => {
                 if (!['Gerente','Corretor','Captador','Estagiário'].includes(pessoa.role)) return;
                 const nomeAtivo = nomesAtivosPorChave.get(equipePessoaKey(pessoa.name));
-                if (!nomeAtivo || !personMatchesOrgDashboardScope(nomeAtivo)) return;
+                if (!nomeAtivo) return;
                 const equipe = getRankingTeamForBroker(nomeAtivo);
                 if (!equipe) return;
                 const equipeKey = rankingTeamKey(equipe);
-                if (selectedTeamFilter && equipeKey !== rankingTeamKey(selectedTeamFilter)) return;
-                if (!equipeMembrosAtivos.has(equipeKey)) equipeMembrosAtivos.set(equipeKey, new Set());
-                equipeMembrosAtivos.get(equipeKey).add(equipePessoaKey(nomeAtivo));
-                // A média é por corretor ativo; gerentes não entram no divisor.
+                // Base regional completa para as médias e o RAIO X, independente do corretor selecionado.
                 if (['Corretor','Captador','Estagiário'].includes(pessoa.role)) {
                     if (!equipeCorretoresAtivos.has(equipeKey)) equipeCorretoresAtivos.set(equipeKey, new Set());
                     equipeCorretoresAtivos.get(equipeKey).add(equipePessoaKey(nomeAtivo));
                 }
+                if (!personMatchesOrgDashboardScope(nomeAtivo)) return;
+                if (selectedTeamFilter && equipeKey !== rankingTeamKey(selectedTeamFilter)) return;
+                if (!equipeMembrosAtivos.has(equipeKey)) equipeMembrosAtivos.set(equipeKey, new Set());
+                equipeMembrosAtivos.get(equipeKey).add(equipePessoaKey(nomeAtivo));
             });
             filteredDataset.forEach(row => {
                 // Usa o vínculo corretor → gerente → equipe do organograma como fonte única.
@@ -551,6 +553,10 @@
                     if (equipeMembrosAtivos.get(equipeKey)?.has(pessoaKey)) {
                         if (!equipeMembrosProdutivos.has(equipeKey)) equipeMembrosProdutivos.set(equipeKey, new Set());
                         equipeMembrosProdutivos.get(equipeKey).add(pessoaKey);
+                    }
+                    if (equipeCorretoresAtivos.get(equipeKey)?.has(pessoaKey)) {
+                        if (!equipeCorretoresProdutivos.has(equipeKey)) equipeCorretoresProdutivos.set(equipeKey, new Set());
+                        equipeCorretoresProdutivos.get(equipeKey).add(pessoaKey);
                     }
                     getEqCache(eq).vendas.push(row);
                 }
@@ -634,25 +640,49 @@
                     (!equipeDoEscopo || rankingTeamKey(team) === rankingTeamKey(equipeDoEscopo)) &&
                     team.toLowerCase().includes(searchEquipeTerm)
                 );
-                const mediaEtapa = (total, equipeKey) => {
-                    const divisor = equipeCorretoresAtivos.get(equipeKey)?.size || 0;
-                    return divisor ? (total / divisor).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
-                };
+                const mediaEtapa = (total, divisor) => divisor ? (total / divisor).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
                 mediaBody.innerHTML = equipesMedia.length
                     ? equipesMedia.map((team, index) => {
                         const equipeKey = rankingTeamKey(team);
-                        const dados = equipesMap[team] || { agendamentos: 0, compareceu: 0, aprovacoes: 0, vendas: 0 };
+                        const dados = equipesMap[team] || { agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0 };
                         const quantidade = equipeCorretoresAtivos.get(equipeKey)?.size || 0;
+                        const vendedores = equipeCorretoresProdutivos.get(equipeKey)?.size || 0;
+                        const pctProdutivo = quantidade ? (vendedores / quantidade) * 100 : 0;
                         return `<tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${index === 0 ? 'text-amber-400' : 'text-slate-400'}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">Equipe ${team}<div class="text-[9px] font-normal text-slate-500">${quantidade} corretores ativos</div></td>
-                            <td class="py-3 text-center text-violet-400 font-semibold">${mediaEtapa(dados.agendamentos, equipeKey)}</td>
-                            <td class="py-3 text-center text-cyan-400 font-semibold">${mediaEtapa(dados.compareceu, equipeKey)}</td>
-                            <td class="py-3 text-center text-amber-500 font-semibold">${mediaEtapa(dados.aprovacoes, equipeKey)}</td>
-                            <td class="py-3 text-center text-brand-500 font-bold">${mediaEtapa(dados.vendas, equipeKey)}</td>
+                            <td class="py-3 text-center text-violet-400 font-semibold">${mediaEtapa(dados.agendamentos, quantidade)}</td>
+                            <td class="py-3 text-center text-cyan-400 font-semibold">${mediaEtapa(dados.compareceu, quantidade)}</td>
+                            <td class="py-3 text-center text-sky-400 font-semibold">${mediaEtapa(dados.analises, quantidade)}</td>
+                            <td class="py-3 text-center text-amber-500 font-semibold">${mediaEtapa(dados.aprovacoes, quantidade)}</td>
+                            <td class="py-3 text-center text-brand-500 font-semibold">${mediaEtapa(dados.vendas, quantidade)}</td>
+                            <td class="py-3 text-center" title="${vendedores} de ${quantidade} corretores ativos venderam no período"><span class="font-bold ${vendedores ? 'text-emerald-400' : 'text-slate-500'}">${quantidade ? pctProdutivo.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—'}</span><div class="text-[9px] text-slate-500">${vendedores}/${quantidade}</div></td>
                         </tr>`;
                     }).join('')
-                    : '<tr><td colspan="6" class="text-center py-5 text-slate-500">Nenhuma equipe encontrada.</td></tr>';
+                    : '<tr><td colspan="8" class="text-center py-5 text-slate-500">Nenhuma equipe encontrada.</td></tr>';
+            }
+
+            // RAIO X: total regional e médias por corretor no período exibido.
+            const raioX = document.getElementById('raioXRegional');
+            if (raioX) {
+                const equipeKeys = configuredRankingTeams.map(rankingTeamKey);
+                const corretoresRegionais = new Set(equipeKeys.flatMap(key => [...(equipeCorretoresAtivos.get(key) || [])]));
+                const corretoresProdutivosRegionais = new Set(equipeKeys.flatMap(key => [...(equipeCorretoresProdutivos.get(key) || [])]));
+                const divisorRegional = corretoresRegionais.size;
+                const totalRegional = ['agendamentos','compareceu','analises','aprovacoes','vendas'].reduce((acc, campo) => {
+                    acc[campo] = configuredRankingTeams.reduce((sum, team) => sum + (equipesMap[team]?.[campo] || 0), 0);
+                    return acc;
+                }, {});
+                const percentualRegional = divisorRegional ? (corretoresProdutivosRegionais.size / divisorRegional) * 100 : 0;
+                const fmtMediaRegional = valor => divisorRegional ? (valor / divisorRegional).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
+                const atualiza = (id, valor) => { const el = document.getElementById(id); if (el) el.textContent = valor; };
+                atualiza('raioXCorretoresAtivos', divisorRegional.toLocaleString('pt-BR'));
+                atualiza('raioXProdutividade', divisorRegional ? percentualRegional.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—');
+                atualiza('raioXVendedores', `${corretoresProdutivosRegionais.size}/${divisorRegional} corretores venderam`);
+                ['agendamentos','compareceu','analises','aprovacoes','vendas'].forEach(campo => {
+                    atualiza(`raioX-${campo}-total`, (totalRegional[campo] || 0).toLocaleString('pt-BR'));
+                    atualiza(`raioX-${campo}-media`, fmtMediaRegional(totalRegional[campo] || 0));
+                });
             }
         }
 
