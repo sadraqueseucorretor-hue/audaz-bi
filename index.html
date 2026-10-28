@@ -780,6 +780,30 @@
                         </div>
                     </div>
 
+                    <div id="rankingEquipeAveragesCard" class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6">
+                        <div class="mb-4">
+                            <h3 class="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-chart-column text-emerald-400"></i> Média por corretor em cada equipe
+                            </h3>
+                            <p class="mt-1 text-[10px] text-slate-500">Produção da equipe no período ÷ corretores ativos vinculados. A produção do gerente soma à equipe; gerentes não entram no divisor.</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                        <th class="pb-3 pl-2">Pos</th>
+                                        <th class="pb-3">Equipe</th>
+                                        <th class="pb-3 text-center">Agendamentos / corretor</th>
+                                        <th class="pb-3 text-center">Visitas / corretor</th>
+                                        <th class="pb-3 text-center">Aprovados / corretor</th>
+                                        <th class="pb-3 text-center">Vendas / corretor</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rankingEquipeAveragesBody" class="divide-y divide-slate-800/40 text-xs"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
 
 <section class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6" id="ipcSection">
@@ -1765,7 +1789,7 @@
     <script src="./audaz-bi-core.js?v=organograma-cargos-20261026"></script>
     <script src="./audaz-bi-data.js?v=metas-gerais-independentes-20261027"></script>
     <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
-    <script src="./audaz-bi-analytics.js?v=ranking-equipe-produtiva-20261026-3"></script>
+    <script src="./audaz-bi-analytics.js?v=media-por-corretor-equipe-20261028"></script>
     <script src="./audaz-bi-calendar.js?v=metas-contexto-20261023"></script>
 </body>
 </html>
