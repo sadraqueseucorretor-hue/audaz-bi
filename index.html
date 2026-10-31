@@ -1400,7 +1400,7 @@
 
     <!-- MODAL DE DRILL-DOWN / DETALHES DE PRODUÇÃO DIÁRIA -->
     <div id="calendarDetailModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 relative shadow-2xl">
+        <div id="detailModalBox" class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 relative shadow-2xl">
             <button onclick="closeCalendarCellDetail()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
@@ -1444,10 +1444,11 @@
                             </button>
                         </div>
                     </div>
-                    <div class="overflow-y-auto max-h-64 border border-slate-800 rounded-lg">
+                    <div id="detailLeadsChips" class="hidden flex flex-wrap items-center gap-1.5 mb-2"></div>
+                    <div id="detailTableWrap" class="overflow-y-auto overflow-x-auto max-h-64 border border-slate-800 rounded-lg">
                         <table class="w-full text-left text-xs border-collapse">
-                            <thead>
-                                <tr class="bg-slate-950 text-[10px] text-slate-500 font-bold uppercase tracking-wider border-b border-slate-800">
+                            <thead class="sticky top-0 z-10">
+                                <tr id="detailTableHead" class="bg-slate-950 text-[10px] text-slate-500 font-bold uppercase tracking-wider border-b border-slate-800">
                                     <th class="p-2 pl-3">ID</th>
                                     <th class="p-2">Cliente</th>
                                     <th class="p-2">Construtora</th>
@@ -1833,7 +1834,7 @@
     <script src="./audaz-bi-data.js?v=leads-crm-20261031b"></script>
     <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
     <script src="./audaz-bi-analytics.js?v=media-com-gerente-sem-produtividade-20261028"></script>
-    <script src="./audaz-bi-calendar.js?v=ranking-lead-20261031"></script>
+    <script src="./audaz-bi-calendar.js?v=leads-visual-20261031"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
 </body>
 </html>
