@@ -1972,7 +1972,8 @@
                     'Origem': String(col(l, 'origem da conta') || '').trim(),
                     'Ranking': String(col(l, 'ranking') || '').trim(),
                     'Empreendimento': String(col(l, 'emp. de interesse') || '').trim(),
-                    'Gerente CRM': String(col(l, 'gerente de vendas') || '').trim()
+                    'Gerente CRM': String(col(l, 'gerente de vendas') || '').trim(),
+                    'Tag': String(col(l, 'tag bolsao', 'tag') || '').trim()
                 };
             });
             const novas = Object.values(convertidas);
@@ -2043,7 +2044,8 @@
                     'Origem': 'DV On',
                     'Ranking': '',
                     'Empreendimento': l.empreendimento,
-                    'Gerente CRM': ''
+                    'Gerente CRM': '',
+                    'Tag': ''
                 });
                 contatosNovos[id] = { tel: formatarTelefoneBr(l.numero), email: '' };
             });
@@ -2116,7 +2118,11 @@
             novas.forEach(r => { if (porId[r.ID]) atualizados++; porId[r.ID] = r; });
             Object.assign(contatosProspeccao, contatosNovos);
             saveLocalSetting(`${appId}-prospeccao-contatos`, JSON.stringify(contatosProspeccao));
-            const ok = applyProspeccaoCsvText(Papa.unparse(Object.values(porId)));
+            // Colunas = união de todas as linhas (o Papa.unparse usaria só as da 1ª linha e perderia
+            // colunas novas, ex.: "Tag", quando a 1ª linha é um lead antigo).
+            const todasLinhas = Object.values(porId);
+            const campos = [...new Set(todasLinhas.flatMap(r => Object.keys(r)))];
+            const ok = applyProspeccaoCsvText(Papa.unparse({ fields: campos, data: todasLinhas.map(r => campos.map(c => r[c] == null ? '' : r[c])) }));
             const resumo = document.getElementById('prospeccaoImportResumo');
             if (ok && resumo) {
                 const escR = n => String(n).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';');
