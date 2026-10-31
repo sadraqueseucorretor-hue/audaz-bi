@@ -566,6 +566,21 @@
                 if (isCompareceu(row) && agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'compareceu')) equipesMap[eq].compareceu++;
             });
 
+            // Leads (Prospecção: Salesforce + DV On) por equipe, pelo mesmo vínculo corretor → equipe
+            // do organograma. Lead de quem não tem equipe (ex.: Sadraque, regional — que recebe os
+            // leads sem corretor) vai pra linha "Regional" no fim da tabela.
+            leadsPorEquipeCache = {};
+            const refProsp = (typeof currentRefDateProspeccao !== 'undefined' && currentRefDateProspeccao) || refDateTables;
+            (filteredProspeccaoDataset || []).forEach(row => {
+                if (!metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', refProsp)) return;
+                const eq = row.Corretor ? getRankingTeamForBroker(row.Corretor) : '';
+                const chave = eq || '__regional';
+                if (eq && selectedTeamFilter && rankingTeamKey(eq) !== rankingTeamKey(selectedTeamFilter)) return;
+                if (eq && !equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
+                if (eq) equipesMap[eq].leads = (equipesMap[eq].leads || 0) + 1;
+                (leadsPorEquipeCache[chave] = leadsPorEquipeCache[chave] || []).push(row);
+            });
+
             let rankingEquipes = Object.values(equipesMap)
                 .filter(eq => eq.equipe.toLowerCase().includes(searchEquipeTerm))
                 .sort(rankSorter);
@@ -592,7 +607,7 @@
             eqBody.innerHTML = '';
 
             if (rankingEquipes.length === 0) {
-                eqBody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-slate-500">Nenhuma equipe encontrada.</td></tr>`;
+                eqBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-slate-500">Nenhuma equipe encontrada.</td></tr>`;
             } else {
                 rankingEquipes.forEach((eq, index) => {
                     const equipeKey = rankingTeamKey(eq.equipe);
@@ -609,6 +624,7 @@
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">Equipe ${eq.equipe}</td>
+                            <td class="py-3 text-center text-pink-400 font-semibold ${eq.leads > 0 ? 'cursor-pointer hover:text-pink-300 hover:underline' : ''}" ${eq.leads > 0 ? `onclick="abrirLeadsEquipe('${eqEsc}')"` : ''} title="${eq.leads > 0 ? 'Ver leads da equipe' : ''}">${eq.leads || 0}</td>
                             <td class="py-3 text-center text-violet-400 font-semibold">${eq.agendamentos || 0}</td>
                             <td class="py-3 text-center text-cyan-400 font-semibold">${eq.compareceu || 0}</td>
                             <td class="py-3 text-center text-slate-400 ${eq.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${eq.analises > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','analises')"` : ''} title="${eq.analises > 0 ? 'Ver clientes' : ''}">${eq.analises}</td>
@@ -620,6 +636,17 @@
                     `;
                     eqBody.insertAdjacentHTML('beforeend', rowHtml);
                 });
+            }
+            const leadsRegional = (leadsPorEquipeCache.__regional || []).length;
+            if (leadsRegional && !selectedTeamFilter && !searchEquipeTerm) {
+                const nomes = [...new Set(leadsPorEquipeCache.__regional.map(r => r.Corretor ? parseNomeCargo(r.Corretor).nome : 'Sem corretor'))].join(', ');
+                eqBody.insertAdjacentHTML('beforeend', `
+                    <tr class="bg-slate-950/40 border-t border-slate-800">
+                        <td class="py-2.5 pl-2 text-slate-600">—</td>
+                        <td class="py-2.5 text-slate-400 text-[11px]"><i class="fa-solid fa-user-tie mr-1 text-slate-500"></i>Regional (sem equipe)<div class="text-[9px] text-slate-500">${nomes}</div></td>
+                        <td class="py-2.5 text-center text-pink-400 font-semibold cursor-pointer hover:text-pink-300 hover:underline" onclick="abrirLeadsEquipe('__regional')" title="Ver leads da regional">${leadsRegional}</td>
+                        <td colspan="7" class="py-2.5 text-[10px] text-slate-500 pl-3">Leads que ficaram com a regional (inclui os que vieram sem corretor).</td>
+                    </tr>`);
             }
 
             // Média de produção por corretor ativo, usando os mesmos totais e datas do ranking de equipes.
@@ -2694,3 +2721,18 @@
         }
 
         
+
+
+        // Leads (Prospecção) por equipe — preenchido no ranking de equipes; clique na coluna "Leads".
+        let leadsPorEquipeCache = {};
+        function abrirLeadsEquipe(eq) {
+            const rows = leadsPorEquipeCache[eq] || [];
+            const ref = (typeof currentRefDateProspeccao !== 'undefined' && currentRefDateProspeccao) || new Date();
+            showDetailModal({
+                label1: 'Equipe', label2: 'Mês de Referência',
+                nome: eq === '__regional' ? 'Leads — Regional (sem equipe)' : `Leads — Equipe ${eq}`,
+                dataStr: `${getMesName(ref.getMonth() + 1)}/${ref.getFullYear()}`,
+                rows, showCorretor: true,
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'lead' : 'leads'}`
+            });
+        }
