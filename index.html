@@ -1761,24 +1761,26 @@
                 </div>
                 <div>
                     <h4 class="text-base font-bold text-slate-200">Prospecção (Leads)</h4>
-                    <p class="text-xs text-slate-500">Sem planilha ao vivo — carregue um CSV manualmente</p>
+                    <p class="text-xs text-slate-500">Sem planilha ao vivo — anexe o Excel de leads do CRM</p>
                 </div>
             </div>
 
             <p class="text-[11px] text-slate-400 leading-relaxed mb-4">
-                Alimenta a etapa <strong class="text-pink-300">"Prospecção"</strong> do Funil de Vendas. Exporte a planilha de leads como CSV (Excel: Arquivo → Salvar Como → CSV) e carregue aqui. Cada upload é organizado <strong class="text-slate-300">pelo próprio "Mês Comercial"</strong> de cada linha — carregar um mês novo não apaga os outros já anexados, e cada mês pode ser removido individualmente abaixo.
+                Alimenta a etapa <strong class="text-pink-300">"Prospecção"</strong> do Funil de Vendas. Anexe o <strong class="text-slate-300">Excel de oportunidades do CRM</strong> (.xlsx). Cada lead entra no mês comercial da sua <strong class="text-slate-300">Data de criação</strong>, conforme os períodos de "Meses Comerciais". Anexar de novo <strong class="text-slate-300">soma</strong> ao mês (leads repetidos, pelo código OP, só são atualizados) — não apaga o que já estava.
             </p>
 
             <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1 mb-4">
-                <p class="font-bold text-slate-300">Colunas esperadas:</p>
-                <p class="font-mono text-pink-400">ID | Cliente | Corretor | Equipe | Situação | Cadastro | Mês Comercial</p>
-                <p>Mês Comercial no formato <span class="font-mono text-slate-300">2026/07</span> (ano/mês).</p>
+                <p class="font-bold text-slate-300">Colunas usadas do Excel:</p>
+                <p class="font-mono text-pink-400">Nome do corretor | Nome da oportunidade | STATUS DA OPORTUNIDADE | Data de criação</p>
+                <p>O nome completo do corretor é ligado ao nome do BI automaticamente (ex.: <span class="text-slate-300">FRANCISCO YAGO FREIRE DOS SANTOS → Yago Freire</span>; <span class="text-slate-300">EDUARDO DOS SANTOS DA SILVA → Eduardo Prudêncio</span>). Telefone e e-mail não são guardados.</p>
+                <p class="text-slate-500">Ainda aceita o CSV antigo (ID | Cliente | Corretor | Equipe | Situação | Cadastro | Mês Comercial).</p>
             </div>
 
-            <input type="file" id="prospeccaoFileInput" accept=".csv,text/csv" class="hidden" onchange="handleProspeccaoFileInput(event)">
-            <button onclick="document.getElementById('prospeccaoFileInput').click()" class="w-full mb-4 py-2.5 px-4 bg-pink-600 hover:bg-pink-500 active:bg-pink-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-pink-500/20 transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-upload"></i> Anexar CSV
+            <input type="file" id="prospeccaoFileInput" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" onchange="handleProspeccaoFileInput(event)">
+            <button onclick="document.getElementById('prospeccaoFileInput').click()" class="w-full mb-3 py-2.5 px-4 bg-pink-600 hover:bg-pink-500 active:bg-pink-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-pink-500/20 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-excel"></i> Anexar Excel de leads
             </button>
+            <div id="prospeccaoImportResumo" class="hidden mb-4 bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-[11px] text-slate-300 leading-relaxed"></div>
 
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Meses carregados</p>
             <div id="prospeccaoMesesList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -1828,7 +1830,7 @@
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
     <script src="./audaz-bi-core.js?v=organograma-status-sistema-20261029"></script>
-    <script src="./audaz-bi-data.js?v=metas-gerais-independentes-20261027"></script>
+    <script src="./audaz-bi-data.js?v=leads-crm-20261031"></script>
     <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
     <script src="./audaz-bi-analytics.js?v=media-com-gerente-sem-produtividade-20261028"></script>
     <script src="./audaz-bi-calendar.js?v=metas-contexto-20261023"></script>
