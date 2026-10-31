@@ -430,7 +430,7 @@ const CAL_METRICS = {
             <th class="p-2">Criado em</th>
             <th class="p-2 pr-3">Situação</th>`;
 
-        const ehLeadCrm = r => /^(OP|DV)-\d+/i.test(String(r && r.ID || '')); // OP = Excel do CRM · DV = PDF do DV On
+        const ehLeadCrm = r => /^(OP|DV)-\d+/i.test(String(r && r.ID || '')); // OP = Excel do Salesforce · DV = PDF do DV On
         const escDet = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         // "Ouro🥇" → { nome: 'Ouro', chave: 'ouro', emoji: '🥇' }
         function rankingLead(r) {
@@ -477,9 +477,18 @@ const CAL_METRICS = {
         // Ranking. Cada linha de chips conta os leads que passam nos OUTROS filtros ativos.
         let detailLeadsFonte = '';
         let detailLeadsBolsao = '';   // '' | 'bolsao' | 'fora'
+        let detailLeadsSistema = '';  // '' | 'salesforce' | 'dvon'
+        // Sistema de origem do lead: Excel = Salesforce (ID "OP-..."), PDF = DV On (ID "DV-...").
+        const sistemaLead = r => /^DV-/i.test(String(r && r.ID || '')) ? 'dvon' : 'salesforce';
+        const SISTEMA_INFO = {
+            salesforce: { nome: 'Salesforce', icone: 'fa-cloud', cor: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
+            dvon: { nome: 'DV On', icone: 'fa-comments', cor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
+        };
+        const passaSistema = r => !detailLeadsSistema || sistemaLead(r) === detailLeadsSistema;
         const ehBolsao = r => /bols/i.test(String(r && r.Tag || ''));
         const fonteChave = r => stripDiacritics(String(r && r.Origem || '').trim()).toLowerCase() || 'sem';
-        const passaBolsao = r => !detailLeadsBolsao || (detailLeadsBolsao === 'bolsao' ? ehBolsao(r) : !ehBolsao(r));
+        const passaBolsao0 = r => !detailLeadsBolsao || (detailLeadsBolsao === 'bolsao' ? ehBolsao(r) : !ehBolsao(r));
+        const passaBolsao = r => passaBolsao0(r);
         const passaFonte = r => !detailLeadsFonte || fonteChave(r) === detailLeadsFonte;
         const passaRanking = r => !detailLeadsFiltro || (rankingLead(r).chave || 'sem') === detailLeadsFiltro;
 
@@ -489,16 +498,16 @@ const CAL_METRICS = {
             const linha = (titulo, conteudo) => `<div class="flex flex-wrap items-center gap-1.5"><span class="w-[78px] shrink-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">${titulo}</span>${conteudo}</div>`;
 
             // 1) Separação por bolsão
-            const baseB = detailLeadsTodos.filter(r => passaFonte(r) && passaRanking(r));
+            const baseB = detailLeadsTodos.filter(r => passaSistema(r) && passaFonte(r) && passaRanking(r));
             const nB = baseB.filter(ehBolsao).length;
             const temTag = detailLeadsTodos.some(ehBolsao);
             const sep = chip('filtrarDetailLeadsBolsao', '', !detailLeadsBolsao, 'Todos', baseB.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + chip('filtrarDetailLeadsBolsao', 'bolsao', detailLeadsBolsao === 'bolsao', '<i class="fa-solid fa-box-archive mr-1"></i>Bolsão', nB, 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30')
                 + chip('filtrarDetailLeadsBolsao', 'fora', detailLeadsBolsao === 'fora', 'Fora do bolsão', baseB.length - nB, 'bg-slate-900 text-slate-400 border-slate-700')
-                + (temTag ? '' : '<span class="text-[10px] text-slate-500 ml-1">(anexe de novo o Excel do CRM pra trazer a Tag Bolsão)</span>');
+                + (temTag ? '' : '<span class="text-[10px] text-slate-500 ml-1">(anexe de novo o Excel do Salesforce pra trazer a Tag Bolsão)</span>');
 
             // 2) Fontes (Origem)
-            const baseF = detailLeadsTodos.filter(r => passaBolsao(r) && passaRanking(r));
+            const baseF = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaRanking(r));
             const contF = {}, rotF = {};
             baseF.forEach(r => { const k = fonteChave(r); contF[k] = (contF[k] || 0) + 1; if (!rotF[k]) rotF[k] = String(r.Origem || '').trim() || 'Sem fonte'; });
             const fontes = Object.keys(contF).sort((a, b) => (a === 'sem') - (b === 'sem') || contF[b] - contF[a]);
@@ -506,7 +515,7 @@ const CAL_METRICS = {
                 + fontes.map(k => chip('filtrarDetailLeadsFonte', k.replace(/'/g, "\\'"), detailLeadsFonte === k, escDet(rotF[k]), contF[k], k === 'sem' ? 'bg-slate-900 text-slate-400 border-slate-700' : 'bg-violet-500/10 text-violet-300 border-violet-500/25')).join('');
 
             // 3) Ranking
-            const baseR = detailLeadsTodos.filter(r => passaBolsao(r) && passaFonte(r));
+            const baseR = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r));
             const cont = {};
             baseR.forEach(r => { const k = rankingLead(r).chave || 'sem'; cont[k] = (cont[k] || 0) + 1; });
             const chaves = RANKING_ORDEM.filter(k => cont[k]).concat(Object.keys(cont).filter(k => !RANKING_ORDEM.includes(k) && k !== 'sem')).concat(cont.sem ? ['sem'] : []);
@@ -518,15 +527,23 @@ const CAL_METRICS = {
                     return chip('filtrarDetailLeads', k, detailLeadsFiltro === k, `${escDet(x.nome)} ${x.emoji}`, cont[k], RANKING_COR[k] || 'bg-slate-800 text-slate-300 border-slate-700');
                 }).join('');
 
-            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${linha('Separar', sep)}${linha('Fonte', fon)}${linha('Ranking', rk)}</div>`;
+            // 0) Sistema (Salesforce = Excel · DV On = PDF)
+            const baseS = detailLeadsTodos.filter(r => passaBolsao(r) && passaFonte(r) && passaRanking(r));
+            const nS = { salesforce: 0, dvon: 0 };
+            baseS.forEach(r => nS[sistemaLead(r)]++);
+            const sis = chip('filtrarDetailLeadsSistema', '', !detailLeadsSistema, 'Todos', baseS.length, 'bg-slate-800 text-slate-200 border-slate-700')
+                + ['salesforce', 'dvon'].map(k => chip('filtrarDetailLeadsSistema', k, detailLeadsSistema === k, `<i class="fa-solid ${SISTEMA_INFO[k].icone} mr-1"></i>${SISTEMA_INFO[k].nome}`, nS[k], SISTEMA_INFO[k].cor)).join('');
+
+            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${linha('Sistema', sis)}${linha('Separar', sep)}${linha('Fonte', fon)}${linha('Ranking', rk)}</div>`;
         }
         function aplicarFiltrosDetailLeads() {
-            currentDetailRows = detailLeadsTodos.filter(r => passaBolsao(r) && passaFonte(r) && passaRanking(r));
+            currentDetailRows = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r));
             renderDetailLeadsChips();
             renderDetailLeadsRows();
         }
         function filtrarDetailLeads(k) { detailLeadsFiltro = (k && detailLeadsFiltro === k) ? '' : k; aplicarFiltrosDetailLeads(); }
         function filtrarDetailLeadsFonte(k) { detailLeadsFonte = (k && detailLeadsFonte === k) ? '' : k; aplicarFiltrosDetailLeads(); }
+        function filtrarDetailLeadsSistema(k) { detailLeadsSistema = (k && detailLeadsSistema === k) ? '' : k; aplicarFiltrosDetailLeads(); }
         function filtrarDetailLeadsBolsao(k) { detailLeadsBolsao = (k && detailLeadsBolsao === k) ? '' : k; aplicarFiltrosDetailLeads(); }
         function renderDetailLeadsRows() {
             const tableBody = document.getElementById('detailTableBody');
@@ -534,7 +551,7 @@ const CAL_METRICS = {
             let html = '';
             if (!detailLeadsTodos.some(r => contatoDoLead(r).tel || contatoDoLead(r).email)) {
                 html += `<tr><td colspan="6" class="p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-200">
-                    <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail não estão neste navegador — eles ficam só no computador onde o Excel de leads foi anexado.
+                    <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail não estão neste navegador — eles ficam só no computador onde o Excel (Salesforce) / PDF (DV On) foi anexado.
                     <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleProspeccaoModal();" class="ml-1 underline font-bold text-amber-300 hover:text-amber-100">Anexar o Excel aqui</button>
                 </td></tr>`;
             }
@@ -548,7 +565,7 @@ const CAL_METRICS = {
                     <tr class="hover:bg-slate-950 transition align-top">
                         <td class="p-2.5 pl-3">
                             <div class="font-bold text-slate-100 text-[12px] leading-tight">${escDet(r.Cliente || '-')}</div>
-                            <div class="mt-1 flex items-center gap-1.5 flex-wrap">${ehBolsao(r) ? `<span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30" title="Tag Bolsão (CRM)"><i class="fa-solid fa-box-archive"></i>${escDet(r.Tag)}</span>` : ''}${rankingBadge(r)}<span class="text-[9px] text-slate-600 font-mono">${escDet(r.ID)}</span></div>
+                            <div class="mt-1 flex items-center gap-1.5 flex-wrap">${ehBolsao(r) ? `<span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30" title="Tag Bolsão (CRM)"><i class="fa-solid fa-box-archive"></i>${escDet(r.Tag)}</span>` : ''}${rankingBadge(r)}<span class="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ${SISTEMA_INFO[sistemaLead(r)].cor}" title="Sistema de origem do lead"><i class="fa-solid ${SISTEMA_INFO[sistemaLead(r)].icone}"></i>${SISTEMA_INFO[sistemaLead(r)].nome}</span><span class="text-[9px] text-slate-600 font-mono">${escDet(r.ID)}</span></div>
                         </td>
                         <td class="p-2.5 select-text">
                             ${c.tel ? `<a href="${linkWhatsApp(c.tel)}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 rounded-md px-2 py-1 whitespace-nowrap"><i class="fa-brands fa-whatsapp text-[13px]"></i>${escDet(c.tel)}</a>` : '<span class="text-[10px] text-slate-600">sem telefone</span>'}
@@ -565,7 +582,7 @@ const CAL_METRICS = {
             });
             tableBody.innerHTML = html;
             const total = document.getElementById('detailCorrTotal');
-            if (total) total.textContent = (detailLeadsFiltro || detailLeadsFonte || detailLeadsBolsao) ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
+            if (total) total.textContent = (detailLeadsFiltro || detailLeadsFonte || detailLeadsBolsao || detailLeadsSistema) ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
         }
 
         // Renderizador genérico do modal de detalhamento de clientes — usado pelo calendário,
@@ -587,7 +604,7 @@ const CAL_METRICS = {
                 // Mais recentes primeiro (Cadastro dd/mm/aaaa).
                 const dt = r => { const d = parseDate(r.Cadastro); return d ? d.getTime() : 0; };
                 detailLeadsTodos = rows.slice().sort((a, b) => dt(b) - dt(a));
-                detailLeadsFiltro = ''; detailLeadsFonte = ''; detailLeadsBolsao = '';
+                detailLeadsFiltro = ''; detailLeadsFonte = ''; detailLeadsBolsao = ''; detailLeadsSistema = '';
                 currentDetailRows = detailLeadsTodos;
                 renderDetailLeadsChips();
                 renderDetailLeadsRows();
@@ -635,6 +652,7 @@ const CAL_METRICS = {
         // Colunas da exportação de LEADS (Excel e PDF usam a mesma lista).
         function colunasExportLeads() {
             return [
+                ['Sistema', r => SISTEMA_INFO[sistemaLead(r)].nome],
                 ['ID', r => r.ID],
                 ['Criado em', r => r.Cadastro],
                 ['Cliente', r => r.Cliente],
@@ -688,7 +706,7 @@ const CAL_METRICS = {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${stripDiacritics(currentDetailTitle).toLowerCase().replace(/[^a-z0-9]+/g, '-')}${currentDetailRows.every(ehLeadCrm) ? [detailLeadsBolsao, detailLeadsFonte, detailLeadsFiltro].filter(Boolean).map(x => '-' + x.replace(/[^a-z0-9]+/g, '-')).join('') : ''}.csv`;
+            a.download = `${stripDiacritics(currentDetailTitle).toLowerCase().replace(/[^a-z0-9]+/g, '-')}${currentDetailRows.every(ehLeadCrm) ? [detailLeadsSistema, detailLeadsBolsao, detailLeadsFonte, detailLeadsFiltro].filter(Boolean).map(x => '-' + x.replace(/[^a-z0-9]+/g, '-')).join('') : ''}.csv`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
             showToast(`Excel exportado: ${currentDetailRows.length} cliente(s).`);
@@ -728,7 +746,7 @@ const CAL_METRICS = {
                     ${modoLeads ? '@page { size: A4 landscape; margin: 10mm; } table { font-size: 9.5px; } th, td { padding: 4px 5px; }' : ''}
                 </style></head><body>
                 <h1>${currentDetailTitle}</h1>
-                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro)].filter(Boolean).map(x => ' · ' + x).join('') : ''} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
+                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsSistema && ('sistema: ' + SISTEMA_INFO[detailLeadsSistema].nome), detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro)].filter(Boolean).map(x => ' · ' + x).join('') : ''} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
                 <table>
                     <thead><tr>${headHtml}</tr></thead>
                     <tbody>${rowsHtml}</tbody>
