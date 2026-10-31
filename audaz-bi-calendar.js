@@ -429,6 +429,15 @@ const CAL_METRICS = {
             if (rows.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum cliente neste recorte.</td></tr>`;
             } else {
+                // Leads do CRM (Prospecção) sem nenhum contato neste navegador: o telefone/e-mail fica
+                // só no computador onde o Excel foi anexado — avisa e oferece anexar aqui.
+                const leadsCrm = rows.filter(r => /^OP-\d+/i.test(String(r.ID || '')));
+                if (leadsCrm.length && typeof contatoProspeccao === 'function' && !leadsCrm.some(r => contatoProspeccao(r.ID))) {
+                    tableBody.insertAdjacentHTML('beforeend', `<tr><td colspan="6" class="p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-200">
+                        <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail não estão neste navegador — eles ficam só no computador onde o Excel de leads foi anexado.
+                        <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleProspeccaoModal();" class="ml-1 underline font-bold text-amber-300 hover:text-amber-100">Anexar o Excel aqui</button>
+                    </td></tr>`);
+                }
                 rows.forEach(r => {
                     const idText = r.ID || '-';
                     const clienteText = r.Cliente || '-';
@@ -444,12 +453,16 @@ const CAL_METRICS = {
                     if (isAprovado(sitText)) situationClass = "text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded";
                     if (sitText === 'Reprovado') situationClass = "text-rose-500 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded";
 
+                    const rkTxt = String(r.Ranking || '').trim();
+                    const rkNome = rkTxt.replace(/[^A-Za-zÀ-ÿ]/g, '');
+                    const rkCor = { diamante: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30', ouro: 'bg-amber-500/15 text-amber-300 border-amber-500/30', prata: 'bg-slate-400/15 text-slate-200 border-slate-400/30', bronze: 'bg-orange-700/20 text-orange-300 border-orange-600/30', aco: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/30' }[stripDiacritics(rkNome).toLowerCase()] || 'bg-slate-700/30 text-slate-300 border-slate-600/40';
+                    const rankingHtml = rkTxt ? `<span class="ml-1.5 align-middle inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${rkCor}" title="Ranking do lead no CRM">${rkTxt}</span>` : '';
                     const corretorTag = showCorretor && r.Corretor ? `<div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">${r.Corretor}</div>` : '';
 
                     const rowHtml = `
                         <tr class="hover:bg-slate-950 transition">
                             <td class="p-2 pl-3 font-semibold text-slate-400">${idText}</td>
-                            <td class="p-2 font-bold text-slate-200">${corretorTag}${clienteText}${contatoHtml}</td>
+                            <td class="p-2 font-bold text-slate-200">${corretorTag}${clienteText}${rankingHtml}${contatoHtml}</td>
                             <td class="p-2 text-slate-300">${construtoraText}</td>
                             <td class="p-2 text-slate-300 truncate max-w-[120px]">${empText}</td>
                             <td class="p-2 text-[10px]">${isGanho(r) ? '<span class="text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded mr-1">Venda</span>' : ''}<span class="${situationClass}">${sitText}</span></td>
@@ -479,12 +492,12 @@ const CAL_METRICS = {
         // Exporta os clientes do detalhamento aberto para .csv (abre certinho no Excel).
         function exportDetailCSV() {
             if (!currentDetailRows.length) { showToast('Nada para exportar.', true); return; }
-            const headers = ['ID', 'Cliente', 'Telefone', 'E-mail', 'Corretor', 'Construtora', 'Empreendimento', 'Situação', 'VGV'];
+            const headers = ['ID', 'Cliente', 'Ranking', 'Telefone', 'E-mail', 'Corretor', 'Construtora', 'Empreendimento', 'Situação', 'VGV'];
             const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
             const lines = [headers.map(esc).join(';')];
             currentDetailRows.forEach(r => {
                 lines.push([
-                    r.ID, r.Cliente,
+                    r.ID, r.Cliente, r.Ranking,
                     (typeof contatoProspeccao === 'function' && contatoProspeccao(r.ID) || {}).tel,
                     (typeof contatoProspeccao === 'function' && contatoProspeccao(r.ID) || {}).email,
                     r.Corretor, r.Construtora, r.Empreendimento,
