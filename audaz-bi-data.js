@@ -1868,13 +1868,38 @@
             return { nome: normalizeProspeccaoCorretor(nomeCompleto), reconhecido: false };
         }
 
-        // Mês comercial da data do lead: usa os períodos configurados em "Meses Comerciais"
-        // (ex.: Outubro = 05/10 a 05/11); sem config cobrindo a data, cai no mês do calendário.
+        // Mês comercial da data do lead, na mesma régua da planilha principal:
+        // 1º) períodos configurados em "Meses Comerciais" (ex.: Outubro = 05/10 a 05/11);
+        // 2º) dia fora desses períodos (buraco entre um mês e outro) → o "Mês Cadastro" que a
+        //     planilha principal usou pra análises com essa mesma Data Cadastro (o mais frequente);
+        // 3º) nem a planilha tem esse dia → mês do calendário.
         function mesComercialDaDataProspeccao(d) {
             const dia = new Date(d.getFullYear(), d.getMonth(), d.getDate());
             const cfg = mesesComerciais.find(m => dia >= new Date(m.inicio + 'T00:00:00') && dia <= new Date(m.fim + 'T00:00:00'));
             if (cfg) return `${cfg.ano}/${String(MESES_IDX[normalizeMes(cfg.nome)] + 1).padStart(2, '0')}`;
+            const cont = {};
+            (dataset || []).forEach(r => {
+                const dc = parseDate(r['Data Cadastro']);
+                if (!dc || dc.getFullYear() !== dia.getFullYear() || dc.getMonth() !== dia.getMonth() || dc.getDate() !== dia.getDate()) return;
+                const nome = normalizeMes(r['Mês Cadastro']);
+                if (MESES_IDX[nome] === undefined) return;
+                const ano = getMesAno(r['Mês Cadastro']) || dia.getFullYear();
+                const k = `${ano}/${String(MESES_IDX[nome] + 1).padStart(2, '0')}`;
+                cont[k] = (cont[k] || 0) + 1;
+            });
+            const daPlanilha = Object.keys(cont).sort((a, b) => cont[b] - cont[a])[0];
+            if (daPlanilha) return daPlanilha;
             return `${dia.getFullYear()}/${String(dia.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        // Contato do cliente (telefone/e-mail) dos leads do CRM, por ID da oportunidade.
+        // Fica SÓ neste navegador (não vai pra nuvem): o BI é público e o documento de
+        // configurações no Firestore é legível por qualquer um — nome do cliente já aparece,
+        // mas telefone/e-mail não podem vazar. Aparece no detalhamento de clientes (Prospecção).
+        let contatosProspeccao = {};
+        try { contatosProspeccao = JSON.parse(localStorage.getItem(`${appId}-prospeccao-contatos`) || '{}') || {}; } catch (e) { contatosProspeccao = {}; }
+        function contatoProspeccao(id) {
+            return (id && contatosProspeccao[id]) || null;
         }
         function dataLeadCrm(v) {
             if (v instanceof Date && !isNaN(v)) return v;
@@ -1894,8 +1919,8 @@
         // Corretor, Equipe, Situação, Cadastro, Mês Comercial) e JUNTA com o que já estava
         // carregado nos mesmos meses, pelo ID da oportunidade — anexar um relatório parcial
         // (ex.: só a última semana) soma ao mês em vez de apagar o resto; o mesmo lead anexado
-        // de novo só é atualizado. Telefone e e-mail NÃO são guardados (a Prospecção sincroniza
-        // pela nuvem e o documento de configurações é legível por qualquer um).
+        // de novo só é atualizado. Telefone e e-mail NÃO entram nas linhas (a Prospecção sincroniza
+        // pela nuvem, legível por qualquer um) — vão pra contatosProspeccao, só neste navegador.
         function applyProspeccaoLeadsCrm(linhas) {
             const col = (obj, ...nomes) => {
                 const chaves = Object.keys(obj);
@@ -1910,6 +1935,7 @@
                 return '';
             };
             const convertidas = {};
+            const contatosNovos = {};
             const naoReconhecidos = new Set();
             let semData = 0, semCorretor = 0;
             (linhas || []).forEach(l => {
@@ -1924,6 +1950,9 @@
                 const map = mapearCorretorCrm(brutoCorretor);
                 if (!brutoCorretor) semCorretor++;
                 else if (!map.reconhecido) naoReconhecidos.add(map.nome);
+                const tel = String(col(l, 'telefone principal', 'telefone') || '').trim();
+                const email = String(col(l, 'email principal', 'e-mail', 'email') || '').trim();
+                if (tel || email) contatosNovos[id] = { tel, email };
                 convertidas[id] = {
                     'ID': id,
                     'Cliente': cliente,
@@ -1956,6 +1985,8 @@
                 });
             });
             novas.forEach(r => { if (porId[r.ID]) atualizados++; porId[r.ID] = r; });
+            Object.assign(contatosProspeccao, contatosNovos);
+            saveLocalSetting(`${appId}-prospeccao-contatos`, JSON.stringify(contatosProspeccao));
             const ok = applyProspeccaoCsvText(Papa.unparse(Object.values(porId)));
             const resumo = document.getElementById('prospeccaoImportResumo');
             if (ok && resumo) {
