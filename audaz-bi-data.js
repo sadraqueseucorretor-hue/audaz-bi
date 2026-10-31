@@ -1665,6 +1665,7 @@
         // meses carregados em prospeccaoPorMes. Renormaliza o Corretor de cada linha de novo aqui
         // (não só no upload) pra "curar" duplicatas de nome que já tenham sido salvas antes da
         // comparação de nomes considerar acentos (ex.: "Eduardo Prudencio" x "Eduardo Prudêncio").
+        const CORRETOR_PADRAO_SEM_CORRETOR = 'Sadraque Ribeiro';
         function rebuildProspeccaoDataset() {
             // normalizeProspeccaoCorretor só consegue canonizar nomes que já existem no roster
             // oficial (dataset principal + corretores cadastrados). Um corretor que só aparece na
@@ -1676,7 +1677,12 @@
             const chave = n => stripDiacritics(parseNomeCargo(n).nome.replace(/\s+/g, ' ')).toLowerCase();
             const canonicalPorChave = {};
             prospeccaoDataset = Object.values(prospeccaoPorMes).flatMap(m => m.rows).map(row => {
-                let norm = normalizeProspeccaoCorretor(row.Corretor);
+                // Lead sem corretor (CRM com "Nome do corretor" vazio, DV On sem atendente) fica
+                // com o regional, Sadraque Ribeiro (pedido do gestor, 31/10/2026). Feito aqui, na
+                // montagem, e não no arquivo: se o CRM distribuir o lead depois, o novo upload
+                // (mesmo ID) traz o corretor certo e substitui.
+                const semCorretor = !String(row.Corretor || '').trim();
+                let norm = normalizeProspeccaoCorretor(semCorretor ? CORRETOR_PADRAO_SEM_CORRETOR : row.Corretor);
                 if (norm) {
                     const key = chave(norm);
                     if (canonicalPorChave[key]) norm = canonicalPorChave[key];
@@ -2129,7 +2135,7 @@
                 const itens = (info.fonte ? `<b class="text-slate-200">${escR(info.fonte)}:</b> ` : '') + [
                     `<b class="text-emerald-300">${novas.length - atualizados}</b> leads novos`,
                     atualizados ? `<b class="text-sky-300">${atualizados}</b> já existiam (atualizados)` : '',
-                    info.semCorretor ? `<b class="text-amber-300">${info.semCorretor}</b> sem corretor (contam só no total da equipe)` : '',
+                    info.semCorretor ? `<b class="text-amber-300">${info.semCorretor}</b> sem corretor → ficaram com Sadraque Ribeiro` : '',
                     info.semData ? `<b class="text-rose-300">${info.semData}</b> sem data de criação (ignorados)` : ''
                 ].filter(Boolean).join(' · ');
                 const nr = [...(info.naoReconhecidos || [])];
