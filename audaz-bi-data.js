@@ -1784,11 +1784,194 @@
         function handleProspeccaoFileInput(evt) {
             const file = evt.target.files && evt.target.files[0];
             if (!file) return;
+            evt.target.value = '';
+            // Excel do CRM (31/10/2026): relatório de oportunidades com "Nome do corretor" completo.
+            if (/\.(xlsx|xls)$/i.test(file.name)) {
+                carregarSheetJs().then(() => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+                            const ws = wb.Sheets[wb.SheetNames[0]];
+                            applyProspeccaoLeadsCrm(XLSX.utils.sheet_to_json(ws, { defval: '', raw: true }));
+                        } catch (err) {
+                            console.warn('Falha ao ler Excel da Prospecção:', err);
+                            showToast('Não foi possível ler esse Excel.', true);
+                        }
+                    };
+                    reader.onerror = () => showToast("Não foi possível ler esse arquivo.", true);
+                    reader.readAsArrayBuffer(file);
+                }).catch(() => showToast('Não deu pra carregar o leitor de Excel (sem internet?).', true));
+                return;
+            }
             const reader = new FileReader();
-            reader.onload = (e) => applyProspeccaoCsvText(e.target.result);
+            reader.onload = (e) => {
+                const texto = e.target.result;
+                // CSV exportado do mesmo relatório do CRM (sem as colunas ID/Corretor do padrão antigo).
+                const cab = (texto.split(/\r?\n/)[0] || '');
+                if (/nome do corretor/i.test(stripDiacritics(cab))) {
+                    applyProspeccaoLeadsCrm(Papa.parse(texto, { header: true, skipEmptyLines: true }).data);
+                    return;
+                }
+                applyProspeccaoCsvText(texto);
+            };
             reader.onerror = () => showToast("Não foi possível ler esse arquivo.", true);
             reader.readAsText(file, 'UTF-8');
-            evt.target.value = '';
+        }
+
+        // SheetJS só é baixado quando alguém anexa um Excel (não pesa no carregamento do BI).
+        let sheetJsPromise = null;
+        function carregarSheetJs() {
+            if (window.XLSX) return Promise.resolve();
+            if (!sheetJsPromise) {
+                sheetJsPromise = new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                    s.onload = () => resolve();
+                    s.onerror = () => { sheetJsPromise = null; reject(); };
+                    document.head.appendChild(s);
+                });
+            }
+            return sheetJsPromise;
+        }
+
+        // ===== LEADS DO CRM (Excel novo, 31/10/2026) =====
+        // O relatório traz o corretor com NOME COMPLETO ("FRANCISCO YAGO FREIRE DOS SANTOS"),
+        // enquanto o BI usa nome + sobrenome ("Yago Freire"). Casa quando TODAS as palavras do
+        // nome do BI aparecem, na mesma ordem, no nome completo (sem acento/maiúscula). Exceções
+        // que não seguem essa regra ficam em ALIASES_CORRETOR_CRM.
+        const ALIASES_CORRETOR_CRM = {
+            'eduardo dos santos da silva': 'Eduardo Prudêncio'
+        };
+        function chaveNomeCrm(n) {
+            return stripDiacritics(parseNomeCargo(String(n || '')).nome).toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+        function mapearCorretorCrm(nomeCompleto) {
+            const chave = chaveNomeCrm(nomeCompleto);
+            if (!chave) return { nome: '', reconhecido: true };
+            const alias = ALIASES_CORRETOR_CRM[chave];
+            if (alias) return { nome: normalizeProspeccaoCorretor(alias), reconhecido: true };
+            const palavras = chave.split(' ');
+            const contemEmOrdem = (tokens) => {
+                let i = 0;
+                for (const p of palavras) { if (p === tokens[i]) i++; if (i === tokens.length) return true; }
+                return false;
+            };
+            const candidatos = getAllKnownCorretores()
+                .map(n => ({ n, tokens: chaveNomeCrm(n).split(' ').filter(Boolean) }))
+                .filter(c => c.tokens.length >= 2 && contemEmOrdem(c.tokens))
+                .sort((a, b) => b.tokens.length - a.tokens.length);
+            // Empate entre 2 nomes do BI com a mesma quantidade de palavras = ambíguo, não chuta.
+            if (candidatos.length && (candidatos.length === 1 || candidatos[0].tokens.length > candidatos[1].tokens.length)) {
+                return { nome: candidatos[0].n, reconhecido: true };
+            }
+            return { nome: normalizeProspeccaoCorretor(nomeCompleto), reconhecido: false };
+        }
+
+        // Mês comercial da data do lead: usa os períodos configurados em "Meses Comerciais"
+        // (ex.: Outubro = 05/10 a 05/11); sem config cobrindo a data, cai no mês do calendário.
+        function mesComercialDaDataProspeccao(d) {
+            const dia = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            const cfg = mesesComerciais.find(m => dia >= new Date(m.inicio + 'T00:00:00') && dia <= new Date(m.fim + 'T00:00:00'));
+            if (cfg) return `${cfg.ano}/${String(MESES_IDX[normalizeMes(cfg.nome)] + 1).padStart(2, '0')}`;
+            return `${dia.getFullYear()}/${String(dia.getMonth() + 1).padStart(2, '0')}`;
+        }
+        function dataLeadCrm(v) {
+            if (v instanceof Date && !isNaN(v)) return v;
+            if (typeof v === 'number' && v > 20000) { // número de série do Excel
+                const d = new Date(Math.round((v - 25569) * 86400000));
+                return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+            }
+            const s = String(v || '').trim();
+            let m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/.exec(s);
+            if (m) return new Date(m[3].length === 2 ? 2000 + +m[3] : +m[3], +m[2] - 1, +m[1]);
+            m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+            if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+            return null;
+        }
+
+        // Converte o relatório do CRM pro formato que o resto do BI já entende (ID, Cliente,
+        // Corretor, Equipe, Situação, Cadastro, Mês Comercial) e JUNTA com o que já estava
+        // carregado nos mesmos meses, pelo ID da oportunidade — anexar um relatório parcial
+        // (ex.: só a última semana) soma ao mês em vez de apagar o resto; o mesmo lead anexado
+        // de novo só é atualizado. Telefone e e-mail NÃO são guardados (a Prospecção sincroniza
+        // pela nuvem e o documento de configurações é legível por qualquer um).
+        function applyProspeccaoLeadsCrm(linhas) {
+            const col = (obj, ...nomes) => {
+                const chaves = Object.keys(obj);
+                for (const alvo of nomes) {
+                    const k = chaves.find(c => stripDiacritics(c).toLowerCase().replace(/\s+/g, ' ').trim() === alvo);
+                    if (k !== undefined) return obj[k];
+                }
+                for (const alvo of nomes) {
+                    const k = chaves.find(c => stripDiacritics(c).toLowerCase().includes(alvo));
+                    if (k !== undefined) return obj[k];
+                }
+                return '';
+            };
+            const convertidas = {};
+            const naoReconhecidos = new Set();
+            let semData = 0, semCorretor = 0;
+            (linhas || []).forEach(l => {
+                const oport = String(col(l, 'nome da oportunidade') || '').trim();
+                const d = dataLeadCrm(col(l, 'data de criacao'));
+                if (!oport && !d) return; // linha vazia/rodapé
+                if (!d) { semData++; return; }
+                const mOp = /^(OP-\d+)\s*-?\s*(?:Cliente:\s*)?(.*)$/i.exec(oport);
+                const id = mOp ? mOp[1].toUpperCase() : oport;
+                const cliente = (mOp ? mOp[2] : oport).trim();
+                const brutoCorretor = String(col(l, 'nome do corretor') || '').trim();
+                const map = mapearCorretorCrm(brutoCorretor);
+                if (!brutoCorretor) semCorretor++;
+                else if (!map.reconhecido) naoReconhecidos.add(map.nome);
+                convertidas[id] = {
+                    'ID': id,
+                    'Cliente': cliente,
+                    'Corretor': map.nome,
+                    'Equipe': '',
+                    'Situação': String(col(l, 'status da oportunidade') || '').trim(),
+                    'Cadastro': `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`,
+                    'Mês Comercial': mesComercialDaDataProspeccao(d),
+                    'Origem': String(col(l, 'origem da conta') || '').trim(),
+                    'Ranking': String(col(l, 'ranking') || '').trim(),
+                    'Empreendimento': String(col(l, 'emp. de interesse') || '').trim(),
+                    'Gerente CRM': String(col(l, 'gerente de vendas') || '').trim()
+                };
+            });
+            const novas = Object.values(convertidas);
+            if (!novas.length) {
+                showToast('Nenhum lead encontrado — confira se é o relatório com "Nome do corretor" e "Data de criação".', true);
+                return false;
+            }
+            // Junta com o que já estava carregado nesses meses (o ID do arquivo novo prevalece).
+            const meses = new Set(novas.map(r => normalizeProspeccaoMes(r['Mês Comercial'])));
+            const porId = {};
+            let atualizados = 0;
+            meses.forEach(mes => {
+                ((prospeccaoPorMes[mes] && prospeccaoPorMes[mes].rows) || []).forEach(r => {
+                    const c = Object.assign({}, r);
+                    if (c._CadastroOriginal) c['Cadastro'] = c._CadastroOriginal;
+                    delete c._MesComercialNorm; delete c._CadastroOriginal;
+                    porId[c.ID || ('sem-id-' + Object.keys(porId).length)] = c;
+                });
+            });
+            novas.forEach(r => { if (porId[r.ID]) atualizados++; porId[r.ID] = r; });
+            const ok = applyProspeccaoCsvText(Papa.unparse(Object.values(porId)));
+            const resumo = document.getElementById('prospeccaoImportResumo');
+            if (ok && resumo) {
+                const itens = [
+                    `<b class="text-emerald-300">${novas.length - atualizados}</b> leads novos`,
+                    atualizados ? `<b class="text-sky-300">${atualizados}</b> já existiam (atualizados)` : '',
+                    semCorretor ? `<b class="text-amber-300">${semCorretor}</b> sem corretor (contam só no total da equipe)` : '',
+                    semData ? `<b class="text-rose-300">${semData}</b> sem data de criação (ignorados)` : ''
+                ].filter(Boolean).join(' · ');
+                const nr = [...naoReconhecidos];
+                resumo.innerHTML = `<p>${itens}</p>` + (nr.length
+                    ? `<p class="mt-1 text-amber-300"><i class="fa-solid fa-triangle-exclamation"></i> Nomes não encontrados no BI (entraram como estão): ${nr.map(n => String(n).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';')).join(', ')}</p>`
+                    : `<p class="mt-1 text-emerald-400"><i class="fa-solid fa-check"></i> Todos os corretores foram reconhecidos.</p>`);
+                resumo.classList.remove('hidden');
+            }
+            return ok;
         }
 
         // Remove só o mês clicado — os outros meses carregados continuam intactos.
