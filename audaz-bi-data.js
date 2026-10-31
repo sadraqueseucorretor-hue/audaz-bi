@@ -1987,7 +1987,7 @@
                 showToast('Nenhum lead encontrado — confira se é o relatório com "Nome do corretor" e "Data de criação".', true);
                 return false;
             }
-            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'Excel do CRM', semCorretor, semData, naoReconhecidos });
+            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'Salesforce (Excel)', semCorretor, semData, naoReconhecidos });
         }
 
         // ===== LEADS DO DV ON (PDF "Print_leads - Lead Manager", 31/10/2026) =====
@@ -2056,13 +2056,13 @@
                 contatosNovos[id] = { tel: formatarTelefoneBr(l.numero), email: '' };
             });
             if (!novas.length) {
-                showToast(duplicadosCrm.length ? `Todos os ${duplicadosCrm.length} leads do PDF já estão no Excel do CRM.` : 'Nenhum lead com data válida no PDF.', !duplicadosCrm.length);
+                showToast(duplicadosCrm.length ? `Todos os ${duplicadosCrm.length} leads do PDF já estão no Salesforce.` : 'Nenhum lead com data válida no PDF.', !duplicadosCrm.length);
                 return false;
             }
             const extraHtml = duplicadosCrm.length
-                ? `<p class="mt-1 text-sky-300"><i class="fa-solid fa-clone"></i> ${duplicadosCrm.length} lead(s) do DV On já estavam no Excel do CRM (mesmo telefone) e não foram contados de novo.</p>`
+                ? `<p class="mt-1 text-sky-300"><i class="fa-solid fa-clone"></i> ${duplicadosCrm.length} lead(s) do DV On já estavam no Salesforce (mesmo telefone) e não foram contados de novo.</p>`
                 : '';
-            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'DV On', semCorretor, naoReconhecidos, extraHtml });
+            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'DV On (PDF)', semCorretor, naoReconhecidos, extraHtml });
         }
 
         // pdf.js só é baixado quando alguém anexa um PDF.
