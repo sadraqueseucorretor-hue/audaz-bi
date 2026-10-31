@@ -1785,6 +1785,14 @@
             const file = evt.target.files && evt.target.files[0];
             if (!file) return;
             evt.target.value = '';
+            // PDF do DV On (relatório "Print_leads - Lead Manager").
+            if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') {
+                file.arrayBuffer()
+                    .then(textoDoPdf)
+                    .then(applyProspeccaoLeadsDvOn)
+                    .catch(err => { console.warn('Falha ao ler PDF do DV On:', err); showToast('Não foi possível ler esse PDF.', true); });
+                return;
+            }
             // Excel do CRM (31/10/2026): relatório de oportunidades com "Nome do corretor" completo.
             if (/\.(xlsx|xls)$/i.test(file.name)) {
                 carregarSheetJs().then(() => {
@@ -1972,7 +1980,128 @@
                 showToast('Nenhum lead encontrado — confira se é o relatório com "Nome do corretor" e "Data de criação".', true);
                 return false;
             }
-            // Junta com o que já estava carregado nesses meses (o ID do arquivo novo prevalece).
+            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'Excel do CRM', semCorretor, semData, naoReconhecidos });
+        }
+
+        // ===== LEADS DO DV ON (PDF "Print_leads - Lead Manager", 31/10/2026) =====
+        // Tabela: ID do Lead (22.299) | Status (Em Atendimento/Concluído/Pendente) | Nome | Número |
+        // Atendentes (já no nome do BI: "Linda Inez") | Filas ("Fila Viva Vida Maracanã - Fulano") |
+        // Criado (31/10/2026, 03:55). O texto do PDF vem "corrido" (o status sai duplicado:
+        // "Em AtendimentoEm Atendimento"), então cada lead é achado por regex no texto inteiro.
+        // ID vira "DV-22299", Origem "DV On", Fila vira Empreendimento. Lead do DV On cujo telefone
+        // já está num lead do Excel do CRM (o CRM também registra leads "DV ON") NÃO entra de novo,
+        // pra não contar 2x — a checagem usa os contatos guardados neste navegador.
+        function parseLeadsDvOnTexto(texto) {
+            const t = String(texto || '').replace(/\s+/g, ' ');
+            const re = /(\d{2}\.\d{3})\s+([A-Za-zÀ-ÿ]+(?: [A-Za-zÀ-ÿ]+)?)\s*\2\s+(.*?)\s+(\d{8,})\s+(.*?)\s*(\d{2}\/\d{2}\/\d{4}),?\s*(\d{1,2}:\d{2})/g;
+            const leads = [];
+            let m;
+            while ((m = re.exec(t))) {
+                const meio = m[5].trim();
+                const iFila = meio.search(/(^|\s)Fila(\s|$)/);
+                const atendente = (iFila >= 0 ? meio.slice(0, iFila) : meio).trim();
+                const fila = iFila >= 0 ? meio.slice(iFila).trim() : '';
+                const emp = fila.replace(/^Fila\s*/, '').replace(/\s+-\s+.*$/, '').trim();
+                leads.push({ id: m[1].replace('.', ''), status: m[2].trim(), nome: m[3].trim(), numero: m[4], atendente, empreendimento: emp, data: m[6], hora: m[7] });
+            }
+            return leads;
+        }
+        function formatarTelefoneBr(digitos) {
+            let d = String(digitos || '').replace(/\D/g, '');
+            if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);
+            if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+            if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+            return String(digitos || '');
+        }
+        function applyProspeccaoLeadsDvOn(texto) {
+            const leads = parseLeadsDvOnTexto(texto);
+            if (!leads.length) {
+                showToast('Não encontrei leads nesse PDF — é o relatório "Print_leads" do DV On?', true);
+                return false;
+            }
+            // Telefones (últimos 8 dígitos) dos leads do CRM já guardados neste navegador.
+            const fimTel = n => String(n || '').replace(/\D/g, '').slice(-8);
+            const telsCrm = new Set(Object.keys(contatosProspeccao).filter(id => /^OP-/i.test(id)).map(id => fimTel(contatosProspeccao[id].tel)).filter(x => x.length === 8));
+            const novas = [], contatosNovos = {}, naoReconhecidos = new Set(), duplicadosCrm = [];
+            let semCorretor = 0;
+            leads.forEach(l => {
+                const d = dataLeadCrm(l.data);
+                if (!d) return;
+                if (telsCrm.has(fimTel(l.numero))) { duplicadosCrm.push(l.nome); return; }
+                const map = mapearCorretorCrm(l.atendente);
+                if (!l.atendente) semCorretor++;
+                else if (!map.reconhecido) naoReconhecidos.add(map.nome);
+                const id = 'DV-' + l.id;
+                novas.push({
+                    'ID': id,
+                    'Cliente': l.nome,
+                    'Corretor': map.nome,
+                    'Equipe': '',
+                    'Situação': l.status,
+                    'Cadastro': `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`,
+                    'Mês Comercial': mesComercialDaDataProspeccao(d),
+                    'Origem': 'DV On',
+                    'Ranking': '',
+                    'Empreendimento': l.empreendimento,
+                    'Gerente CRM': ''
+                });
+                contatosNovos[id] = { tel: formatarTelefoneBr(l.numero), email: '' };
+            });
+            if (!novas.length) {
+                showToast(duplicadosCrm.length ? `Todos os ${duplicadosCrm.length} leads do PDF já estão no Excel do CRM.` : 'Nenhum lead com data válida no PDF.', !duplicadosCrm.length);
+                return false;
+            }
+            const extraHtml = duplicadosCrm.length
+                ? `<p class="mt-1 text-sky-300"><i class="fa-solid fa-clone"></i> ${duplicadosCrm.length} lead(s) do DV On já estavam no Excel do CRM (mesmo telefone) e não foram contados de novo.</p>`
+                : '';
+            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'DV On', semCorretor, naoReconhecidos, extraHtml });
+        }
+
+        // pdf.js só é baixado quando alguém anexa um PDF.
+        let pdfJsPromise = null;
+        function carregarPdfJs() {
+            if (window.pdfjsLib) return Promise.resolve();
+            if (!pdfJsPromise) {
+                pdfJsPromise = new Promise((resolve, reject) => {
+                    const s = document.createElement('script');
+                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                    s.onload = () => {
+                        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                        resolve();
+                    };
+                    s.onerror = () => { pdfJsPromise = null; reject(); };
+                    document.head.appendChild(s);
+                });
+            }
+            return pdfJsPromise;
+        }
+        async function textoDoPdf(arrayBuffer) {
+            await carregarPdfJs();
+            const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+            let texto = '';
+            for (let p = 1; p <= pdf.numPages; p++) {
+                const conteudo = await (await pdf.getPage(p)).getTextContent();
+                // O pdf.js devolve as palavras em pedaços ("E m A t e n di m e nto"): junta pela
+                // posição — mesmo trecho de linha e colado no anterior = mesma palavra; vão > ~1/4
+                // da altura da fonte ou mudança de linha = espaço.
+                let ant = null;
+                conteudo.items.forEach(it => {
+                    if (!it.str) { if (it.hasEOL) { texto += ' '; ant = null; } return; }
+                    const x = it.transform[4], y = it.transform[5], h = Math.abs(it.transform[3]) || 10;
+                    if (ant && Math.abs(y - ant.y) < h * 0.5 && x - ant.fim < h * 0.25) texto += it.str;
+                    else texto += ' ' + it.str;
+                    ant = { y, fim: x + (it.width || 0) };
+                    if (it.hasEOL) { texto += ' '; ant = null; }
+                });
+            }
+            return texto;
+        }
+
+        // Grava leads já convertidos pro formato da Prospecção (CRM ou DV On): JUNTA com o que já
+        // estava carregado nesses meses pelo ID (o arquivo novo prevalece), guarda os contatos só
+        // neste navegador e mostra o resumo na janela de Prospecção.
+        function gravarLeadsProspeccao(novas, contatosNovos, info) {
+            info = info || {};
             const meses = new Set(novas.map(r => normalizeProspeccaoMes(r['Mês Comercial'])));
             const porId = {};
             let atualizados = 0;
@@ -1990,15 +2119,16 @@
             const ok = applyProspeccaoCsvText(Papa.unparse(Object.values(porId)));
             const resumo = document.getElementById('prospeccaoImportResumo');
             if (ok && resumo) {
-                const itens = [
+                const escR = n => String(n).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';');
+                const itens = (info.fonte ? `<b class="text-slate-200">${escR(info.fonte)}:</b> ` : '') + [
                     `<b class="text-emerald-300">${novas.length - atualizados}</b> leads novos`,
                     atualizados ? `<b class="text-sky-300">${atualizados}</b> já existiam (atualizados)` : '',
-                    semCorretor ? `<b class="text-amber-300">${semCorretor}</b> sem corretor (contam só no total da equipe)` : '',
-                    semData ? `<b class="text-rose-300">${semData}</b> sem data de criação (ignorados)` : ''
+                    info.semCorretor ? `<b class="text-amber-300">${info.semCorretor}</b> sem corretor (contam só no total da equipe)` : '',
+                    info.semData ? `<b class="text-rose-300">${info.semData}</b> sem data de criação (ignorados)` : ''
                 ].filter(Boolean).join(' · ');
-                const nr = [...naoReconhecidos];
-                resumo.innerHTML = `<p>${itens}</p>` + (nr.length
-                    ? `<p class="mt-1 text-amber-300"><i class="fa-solid fa-triangle-exclamation"></i> Nomes não encontrados no BI (entraram como estão): ${nr.map(n => String(n).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';')).join(', ')}</p>`
+                const nr = [...(info.naoReconhecidos || [])];
+                resumo.innerHTML = `<p>${itens}</p>` + (info.extraHtml || '') + (nr.length
+                    ? `<p class="mt-1 text-amber-300"><i class="fa-solid fa-triangle-exclamation"></i> Nomes não encontrados no BI (entraram como estão): ${nr.map(escR).join(', ')}</p>`
                     : `<p class="mt-1 text-emerald-400"><i class="fa-solid fa-check"></i> Todos os corretores foram reconhecidos.</p>`);
                 resumo.classList.remove('hidden');
             }
