@@ -409,6 +409,129 @@ const CAL_METRICS = {
         // Dados do detalhamento atualmente aberto — usados pelos botões de exportar Excel/PDF.
         let currentDetailRows = [];
         let currentDetailTitle = 'detalhamento';
+        // Modo LEADS (31/10/2026): quando todas as linhas são leads do CRM (ID "OP-..."), o modal
+        // troca pra um layout próprio — Cliente+ranking, Contato (WhatsApp/e-mail), Corretor,
+        // Origem/Empreendimento, Data e Situação — com filtro por ranking. Construtora/VGV somem
+        // (lead não tem). Exportar Excel/PDF leva essas mesmas colunas (e respeita o filtro).
+        let detailLeadsTodos = [];
+        let detailLeadsFiltro = '';
+        const DETAIL_HEAD_PADRAO = `
+            <th class="p-2 pl-3">ID</th>
+            <th class="p-2">Cliente</th>
+            <th class="p-2">Construtora</th>
+            <th class="p-2">Empreendimento</th>
+            <th class="p-2">Situação</th>
+            <th class="p-2 text-right pr-3">VGV</th>`;
+        const DETAIL_HEAD_LEADS = `
+            <th class="p-2 pl-3">Cliente</th>
+            <th class="p-2">Contato</th>
+            <th class="p-2">Corretor</th>
+            <th class="p-2">Origem · Empreendimento</th>
+            <th class="p-2">Criado em</th>
+            <th class="p-2 pr-3">Situação</th>`;
+
+        const ehLeadCrm = r => /^OP-\d+/i.test(String(r && r.ID || ''));
+        const escDet = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        // "Ouro🥇" → { nome: 'Ouro', chave: 'ouro', emoji: '🥇' }
+        function rankingLead(r) {
+            const txt = String(r && r.Ranking || '').trim();
+            const nome = txt.replace(/[^A-Za-zÀ-ÿ\s]/g, '').trim();
+            const emoji = txt.replace(/[A-Za-zÀ-ÿ\s]/g, '').trim();
+            return { txt, nome, emoji, chave: stripDiacritics(nome).toLowerCase() };
+        }
+        const RANKING_ORDEM = ['diamante', 'ouro', 'prata', 'bronze', 'aco'];
+        const RANKING_COR = {
+            diamante: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+            ouro: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+            prata: 'bg-slate-400/15 text-slate-200 border-slate-400/30',
+            bronze: 'bg-orange-700/20 text-orange-300 border-orange-600/30',
+            aco: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/30'
+        };
+        function rankingBadge(r) {
+            const rk = rankingLead(r);
+            if (!rk.txt) return '';
+            const cor = RANKING_COR[rk.chave] || 'bg-slate-700/30 text-slate-300 border-slate-600/40';
+            return `<span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${cor}" title="Ranking do lead no CRM">${escDet(rk.nome || rk.txt)} ${rk.emoji}</span>`;
+        }
+        function contatoDoLead(r) {
+            return (typeof contatoProspeccao === 'function' && contatoProspeccao(r.ID)) || {};
+        }
+        function linkWhatsApp(tel) {
+            const d = String(tel || '').replace(/\D/g, '');
+            return d ? `https://wa.me/${d.length <= 11 ? '55' + d : d}` : '';
+        }
+
+        function setDetailLayout(leads) {
+            const head = document.getElementById('detailTableHead');
+            if (head) head.innerHTML = leads ? DETAIL_HEAD_LEADS : DETAIL_HEAD_PADRAO;
+            const box = document.getElementById('detailModalBox');
+            if (box) { box.classList.toggle('max-w-2xl', !leads); box.classList.toggle('max-w-5xl', leads); }
+            const wrap = document.getElementById('detailTableWrap');
+            if (wrap) { wrap.classList.toggle('max-h-64', !leads); wrap.classList.toggle('max-h-[55vh]', leads); }
+            const chips = document.getElementById('detailLeadsChips');
+            if (chips) { chips.classList.toggle('hidden', !leads); if (!leads) chips.innerHTML = ''; }
+        }
+
+        function renderDetailLeadsChips() {
+            const el = document.getElementById('detailLeadsChips'); if (!el) return;
+            const cont = {};
+            detailLeadsTodos.forEach(r => { const k = rankingLead(r).chave || 'sem'; cont[k] = (cont[k] || 0) + 1; });
+            const chaves = RANKING_ORDEM.filter(k => cont[k]).concat(Object.keys(cont).filter(k => !RANKING_ORDEM.includes(k) && k !== 'sem')).concat(cont.sem ? ['sem'] : []);
+            const exemplo = k => detailLeadsTodos.find(r => (rankingLead(r).chave || 'sem') === k);
+            const chip = (k, rotulo, n, cor) => `<button onclick="filtrarDetailLeads('${k}')" class="text-[10px] font-bold px-2 py-1 rounded-lg border transition ${detailLeadsFiltro === k ? 'ring-2 ring-white/40 ' : 'opacity-80 hover:opacity-100 '}${cor}">${rotulo} <span class="ml-0.5 text-white">${n}</span></button>`;
+            el.innerHTML = `<span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Ranking:</span>`
+                + chip('', 'Todos', detailLeadsTodos.length, 'bg-slate-800 text-slate-200 border-slate-700')
+                + chaves.map(k => {
+                    if (k === 'sem') return chip('sem', 'Sem ranking', cont.sem, 'bg-slate-900 text-slate-400 border-slate-700');
+                    const rk = rankingLead(exemplo(k));
+                    return chip(k, `${escDet(rk.nome)} ${rk.emoji}`, cont[k], RANKING_COR[k] || 'bg-slate-800 text-slate-300 border-slate-700');
+                }).join('');
+        }
+        function filtrarDetailLeads(k) {
+            detailLeadsFiltro = detailLeadsFiltro === k ? '' : k;
+            currentDetailRows = detailLeadsTodos.filter(r => !detailLeadsFiltro || (rankingLead(r).chave || 'sem') === detailLeadsFiltro);
+            renderDetailLeadsChips();
+            renderDetailLeadsRows();
+        }
+        function renderDetailLeadsRows() {
+            const tableBody = document.getElementById('detailTableBody');
+            const rows = currentDetailRows;
+            let html = '';
+            if (!detailLeadsTodos.some(r => contatoDoLead(r).tel || contatoDoLead(r).email)) {
+                html += `<tr><td colspan="6" class="p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-200">
+                    <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail não estão neste navegador — eles ficam só no computador onde o Excel de leads foi anexado.
+                    <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleProspeccaoModal();" class="ml-1 underline font-bold text-amber-300 hover:text-amber-100">Anexar o Excel aqui</button>
+                </td></tr>`;
+            }
+            if (!rows.length) html += `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum lead com esse ranking.</td></tr>`;
+            rows.forEach(r => {
+                const c = contatoDoLead(r);
+                const sit = String(r['Situação'] || '-');
+                const sitCor = /encerr/i.test(sit) ? 'text-slate-500 bg-slate-800/60' : 'text-sky-300 bg-sky-500/10';
+                const origem = String(r.Origem || '').trim(), emp = String(r.Empreendimento || '').trim();
+                html += `
+                    <tr class="hover:bg-slate-950 transition align-top">
+                        <td class="p-2.5 pl-3">
+                            <div class="font-bold text-slate-100 text-[12px] leading-tight">${escDet(r.Cliente || '-')}</div>
+                            <div class="mt-1 flex items-center gap-1.5 flex-wrap">${rankingBadge(r)}<span class="text-[9px] text-slate-600 font-mono">${escDet(r.ID)}</span></div>
+                        </td>
+                        <td class="p-2.5 select-text">
+                            ${c.tel ? `<a href="${linkWhatsApp(c.tel)}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 rounded-md px-2 py-1 whitespace-nowrap"><i class="fa-brands fa-whatsapp text-[13px]"></i>${escDet(c.tel)}</a>` : '<span class="text-[10px] text-slate-600">sem telefone</span>'}
+                            ${c.email ? `<div class="mt-1 text-[10px] text-slate-400 break-all"><i class="fa-regular fa-envelope mr-1"></i>${escDet(c.email)}</div>` : ''}
+                        </td>
+                        <td class="p-2.5 text-[11px] font-semibold ${r.Corretor ? 'text-slate-200' : 'text-amber-400/80 italic'}">${escDet(r.Corretor || 'Sem corretor')}</td>
+                        <td class="p-2.5 text-[11px]">
+                            ${origem ? `<span class="inline-block text-[9px] font-bold uppercase tracking-wide text-violet-300 bg-violet-500/10 border border-violet-500/20 rounded px-1.5 py-0.5 mb-1">${escDet(origem)}</span>` : ''}
+                            <div class="text-slate-400 leading-snug max-w-[220px]">${escDet(emp || '-')}</div>
+                        </td>
+                        <td class="p-2.5 text-[11px] text-slate-300 whitespace-nowrap">${escDet(r.Cadastro || '-')}</td>
+                        <td class="p-2.5 pr-3"><span class="text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 whitespace-nowrap ${sitCor}">${escDet(sit)}</span></td>
+                    </tr>`;
+            });
+            tableBody.innerHTML = html;
+            const total = document.getElementById('detailCorrTotal');
+            if (total) total.textContent = detailLeadsFiltro ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
+        }
 
         // Renderizador genérico do modal de detalhamento de clientes — usado pelo calendário,
         // pelo funil de vendas e pelos rankings comerciais (corretor/equipe).
@@ -423,46 +546,44 @@ const CAL_METRICS = {
             currentDetailRows = rows;
             currentDetailTitle = `${nome} - ${dataStr}`;
 
+            const modoLeads = rows.length > 0 && rows.every(ehLeadCrm);
+            setDetailLayout(modoLeads);
+            if (modoLeads) {
+                // Mais recentes primeiro (Cadastro dd/mm/aaaa).
+                const dt = r => { const d = parseDate(r.Cadastro); return d ? d.getTime() : 0; };
+                detailLeadsTodos = rows.slice().sort((a, b) => dt(b) - dt(a));
+                detailLeadsFiltro = '';
+                currentDetailRows = detailLeadsTodos;
+                renderDetailLeadsChips();
+                renderDetailLeadsRows();
+                document.getElementById('calendarDetailModal').classList.remove('hidden');
+                return;
+            }
+
             const tableBody = document.getElementById('detailTableBody');
             tableBody.innerHTML = '';
 
             if (rows.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum cliente neste recorte.</td></tr>`;
             } else {
-                // Leads do CRM (Prospecção) sem nenhum contato neste navegador: o telefone/e-mail fica
-                // só no computador onde o Excel foi anexado — avisa e oferece anexar aqui.
-                const leadsCrm = rows.filter(r => /^OP-\d+/i.test(String(r.ID || '')));
-                if (leadsCrm.length && typeof contatoProspeccao === 'function' && !leadsCrm.some(r => contatoProspeccao(r.ID))) {
-                    tableBody.insertAdjacentHTML('beforeend', `<tr><td colspan="6" class="p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-200">
-                        <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail não estão neste navegador — eles ficam só no computador onde o Excel de leads foi anexado.
-                        <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleProspeccaoModal();" class="ml-1 underline font-bold text-amber-300 hover:text-amber-100">Anexar o Excel aqui</button>
-                    </td></tr>`);
-                }
                 rows.forEach(r => {
                     const idText = r.ID || '-';
                     const clienteText = r.Cliente || '-';
                     const construtoraText = r.Construtora || '-';
                     const empText = r.Empreendimento || '-';
                     const sitText = r['Situação - Analise'] || r['Situação'] || '-';
-                    const contato = typeof contatoProspeccao === 'function' ? contatoProspeccao(r.ID) : null;
-                    const telDigitos = contato && contato.tel ? contato.tel.replace(/\D/g, '') : '';
-                    const contatoHtml = contato ? `<div class="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] font-semibold select-text">${contato.tel ? `<a href="https://wa.me/${telDigitos.length <= 11 ? '55' + telDigitos : telDigitos}" target="_blank" rel="noopener" title="Abrir no WhatsApp" class="text-emerald-400 hover:text-emerald-300"><i class="fa-brands fa-whatsapp"></i> ${contato.tel}</a>` : ''}${contato.email ? `<span class="text-slate-400 break-all"><i class="fa-regular fa-envelope"></i> ${contato.email}</span>` : ''}</div>` : '';
                     const vgvText = formatCurrency(parseFloat(r.VGV) || 0);
 
                     let situationClass = "text-slate-400";
                     if (isAprovado(sitText)) situationClass = "text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded";
                     if (sitText === 'Reprovado') situationClass = "text-rose-500 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded";
 
-                    const rkTxt = String(r.Ranking || '').trim();
-                    const rkNome = rkTxt.replace(/[^A-Za-zÀ-ÿ]/g, '');
-                    const rkCor = { diamante: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30', ouro: 'bg-amber-500/15 text-amber-300 border-amber-500/30', prata: 'bg-slate-400/15 text-slate-200 border-slate-400/30', bronze: 'bg-orange-700/20 text-orange-300 border-orange-600/30', aco: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/30' }[stripDiacritics(rkNome).toLowerCase()] || 'bg-slate-700/30 text-slate-300 border-slate-600/40';
-                    const rankingHtml = rkTxt ? `<span class="ml-1.5 align-middle inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${rkCor}" title="Ranking do lead no CRM">${rkTxt}</span>` : '';
                     const corretorTag = showCorretor && r.Corretor ? `<div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">${r.Corretor}</div>` : '';
 
                     const rowHtml = `
                         <tr class="hover:bg-slate-950 transition">
                             <td class="p-2 pl-3 font-semibold text-slate-400">${idText}</td>
-                            <td class="p-2 font-bold text-slate-200">${corretorTag}${clienteText}${rankingHtml}${contatoHtml}</td>
+                            <td class="p-2 font-bold text-slate-200">${corretorTag}${clienteText}</td>
                             <td class="p-2 text-slate-300">${construtoraText}</td>
                             <td class="p-2 text-slate-300 truncate max-w-[120px]">${empText}</td>
                             <td class="p-2 text-[10px]">${isGanho(r) ? '<span class="text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded mr-1">Venda</span>' : ''}<span class="${situationClass}">${sitText}</span></td>
@@ -474,6 +595,23 @@ const CAL_METRICS = {
             }
 
             document.getElementById('calendarDetailModal').classList.remove('hidden');
+        }
+
+        // Colunas da exportação de LEADS (Excel e PDF usam a mesma lista).
+        function colunasExportLeads() {
+            return [
+                ['ID', r => r.ID],
+                ['Criado em', r => r.Cadastro],
+                ['Cliente', r => r.Cliente],
+                ['Ranking', r => rankingLead(r).nome || rankingLead(r).txt],
+                ['Telefone', r => contatoDoLead(r).tel],
+                ['E-mail', r => contatoDoLead(r).email],
+                ['Corretor', r => r.Corretor || 'Sem corretor'],
+                ['Origem', r => r.Origem],
+                ['Empreendimento', r => r.Empreendimento],
+                ['Situação', r => r['Situação']],
+                ['Gerente (CRM)', r => r['Gerente CRM']]
+            ];
         }
 
         function renderCalendarDetail(nome, dataStr, rows, showCorretor) {
@@ -492,25 +630,29 @@ const CAL_METRICS = {
         // Exporta os clientes do detalhamento aberto para .csv (abre certinho no Excel).
         function exportDetailCSV() {
             if (!currentDetailRows.length) { showToast('Nada para exportar.', true); return; }
-            const headers = ['ID', 'Cliente', 'Ranking', 'Telefone', 'E-mail', 'Corretor', 'Construtora', 'Empreendimento', 'Situação', 'VGV'];
             const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-            const lines = [headers.map(esc).join(';')];
-            currentDetailRows.forEach(r => {
-                lines.push([
-                    r.ID, r.Cliente, r.Ranking,
-                    (typeof contatoProspeccao === 'function' && contatoProspeccao(r.ID) || {}).tel,
-                    (typeof contatoProspeccao === 'function' && contatoProspeccao(r.ID) || {}).email,
-                    r.Corretor, r.Construtora, r.Empreendimento,
-                    r['Situação - Analise'] || r['Situação'],
-                    formatCurrency(parseFloat(r.VGV) || 0)
-                ].map(esc).join(';'));
-            });
+            let lines;
+            if (currentDetailRows.every(ehLeadCrm)) {
+                const cols = colunasExportLeads();
+                lines = [cols.map(c => esc(c[0])).join(';')];
+                currentDetailRows.forEach(r => lines.push(cols.map(c => esc(c[1](r))).join(';')));
+            } else {
+                const headers = ['ID', 'Cliente', 'Corretor', 'Construtora', 'Empreendimento', 'Situação', 'VGV'];
+                lines = [headers.map(esc).join(';')];
+                currentDetailRows.forEach(r => {
+                    lines.push([
+                        r.ID, r.Cliente, r.Corretor, r.Construtora, r.Empreendimento,
+                        r['Situação - Analise'] || r['Situação'],
+                        formatCurrency(parseFloat(r.VGV) || 0)
+                    ].map(esc).join(';'));
+                });
+            }
             const csvContent = '﻿' + lines.join('\r\n'); // BOM: acentos abrem certo no Excel
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${currentDetailTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.csv`;
+            a.download = `${stripDiacritics(currentDetailTitle).toLowerCase().replace(/[^a-z0-9]+/g, '-')}${detailLeadsFiltro && currentDetailRows.every(ehLeadCrm) ? '-' + detailLeadsFiltro : ''}.csv`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
             showToast(`Excel exportado: ${currentDetailRows.length} cliente(s).`);
@@ -522,7 +664,14 @@ const CAL_METRICS = {
             if (!currentDetailRows.length) { showToast('Nada para exportar.', true); return; }
             const win = window.open('', '_blank');
             if (!win) { showToast('O navegador bloqueou a janela — permita pop-ups para exportar em PDF.', true); return; }
-            const rowsHtml = currentDetailRows.map(r => `
+            const modoLeads = currentDetailRows.every(ehLeadCrm);
+            const colsLeads = modoLeads ? colunasExportLeads() : null;
+            const headHtml = modoLeads
+                ? colsLeads.map(c => `<th>${c[0]}</th>`).join('')
+                : '<th>ID</th><th>Cliente</th><th>Corretor</th><th>Construtora</th><th>Empreendimento</th><th>Situação</th><th>VGV</th>';
+            const rowsHtml = modoLeads
+                ? currentDetailRows.map(r => `<tr>${colsLeads.map(c => `<td>${escDet(c[1](r) || '-')}</td>`).join('')}</tr>`).join('')
+                : currentDetailRows.map(r => `
                 <tr>
                     <td>${r.ID || '-'}</td>
                     <td>${r.Cliente || '-'}</td>
@@ -540,11 +689,12 @@ const CAL_METRICS = {
                     table { width: 100%; border-collapse: collapse; font-size: 11px; }
                     th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
                     th { background: #f3f4f6; }
+                    ${modoLeads ? '@page { size: A4 landscape; margin: 10mm; } table { font-size: 9.5px; } th, td { padding: 4px 5px; }' : ''}
                 </style></head><body>
                 <h1>${currentDetailTitle}</h1>
-                <p>${currentDetailRows.length} registro(s) — gerado em ${new Date().toLocaleString('pt-BR')}</p>
+                <p>${currentDetailRows.length} registro(s)${modoLeads && detailLeadsFiltro ? ' · ranking: ' + detailLeadsFiltro : ''} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
                 <table>
-                    <thead><tr><th>ID</th><th>Cliente</th><th>Corretor</th><th>Construtora</th><th>Empreendimento</th><th>Situação</th><th>VGV</th></tr></thead>
+                    <thead><tr>${headHtml}</tr></thead>
                     <tbody>${rowsHtml}</tbody>
                 </table>
                 </body></html>`);
