@@ -434,7 +434,10 @@ const CAL_METRICS = {
                     const clienteText = r.Cliente || '-';
                     const construtoraText = r.Construtora || '-';
                     const empText = r.Empreendimento || '-';
-                    const sitText = r['Situação - Analise'] || '-';
+                    const sitText = r['Situação - Analise'] || r['Situação'] || '-';
+                    const contato = typeof contatoProspeccao === 'function' ? contatoProspeccao(r.ID) : null;
+                    const telDigitos = contato && contato.tel ? contato.tel.replace(/\D/g, '') : '';
+                    const contatoHtml = contato ? `<div class="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[10px] font-semibold select-text">${contato.tel ? `<a href="https://wa.me/${telDigitos.length <= 11 ? '55' + telDigitos : telDigitos}" target="_blank" rel="noopener" title="Abrir no WhatsApp" class="text-emerald-400 hover:text-emerald-300"><i class="fa-brands fa-whatsapp"></i> ${contato.tel}</a>` : ''}${contato.email ? `<span class="text-slate-400 break-all"><i class="fa-regular fa-envelope"></i> ${contato.email}</span>` : ''}</div>` : '';
                     const vgvText = formatCurrency(parseFloat(r.VGV) || 0);
 
                     let situationClass = "text-slate-400";
@@ -446,7 +449,7 @@ const CAL_METRICS = {
                     const rowHtml = `
                         <tr class="hover:bg-slate-950 transition">
                             <td class="p-2 pl-3 font-semibold text-slate-400">${idText}</td>
-                            <td class="p-2 font-bold text-slate-200">${corretorTag}${clienteText}</td>
+                            <td class="p-2 font-bold text-slate-200">${corretorTag}${clienteText}${contatoHtml}</td>
                             <td class="p-2 text-slate-300">${construtoraText}</td>
                             <td class="p-2 text-slate-300 truncate max-w-[120px]">${empText}</td>
                             <td class="p-2 text-[10px]">${isGanho(r) ? '<span class="text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded mr-1">Venda</span>' : ''}<span class="${situationClass}">${sitText}</span></td>
@@ -476,13 +479,16 @@ const CAL_METRICS = {
         // Exporta os clientes do detalhamento aberto para .csv (abre certinho no Excel).
         function exportDetailCSV() {
             if (!currentDetailRows.length) { showToast('Nada para exportar.', true); return; }
-            const headers = ['ID', 'Cliente', 'Corretor', 'Construtora', 'Empreendimento', 'Situação', 'VGV'];
+            const headers = ['ID', 'Cliente', 'Telefone', 'E-mail', 'Corretor', 'Construtora', 'Empreendimento', 'Situação', 'VGV'];
             const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
             const lines = [headers.map(esc).join(';')];
             currentDetailRows.forEach(r => {
                 lines.push([
-                    r.ID, r.Cliente, r.Corretor, r.Construtora, r.Empreendimento,
-                    r['Situação - Analise'],
+                    r.ID, r.Cliente,
+                    (typeof contatoProspeccao === 'function' && contatoProspeccao(r.ID) || {}).tel,
+                    (typeof contatoProspeccao === 'function' && contatoProspeccao(r.ID) || {}).email,
+                    r.Corretor, r.Construtora, r.Empreendimento,
+                    r['Situação - Analise'] || r['Situação'],
                     formatCurrency(parseFloat(r.VGV) || 0)
                 ].map(esc).join(';'));
             });
