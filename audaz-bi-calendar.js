@@ -430,7 +430,7 @@ const CAL_METRICS = {
             <th class="p-2">Criado em</th>
             <th class="p-2 pr-3">Situação</th>`;
 
-        const ehLeadCrm = r => /^OP-\d+/i.test(String(r && r.ID || ''));
+        const ehLeadCrm = r => /^(OP|DV)-\d+/i.test(String(r && r.ID || '')); // OP = Excel do CRM · DV = PDF do DV On
         const escDet = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         // "Ouro🥇" → { nome: 'Ouro', chave: 'ouro', emoji: '🥇' }
         function rankingLead(r) {
@@ -507,7 +507,7 @@ const CAL_METRICS = {
             rows.forEach(r => {
                 const c = contatoDoLead(r);
                 const sit = String(r['Situação'] || '-');
-                const sitCor = /encerr/i.test(sit) ? 'text-slate-500 bg-slate-800/60' : 'text-sky-300 bg-sky-500/10';
+                const sitCor = /encerr|conclu/i.test(sit) ? 'text-slate-500 bg-slate-800/60' : /pendente/i.test(sit) ? 'text-amber-300 bg-amber-500/10' : 'text-sky-300 bg-sky-500/10';
                 const origem = String(r.Origem || '').trim(), emp = String(r.Empreendimento || '').trim();
                 html += `
                     <tr class="hover:bg-slate-950 transition align-top">
