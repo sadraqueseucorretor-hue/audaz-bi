@@ -472,27 +472,62 @@ const CAL_METRICS = {
             if (chips) { chips.classList.toggle('hidden', !leads); if (!leads) chips.innerHTML = ''; }
         }
 
+        // Filtros do modo LEADS (combinam entre si): Separação (Todos / Bolsão / Fora do bolsão,
+        // pela "Tag Bolsão" do Excel do CRM), Fonte (Origem: Lead ADS, WhatsApp, DV On...) e
+        // Ranking. Cada linha de chips conta os leads que passam nos OUTROS filtros ativos.
+        let detailLeadsFonte = '';
+        let detailLeadsBolsao = '';   // '' | 'bolsao' | 'fora'
+        const ehBolsao = r => /bols/i.test(String(r && r.Tag || ''));
+        const fonteChave = r => stripDiacritics(String(r && r.Origem || '').trim()).toLowerCase() || 'sem';
+        const passaBolsao = r => !detailLeadsBolsao || (detailLeadsBolsao === 'bolsao' ? ehBolsao(r) : !ehBolsao(r));
+        const passaFonte = r => !detailLeadsFonte || fonteChave(r) === detailLeadsFonte;
+        const passaRanking = r => !detailLeadsFiltro || (rankingLead(r).chave || 'sem') === detailLeadsFiltro;
+
         function renderDetailLeadsChips() {
             const el = document.getElementById('detailLeadsChips'); if (!el) return;
+            const chip = (fn, k, ativo, rotulo, n, cor) => `<button onclick="${fn}('${k}')" class="text-[10px] font-bold px-2 py-1 rounded-lg border transition ${ativo ? 'ring-2 ring-white/50 ' : 'opacity-75 hover:opacity-100 '}${cor}">${rotulo} <span class="ml-0.5 text-white">${n}</span></button>`;
+            const linha = (titulo, conteudo) => `<div class="flex flex-wrap items-center gap-1.5"><span class="w-[78px] shrink-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">${titulo}</span>${conteudo}</div>`;
+
+            // 1) Separação por bolsão
+            const baseB = detailLeadsTodos.filter(r => passaFonte(r) && passaRanking(r));
+            const nB = baseB.filter(ehBolsao).length;
+            const temTag = detailLeadsTodos.some(ehBolsao);
+            const sep = chip('filtrarDetailLeadsBolsao', '', !detailLeadsBolsao, 'Todos', baseB.length, 'bg-slate-800 text-slate-200 border-slate-700')
+                + chip('filtrarDetailLeadsBolsao', 'bolsao', detailLeadsBolsao === 'bolsao', '<i class="fa-solid fa-box-archive mr-1"></i>Bolsão', nB, 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30')
+                + chip('filtrarDetailLeadsBolsao', 'fora', detailLeadsBolsao === 'fora', 'Fora do bolsão', baseB.length - nB, 'bg-slate-900 text-slate-400 border-slate-700')
+                + (temTag ? '' : '<span class="text-[10px] text-slate-500 ml-1">(anexe de novo o Excel do CRM pra trazer a Tag Bolsão)</span>');
+
+            // 2) Fontes (Origem)
+            const baseF = detailLeadsTodos.filter(r => passaBolsao(r) && passaRanking(r));
+            const contF = {}, rotF = {};
+            baseF.forEach(r => { const k = fonteChave(r); contF[k] = (contF[k] || 0) + 1; if (!rotF[k]) rotF[k] = String(r.Origem || '').trim() || 'Sem fonte'; });
+            const fontes = Object.keys(contF).sort((a, b) => (a === 'sem') - (b === 'sem') || contF[b] - contF[a]);
+            const fon = chip('filtrarDetailLeadsFonte', '', !detailLeadsFonte, 'Todas', baseF.length, 'bg-slate-800 text-slate-200 border-slate-700')
+                + fontes.map(k => chip('filtrarDetailLeadsFonte', k.replace(/'/g, "\\'"), detailLeadsFonte === k, escDet(rotF[k]), contF[k], k === 'sem' ? 'bg-slate-900 text-slate-400 border-slate-700' : 'bg-violet-500/10 text-violet-300 border-violet-500/25')).join('');
+
+            // 3) Ranking
+            const baseR = detailLeadsTodos.filter(r => passaBolsao(r) && passaFonte(r));
             const cont = {};
-            detailLeadsTodos.forEach(r => { const k = rankingLead(r).chave || 'sem'; cont[k] = (cont[k] || 0) + 1; });
+            baseR.forEach(r => { const k = rankingLead(r).chave || 'sem'; cont[k] = (cont[k] || 0) + 1; });
             const chaves = RANKING_ORDEM.filter(k => cont[k]).concat(Object.keys(cont).filter(k => !RANKING_ORDEM.includes(k) && k !== 'sem')).concat(cont.sem ? ['sem'] : []);
             const exemplo = k => detailLeadsTodos.find(r => (rankingLead(r).chave || 'sem') === k);
-            const chip = (k, rotulo, n, cor) => `<button onclick="filtrarDetailLeads('${k}')" class="text-[10px] font-bold px-2 py-1 rounded-lg border transition ${detailLeadsFiltro === k ? 'ring-2 ring-white/40 ' : 'opacity-80 hover:opacity-100 '}${cor}">${rotulo} <span class="ml-0.5 text-white">${n}</span></button>`;
-            el.innerHTML = `<span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Ranking:</span>`
-                + chip('', 'Todos', detailLeadsTodos.length, 'bg-slate-800 text-slate-200 border-slate-700')
+            const rk = chip('filtrarDetailLeads', '', !detailLeadsFiltro, 'Todos', baseR.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + chaves.map(k => {
-                    if (k === 'sem') return chip('sem', 'Sem ranking', cont.sem, 'bg-slate-900 text-slate-400 border-slate-700');
-                    const rk = rankingLead(exemplo(k));
-                    return chip(k, `${escDet(rk.nome)} ${rk.emoji}`, cont[k], RANKING_COR[k] || 'bg-slate-800 text-slate-300 border-slate-700');
+                    if (k === 'sem') return chip('filtrarDetailLeads', 'sem', detailLeadsFiltro === 'sem', 'Sem ranking', cont.sem, 'bg-slate-900 text-slate-400 border-slate-700');
+                    const x = rankingLead(exemplo(k));
+                    return chip('filtrarDetailLeads', k, detailLeadsFiltro === k, `${escDet(x.nome)} ${x.emoji}`, cont[k], RANKING_COR[k] || 'bg-slate-800 text-slate-300 border-slate-700');
                 }).join('');
+
+            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${linha('Separar', sep)}${linha('Fonte', fon)}${linha('Ranking', rk)}</div>`;
         }
-        function filtrarDetailLeads(k) {
-            detailLeadsFiltro = detailLeadsFiltro === k ? '' : k;
-            currentDetailRows = detailLeadsTodos.filter(r => !detailLeadsFiltro || (rankingLead(r).chave || 'sem') === detailLeadsFiltro);
+        function aplicarFiltrosDetailLeads() {
+            currentDetailRows = detailLeadsTodos.filter(r => passaBolsao(r) && passaFonte(r) && passaRanking(r));
             renderDetailLeadsChips();
             renderDetailLeadsRows();
         }
+        function filtrarDetailLeads(k) { detailLeadsFiltro = (k && detailLeadsFiltro === k) ? '' : k; aplicarFiltrosDetailLeads(); }
+        function filtrarDetailLeadsFonte(k) { detailLeadsFonte = (k && detailLeadsFonte === k) ? '' : k; aplicarFiltrosDetailLeads(); }
+        function filtrarDetailLeadsBolsao(k) { detailLeadsBolsao = (k && detailLeadsBolsao === k) ? '' : k; aplicarFiltrosDetailLeads(); }
         function renderDetailLeadsRows() {
             const tableBody = document.getElementById('detailTableBody');
             const rows = currentDetailRows;
@@ -503,7 +538,7 @@ const CAL_METRICS = {
                     <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleProspeccaoModal();" class="ml-1 underline font-bold text-amber-300 hover:text-amber-100">Anexar o Excel aqui</button>
                 </td></tr>`;
             }
-            if (!rows.length) html += `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum lead com esse ranking.</td></tr>`;
+            if (!rows.length) html += `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum lead com esses filtros.</td></tr>`;
             rows.forEach(r => {
                 const c = contatoDoLead(r);
                 const sit = String(r['Situação'] || '-');
@@ -513,7 +548,7 @@ const CAL_METRICS = {
                     <tr class="hover:bg-slate-950 transition align-top">
                         <td class="p-2.5 pl-3">
                             <div class="font-bold text-slate-100 text-[12px] leading-tight">${escDet(r.Cliente || '-')}</div>
-                            <div class="mt-1 flex items-center gap-1.5 flex-wrap">${rankingBadge(r)}<span class="text-[9px] text-slate-600 font-mono">${escDet(r.ID)}</span></div>
+                            <div class="mt-1 flex items-center gap-1.5 flex-wrap">${ehBolsao(r) ? `<span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30" title="Tag Bolsão (CRM)"><i class="fa-solid fa-box-archive"></i>${escDet(r.Tag)}</span>` : ''}${rankingBadge(r)}<span class="text-[9px] text-slate-600 font-mono">${escDet(r.ID)}</span></div>
                         </td>
                         <td class="p-2.5 select-text">
                             ${c.tel ? `<a href="${linkWhatsApp(c.tel)}" target="_blank" rel="noopener" title="Abrir conversa no WhatsApp" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 rounded-md px-2 py-1 whitespace-nowrap"><i class="fa-brands fa-whatsapp text-[13px]"></i>${escDet(c.tel)}</a>` : '<span class="text-[10px] text-slate-600">sem telefone</span>'}
@@ -530,7 +565,7 @@ const CAL_METRICS = {
             });
             tableBody.innerHTML = html;
             const total = document.getElementById('detailCorrTotal');
-            if (total) total.textContent = detailLeadsFiltro ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
+            if (total) total.textContent = (detailLeadsFiltro || detailLeadsFonte || detailLeadsBolsao) ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
         }
 
         // Renderizador genérico do modal de detalhamento de clientes — usado pelo calendário,
@@ -552,7 +587,7 @@ const CAL_METRICS = {
                 // Mais recentes primeiro (Cadastro dd/mm/aaaa).
                 const dt = r => { const d = parseDate(r.Cadastro); return d ? d.getTime() : 0; };
                 detailLeadsTodos = rows.slice().sort((a, b) => dt(b) - dt(a));
-                detailLeadsFiltro = '';
+                detailLeadsFiltro = ''; detailLeadsFonte = ''; detailLeadsBolsao = '';
                 currentDetailRows = detailLeadsTodos;
                 renderDetailLeadsChips();
                 renderDetailLeadsRows();
@@ -607,7 +642,8 @@ const CAL_METRICS = {
                 ['Telefone', r => contatoDoLead(r).tel],
                 ['E-mail', r => contatoDoLead(r).email],
                 ['Corretor', r => r.Corretor || 'Sem corretor'],
-                ['Origem', r => r.Origem],
+                ['Fonte (origem)', r => r.Origem],
+                ['Tag Bolsão', r => r.Tag],
                 ['Empreendimento', r => r.Empreendimento],
                 ['Situação', r => r['Situação']],
                 ['Gerente (CRM)', r => r['Gerente CRM']]
@@ -652,7 +688,7 @@ const CAL_METRICS = {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${stripDiacritics(currentDetailTitle).toLowerCase().replace(/[^a-z0-9]+/g, '-')}${detailLeadsFiltro && currentDetailRows.every(ehLeadCrm) ? '-' + detailLeadsFiltro : ''}.csv`;
+            a.download = `${stripDiacritics(currentDetailTitle).toLowerCase().replace(/[^a-z0-9]+/g, '-')}${currentDetailRows.every(ehLeadCrm) ? [detailLeadsBolsao, detailLeadsFonte, detailLeadsFiltro].filter(Boolean).map(x => '-' + x.replace(/[^a-z0-9]+/g, '-')).join('') : ''}.csv`;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
             URL.revokeObjectURL(url);
             showToast(`Excel exportado: ${currentDetailRows.length} cliente(s).`);
@@ -692,7 +728,7 @@ const CAL_METRICS = {
                     ${modoLeads ? '@page { size: A4 landscape; margin: 10mm; } table { font-size: 9.5px; } th, td { padding: 4px 5px; }' : ''}
                 </style></head><body>
                 <h1>${currentDetailTitle}</h1>
-                <p>${currentDetailRows.length} registro(s)${modoLeads && detailLeadsFiltro ? ' · ranking: ' + detailLeadsFiltro : ''} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
+                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro)].filter(Boolean).map(x => ' · ' + x).join('') : ''} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
                 <table>
                     <thead><tr>${headHtml}</tr></thead>
                     <tbody>${rowsHtml}</tbody>
