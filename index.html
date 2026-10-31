@@ -1762,7 +1762,7 @@
                 </div>
                 <div>
                     <h4 class="text-base font-bold text-slate-200">Prospecção (Leads)</h4>
-                    <p class="text-xs text-slate-500">Sem planilha ao vivo — anexe o Excel de leads do CRM</p>
+                    <p class="text-xs text-slate-500">Anexe o Excel de leads do CRM ou o PDF do DV On</p>
                 </div>
             </div>
 
@@ -1774,12 +1774,13 @@
                 <p class="font-bold text-slate-300">Colunas usadas do Excel:</p>
                 <p class="font-mono text-pink-400">Nome do corretor | Nome da oportunidade | STATUS DA OPORTUNIDADE | Data de criação</p>
                 <p>O nome completo do corretor é ligado ao nome do BI automaticamente (ex.: <span class="text-slate-300">FRANCISCO YAGO FREIRE DOS SANTOS → Yago Freire</span>; <span class="text-slate-300">EDUARDO DOS SANTOS DA SILVA → Eduardo Prudêncio</span>). O <strong class="text-slate-300">telefone e e-mail</strong> do cliente aparecem no detalhamento de clientes — guardados só neste navegador (não vão pra nuvem).</p>
+                <p class="text-slate-300 pt-1"><i class="fa-solid fa-file-pdf text-rose-400 mr-1"></i><b>DV On:</b> anexe o PDF "Print_leads - Lead Manager". Entra com origem <span class="text-slate-200">DV On</span>; lead que já está no Excel do CRM (mesmo telefone) não é contado de novo.</p>
                 <p class="text-slate-500">Ainda aceita o CSV antigo (ID | Cliente | Corretor | Equipe | Situação | Cadastro | Mês Comercial).</p>
             </div>
 
-            <input type="file" id="prospeccaoFileInput" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" onchange="handleProspeccaoFileInput(event)">
+            <input type="file" id="prospeccaoFileInput" accept=".xlsx,.xls,.pdf,application/pdf,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" onchange="handleProspeccaoFileInput(event)">
             <button onclick="document.getElementById('prospeccaoFileInput').click()" class="w-full mb-3 py-2.5 px-4 bg-pink-600 hover:bg-pink-500 active:bg-pink-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-pink-500/20 transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-file-excel"></i> Anexar Excel de leads
+                <i class="fa-solid fa-file-arrow-up"></i> Anexar Excel (CRM) ou PDF (DV On)
             </button>
             <div id="prospeccaoImportResumo" class="hidden mb-4 bg-slate-950/60 border border-slate-800 rounded-lg p-3 text-[11px] text-slate-300 leading-relaxed"></div>
 
@@ -1831,10 +1832,10 @@
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
     <script src="./audaz-bi-core.js?v=organograma-status-sistema-20261029"></script>
-    <script src="./audaz-bi-data.js?v=leads-crm-20261031b"></script>
+    <script src="./audaz-bi-data.js?v=dvon-20261031"></script>
     <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
     <script src="./audaz-bi-analytics.js?v=media-com-gerente-sem-produtividade-20261028"></script>
-    <script src="./audaz-bi-calendar.js?v=leads-visual-20261031"></script>
+    <script src="./audaz-bi-calendar.js?v=dvon-20261031"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
 </body>
 </html>
