@@ -416,12 +416,112 @@ const CAL_METRICS = {
         let detailLeadsTodos = [];
         let detailLeadsFiltro = '';
         const DETAIL_HEAD_PADRAO = `
-            <th class="p-2 pl-3">ID</th>
-            <th class="p-2">Cliente</th>
-            <th class="p-2">Construtora</th>
-            <th class="p-2">Empreendimento</th>
+            <th class="p-2 pl-3">Cliente</th>
+            <th class="p-2">Corretor · Equipe</th>
+            <th class="p-2">Construtora · Empreendimento</th>
+            <th class="p-2">Datas</th>
             <th class="p-2">Situação</th>
             <th class="p-2 text-right pr-3">VGV</th>`;
+
+        // ===== Modo PRODUÇÃO (análises / aprovados / vendas / calendário / rankings) =====
+        // Filtros combináveis por Status (Venda, Aprovado, Pendente, Reprovado, Outros) e por
+        // Construtora; faixa de resumo (qtde por status + VGV); mais recentes primeiro.
+        let detailProdTodos = [];
+        let detailProdStatus = '';
+        let detailProdConstrutora = '';
+        let detailProdShowCorretor = true;
+        const sitProd = r => String(r['Situação - Analise'] || r['Situação'] || '').trim();
+        function statusProd(r) {
+            if (typeof isGanho === 'function' && isGanho(r)) return 'venda';
+            const t = stripDiacritics(sitProd(r)).toLowerCase();
+            if (isAprovado(sitProd(r)) || /^aprovad/.test(t)) return 'aprovado';
+            if (/reprov|recus|negad/.test(t)) return 'reprovado';
+            if (/bacen/.test(t)) return 'bacen';
+            if (/pend|anali|condic|aguard|document|tratativa/.test(t)) return 'pendente';
+            return 'outro';
+        }
+        const STATUS_PROD = {
+            venda: { nome: 'Vendas', icone: 'fa-handshake', cor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
+            aprovado: { nome: 'Aprovados', icone: 'fa-circle-check', cor: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
+            pendente: { nome: 'Pendentes', icone: 'fa-hourglass-half', cor: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
+            reprovado: { nome: 'Reprovados', icone: 'fa-circle-xmark', cor: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
+            bacen: { nome: 'BACEN', icone: 'fa-building-columns', cor: 'bg-orange-500/15 text-orange-300 border-orange-500/30' },
+            outro: { nome: 'Outros', icone: 'fa-circle', cor: 'bg-slate-800 text-slate-300 border-slate-700' }
+        };
+        const construtoraChave = r => stripDiacritics(String(r.Construtora || '').trim()).toLowerCase() || 'sem';
+        const passaProdStatus = r => !detailProdStatus || statusProd(r) === detailProdStatus;
+        const passaProdConstrutora = r => !detailProdConstrutora || construtoraChave(r) === detailProdConstrutora;
+        const vgvNum = r => parseFloat(r.VGV) || 0;
+
+        function renderDetailProdChips() {
+            const el = document.getElementById('detailLeadsChips'); if (!el) return;
+            const chip = (fn, k, ativo, rotulo, n, cor) => `<button onclick="${fn}('${k}')" class="text-[10px] font-bold px-2 py-1 rounded-lg border transition ${ativo ? 'ring-2 ring-white/50 ' : 'opacity-75 hover:opacity-100 '}${cor}">${rotulo} <span class="ml-0.5 text-white">${n}</span></button>`;
+            const linha = (titulo, conteudo) => `<div class="flex flex-wrap items-center gap-1.5"><span class="w-[78px] shrink-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">${titulo}</span>${conteudo}</div>`;
+
+            const baseS = detailProdTodos.filter(passaProdConstrutora);
+            const contS = {}; baseS.forEach(r => { const k = statusProd(r); contS[k] = (contS[k] || 0) + 1; });
+            const st = chip('filtrarDetailProdStatus', '', !detailProdStatus, 'Todos', baseS.length, 'bg-slate-800 text-slate-200 border-slate-700')
+                + Object.keys(STATUS_PROD).filter(k => contS[k]).map(k => chip('filtrarDetailProdStatus', k, detailProdStatus === k, `<i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}`, contS[k], STATUS_PROD[k].cor)).join('');
+
+            const baseC = detailProdTodos.filter(passaProdStatus);
+            const contC = {}, rotC = {};
+            baseC.forEach(r => { const k = construtoraChave(r); contC[k] = (contC[k] || 0) + 1; if (!rotC[k]) rotC[k] = String(r.Construtora || '').trim() || 'Sem construtora'; });
+            const cks = Object.keys(contC).sort((a, b) => (a === 'sem') - (b === 'sem') || contC[b] - contC[a]);
+            const co = chip('filtrarDetailProdConstrutora', '', !detailProdConstrutora, 'Todas', baseC.length, 'bg-slate-800 text-slate-200 border-slate-700')
+                + cks.map(k => chip('filtrarDetailProdConstrutora', k.replace(/'/g, "\\'"), detailProdConstrutora === k, escDet(rotC[k]), contC[k], 'bg-violet-500/10 text-violet-300 border-violet-500/25')).join('');
+
+            const vis = detailProdTodos.filter(r => passaProdStatus(r) && passaProdConstrutora(r));
+            const vgv = vis.reduce((a, r) => a + vgvNum(r), 0);
+            const resumo = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-1">
+                ${['venda', 'aprovado', 'pendente', 'reprovado'].map(k => { const n = vis.filter(r => statusProd(r) === k).length; return `<div class="rounded-lg border ${STATUS_PROD[k].cor} px-2.5 py-1"><div class="text-[9px] uppercase font-bold tracking-wider opacity-80"><i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}</div><div class="text-base font-black text-white leading-tight">${n}</div></div>`; }).join('')}
+            </div>${vgv > 0 ? `<div class="text-[11px] text-slate-400 mb-1">VGV do recorte: <b class="text-indigo-300">${formatCurrency(vgv)}</b></div>` : ''}`;
+
+            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${resumo}${linha('Status', st)}${cks.length > 1 ? linha('Construtora', co) : ''}</div>`;
+        }
+        function renderDetailProdRows() {
+            const tableBody = document.getElementById('detailTableBody');
+            const rows = currentDetailRows;
+            if (!rows.length) { tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">${detailProdTodos.length ? 'Nenhum cliente com esses filtros.' : 'Nenhum cliente neste recorte.'}</td></tr>`; }
+            else tableBody.innerHTML = rows.map(r => {
+                const k = statusProd(r), sit = sitProd(r) || '-';
+                const datas = [['Análise', r['Data Cadastro']], ['Aprovação', r['Data Aprovação']], ['Venda', r['Data Ganho']]]
+                    .filter(d => d[1]).map(d => `<div class="whitespace-nowrap"><span class="text-slate-500">${d[0]}:</span> <span class="text-slate-300">${escDet(d[1])}</span></div>`).join('') || '<span class="text-slate-600">-</span>';
+                const vg = vgvNum(r);
+                return `
+                    <tr class="hover:bg-slate-950 transition align-top">
+                        <td class="p-2.5 pl-3">
+                            <div class="font-bold text-slate-100 text-[12px] leading-tight">${escDet(r.Cliente || '-')}</div>
+                            <div class="text-[9px] text-slate-600 font-mono mt-0.5">${escDet(String(r.ID || '-').replace(/^#?/, '#'))}</div>
+                        </td>
+                        <td class="p-2.5 text-[11px]">
+                            <div class="font-semibold text-slate-200">${escDet(r.Corretor || '-')}</div>
+                            ${r.Equipe ? `<div class="text-[10px] text-slate-500 uppercase tracking-wide">${escDet(r.Equipe)}</div>` : ''}
+                        </td>
+                        <td class="p-2.5 text-[11px]">
+                            ${r.Construtora ? `<span class="inline-block text-[9px] font-bold uppercase tracking-wide text-violet-300 bg-violet-500/10 border border-violet-500/20 rounded px-1.5 py-0.5 mb-1">${escDet(r.Construtora)}</span>` : ''}
+                            <div class="text-slate-300 leading-snug max-w-[220px]">${escDet(r.Empreendimento || '-')}</div>
+                        </td>
+                        <td class="p-2.5 text-[10px] leading-relaxed">${datas}</td>
+                        <td class="p-2.5">
+                            <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide rounded border px-1.5 py-0.5 ${STATUS_PROD[k].cor}"><i class="fa-solid ${STATUS_PROD[k].icone}"></i>${k === 'venda' ? 'Venda' : escDet(sit)}</span>
+                            ${k === 'venda' && sit && sit !== '-' ? `<div class="text-[9px] text-slate-500 mt-1">${escDet(sit)}</div>` : ''}
+                            ${k === 'venda' && r['Situação - Ganho'] ? `<div class="text-[9px] text-emerald-400/70 mt-0.5">${escDet(r['Situação - Ganho'])}</div>` : ''}
+                        </td>
+                        <td class="p-2.5 pr-3 text-right text-[11px] font-bold whitespace-nowrap ${vg > 0 ? 'text-indigo-300' : 'text-slate-600'}">${vg > 0 ? formatCurrency(vg) : '—'}</td>
+                    </tr>`;
+            }).join('');
+            const total = document.getElementById('detailCorrTotal');
+            if (total && (detailProdStatus || detailProdConstrutora)) total.textContent = `${rows.length} de ${detailProdTodos.length}`;
+            else if (total && detailProdTotalLabel) total.textContent = detailProdTotalLabel;
+        }
+        let detailProdTotalLabel = '';
+        function aplicarFiltrosDetailProd() {
+            currentDetailRows = detailProdTodos.filter(r => passaProdStatus(r) && passaProdConstrutora(r));
+            renderDetailProdChips();
+            renderDetailProdRows();
+        }
+        function filtrarDetailProdStatus(k) { detailProdStatus = (k && detailProdStatus === k) ? '' : k; aplicarFiltrosDetailProd(); }
+        function filtrarDetailProdConstrutora(k) { detailProdConstrutora = (k && detailProdConstrutora === k) ? '' : k; aplicarFiltrosDetailProd(); }
         const DETAIL_HEAD_LEADS = `
             <th class="p-2 pl-3">Cliente</th>
             <th class="p-2">Contato</th>
@@ -465,11 +565,11 @@ const CAL_METRICS = {
             const head = document.getElementById('detailTableHead');
             if (head) head.innerHTML = leads ? DETAIL_HEAD_LEADS : DETAIL_HEAD_PADRAO;
             const box = document.getElementById('detailModalBox');
-            if (box) { box.classList.toggle('max-w-2xl', !leads); box.classList.toggle('max-w-5xl', leads); }
+            if (box) { box.classList.remove('max-w-2xl'); box.classList.add('max-w-5xl'); }
             const wrap = document.getElementById('detailTableWrap');
-            if (wrap) { wrap.classList.toggle('max-h-64', !leads); }
+            if (wrap) wrap.classList.remove('max-h-64');
             const chips = document.getElementById('detailLeadsChips');
-            if (chips) { chips.classList.toggle('hidden', !leads); if (!leads) chips.innerHTML = ''; }
+            if (chips) chips.classList.remove('hidden');
         }
 
         // Filtros do modo LEADS (combinam entre si): Separação (Todos / Bolsão / Fora do bolsão,
@@ -645,39 +745,13 @@ const CAL_METRICS = {
                 return;
             }
 
-            const tableBody = document.getElementById('detailTableBody');
-            tableBody.innerHTML = '';
-
-            if (rows.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum cliente neste recorte.</td></tr>`;
-            } else {
-                rows.forEach(r => {
-                    const idText = r.ID || '-';
-                    const clienteText = r.Cliente || '-';
-                    const construtoraText = r.Construtora || '-';
-                    const empText = r.Empreendimento || '-';
-                    const sitText = r['Situação - Analise'] || r['Situação'] || '-';
-                    const vgvText = formatCurrency(parseFloat(r.VGV) || 0);
-
-                    let situationClass = "text-slate-400";
-                    if (isAprovado(sitText)) situationClass = "text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded";
-                    if (sitText === 'Reprovado') situationClass = "text-rose-500 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded";
-
-                    const corretorTag = showCorretor && r.Corretor ? `<div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide">${r.Corretor}</div>` : '';
-
-                    const rowHtml = `
-                        <tr class="hover:bg-slate-950 transition">
-                            <td class="p-2 pl-3 font-semibold text-slate-400">${idText}</td>
-                            <td class="p-2 font-bold text-slate-200">${corretorTag}${clienteText}</td>
-                            <td class="p-2 text-slate-300">${construtoraText}</td>
-                            <td class="p-2 text-slate-300 truncate max-w-[120px]">${empText}</td>
-                            <td class="p-2 text-[10px]">${isGanho(r) ? '<span class="text-brand-500 font-bold bg-brand-500/10 px-1.5 py-0.5 rounded mr-1">Venda</span>' : ''}<span class="${situationClass}">${sitText}</span></td>
-                            <td class="p-2 text-right pr-3 font-bold text-indigo-400">${vgvText}</td>
-                        </tr>
-                    `;
-                    tableBody.insertAdjacentHTML('beforeend', rowHtml);
-                });
-            }
+            const dtP = r => { const d = parseDate(r['Data Ganho'] || r['Data Aprovação'] || r['Data Cadastro']); return d ? d.getTime() : 0; };
+            detailProdTodos = rows.slice().sort((a, b) => dtP(b) - dtP(a));
+            detailProdStatus = ''; detailProdConstrutora = ''; detailProdShowCorretor = showCorretor !== false;
+            detailProdTotalLabel = totalLabel;
+            currentDetailRows = detailProdTodos;
+            renderDetailProdChips();
+            renderDetailProdRows();
 
             document.getElementById('calendarDetailModal').classList.remove('hidden');
         }
@@ -698,6 +772,17 @@ const CAL_METRICS = {
                 ['Empreendimento', r => r.Empreendimento],
                 ['Fase da oportunidade', r => r['Situação']],
                 ['Gerente (CRM)', r => r['Gerente CRM']]
+            ];
+        }
+
+        function colunasExportProd() {
+            return [
+                ['ID', r => r.ID], ['Cliente', r => r.Cliente], ['Corretor', r => r.Corretor], ['Equipe', r => r.Equipe],
+                ['Construtora', r => r.Construtora], ['Empreendimento', r => r.Empreendimento],
+                ['Status', r => STATUS_PROD[statusProd(r)].nome.replace(/s$/, '')],
+                ['Situação (análise)', r => sitProd(r)], ['Situação (venda)', r => r['Situação - Ganho']],
+                ['Data análise', r => r['Data Cadastro']], ['Data aprovação', r => r['Data Aprovação']], ['Data venda', r => r['Data Ganho']],
+                ['VGV', r => vgvNum(r) ? formatCurrency(vgvNum(r)) : '']
             ];
         }
 
@@ -724,15 +809,9 @@ const CAL_METRICS = {
                 lines = [cols.map(c => esc(c[0])).join(';')];
                 currentDetailRows.forEach(r => lines.push(cols.map(c => esc(c[1](r))).join(';')));
             } else {
-                const headers = ['ID', 'Cliente', 'Corretor', 'Construtora', 'Empreendimento', 'Situação', 'VGV'];
-                lines = [headers.map(esc).join(';')];
-                currentDetailRows.forEach(r => {
-                    lines.push([
-                        r.ID, r.Cliente, r.Corretor, r.Construtora, r.Empreendimento,
-                        r['Situação - Analise'] || r['Situação'],
-                        formatCurrency(parseFloat(r.VGV) || 0)
-                    ].map(esc).join(';'));
-                });
+                const cols = colunasExportProd();
+                lines = [cols.map(c => esc(c[0])).join(';')];
+                currentDetailRows.forEach(r => lines.push(cols.map(c => esc(c[1](r))).join(';')));
             }
             const csvContent = '﻿' + lines.join('\r\n'); // BOM: acentos abrem certo no Excel
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -752,22 +831,9 @@ const CAL_METRICS = {
             const win = window.open('', '_blank');
             if (!win) { showToast('O navegador bloqueou a janela — permita pop-ups para exportar em PDF.', true); return; }
             const modoLeads = currentDetailRows.every(ehLeadCrm);
-            const colsLeads = modoLeads ? colunasExportLeads() : null;
-            const headHtml = modoLeads
-                ? colsLeads.map(c => `<th>${c[0]}</th>`).join('')
-                : '<th>ID</th><th>Cliente</th><th>Corretor</th><th>Construtora</th><th>Empreendimento</th><th>Situação</th><th>VGV</th>';
-            const rowsHtml = modoLeads
-                ? currentDetailRows.map(r => `<tr>${colsLeads.map(c => `<td>${escDet(c[1](r) || '-')}</td>`).join('')}</tr>`).join('')
-                : currentDetailRows.map(r => `
-                <tr>
-                    <td>${r.ID || '-'}</td>
-                    <td>${r.Cliente || '-'}</td>
-                    <td>${r.Corretor || '-'}</td>
-                    <td>${r.Construtora || '-'}</td>
-                    <td>${r.Empreendimento || '-'}</td>
-                    <td>${r['Situação - Analise'] || '-'}</td>
-                    <td style="text-align:right">${formatCurrency(parseFloat(r.VGV) || 0)}</td>
-                </tr>`).join('');
+            const colsLeads = modoLeads ? colunasExportLeads() : colunasExportProd();
+            const headHtml = colsLeads.map(c => `<th>${c[0]}</th>`).join('');
+            const rowsHtml = currentDetailRows.map(r => `<tr>${colsLeads.map(c => `<td>${escDet(c[1](r) || '-')}</td>`).join('')}</tr>`).join('');
             win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${currentDetailTitle}</title>
                 <style>
                     body { font-family: Arial, Helvetica, sans-serif; padding: 24px; color: #111; }
@@ -776,10 +842,10 @@ const CAL_METRICS = {
                     table { width: 100%; border-collapse: collapse; font-size: 11px; }
                     th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
                     th { background: #f3f4f6; }
-                    ${modoLeads ? '@page { size: A4 landscape; margin: 10mm; } table { font-size: 9.5px; } th, td { padding: 4px 5px; }' : ''}
+                    @page { size: A4 landscape; margin: 10mm; } table { font-size: 9.5px; } th, td { padding: 4px 5px; }
                 </style></head><body>
                 <h1>${currentDetailTitle}</h1>
-                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsSistema && ('sistema: ' + SISTEMA_INFO[detailLeadsSistema].nome), detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro)].filter(Boolean).map(x => ' · ' + x).join('') : ''} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
+                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsSistema && ('sistema: ' + SISTEMA_INFO[detailLeadsSistema].nome), detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro)].filter(Boolean).map(x => ' · ' + x).join('') : [detailProdStatus && ('status: ' + STATUS_PROD[detailProdStatus].nome), detailProdConstrutora && ('construtora: ' + detailProdConstrutora)].filter(Boolean).map(x => ' · ' + x).join('')} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
                 <table>
                     <thead><tr>${headHtml}</tr></thead>
                     <tbody>${rowsHtml}</tbody>
