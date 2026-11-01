@@ -1915,6 +1915,92 @@
         function contatoProspeccao(id) {
             return (id && contatosProspeccao[id]) || null;
         }
+
+        // ===== CONTATOS NA NUVEM, SÓ PRA DIRETOR (31/10/2026) =====
+        // Telefone/e-mail dos leads vão pro Firestore num documento SEPARADO e PRIVADO
+        // (privado/contatos-prospeccao) — nunca no config/settings, que é público. Só sincroniza
+        // com login de diretor E depois de confirmar que a regra do Firestore realmente bloqueia
+        // esse documento pra quem não está logado: lê o doc com uma 2ª instância do Firebase SEM
+        // login; se a leitura passar, a regra está aberta e NADA é enviado (fica só local + aviso).
+        // Regra esperada no Console: match /privado/{doc} { allow read, write: if request.auth != null; }
+        let contatosUnsub = null;
+        let contatosNuvemSegura = null;      // null = ainda não verificado · true/false = resultado
+        let contatosVieramDaNuvem = false;
+        let contatosStatus = { estado: 'deslogado', msg: '' };
+        const docContatosNuvem = () => fbDb.collection('privado').doc('contatos-prospeccao');
+
+        function regrasContatosSeguras() {
+            if (contatosNuvemSegura !== null) return Promise.resolve(contatosNuvemSegura);
+            try {
+                const app = (firebase.apps || []).find(a => a.name === 'checagem-regras') || firebase.initializeApp(firebaseConfig, 'checagem-regras');
+                return app.firestore().collection('privado').doc('contatos-prospeccao').get()
+                    .then(() => (contatosNuvemSegura = false)) // leu sem login → regra aberta
+                    .catch(err => {
+                        if (err && err.code === 'permission-denied') return (contatosNuvemSegura = true);
+                        return false; // erro de rede etc.: não decide agora, tenta de novo depois
+                    });
+            } catch (e) { return Promise.resolve(false); }
+        }
+
+        function setContatosStatus(estado, msg) {
+            contatosStatus = { estado, msg };
+            const el = document.getElementById('prospeccaoContatosStatus');
+            if (!el) return;
+            const estilo = {
+                ok: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+                aberto: 'border-rose-500/40 bg-rose-500/10 text-rose-300',
+                deslogado: 'border-slate-700 bg-slate-950/60 text-slate-400',
+                verificando: 'border-slate-700 bg-slate-950/60 text-slate-400'
+            }[estado] || 'border-slate-700 bg-slate-950/60 text-slate-400';
+            el.className = `mb-4 rounded-lg border p-2.5 text-[11px] leading-relaxed ${estilo}`;
+            el.innerHTML = msg;
+        }
+
+        function iniciarContatosNuvem(user) {
+            if (contatosUnsub) { contatosUnsub(); contatosUnsub = null; }
+            if (!fbDb) return;
+            if (!user) {
+                // Saiu: tira deste navegador os contatos que vieram da nuvem (voltam no próximo login).
+                if (contatosVieramDaNuvem) {
+                    contatosProspeccao = {};
+                    try { localStorage.removeItem(`${appId}-prospeccao-contatos`); } catch (e) {}
+                    contatosVieramDaNuvem = false;
+                }
+                setContatosStatus('deslogado', '<i class="fa-solid fa-lock mr-1"></i> Telefone e e-mail dos leads ficam na nuvem, protegidos: <b>entre como diretor</b> pra ver em qualquer aparelho.');
+                return;
+            }
+            setContatosStatus('verificando', '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Verificando a proteção dos contatos no Firebase…');
+            regrasContatosSeguras().then(seguro => {
+                if (!seguro) {
+                    setContatosStatus('aberto', contatosNuvemSegura === false
+                        ? '<i class="fa-solid fa-triangle-exclamation mr-1"></i> <b>Contatos NÃO enviados pra nuvem:</b> a regra do Firebase ainda deixa qualquer pessoa ler. Telefone e e-mail ficam só neste navegador até a regra ser ajustada.'
+                        : '<i class="fa-solid fa-wifi mr-1"></i> Não deu pra verificar a proteção do Firebase agora (sem conexão?). Contatos ficam só neste navegador por enquanto.');
+                    return;
+                }
+                contatosUnsub = docContatosNuvem().onSnapshot(snap => {
+                    const nuvem = (snap.exists && snap.data() && snap.data().contatos) || {};
+                    // Contatos que só existem aqui (anexados antes da sincronização) sobem pra nuvem.
+                    const soLocal = Object.keys(contatosProspeccao).filter(id => !nuvem[id]);
+                    contatosProspeccao = Object.assign({}, contatosProspeccao, nuvem);
+                    contatosVieramDaNuvem = true;
+                    saveLocalSetting(`${appId}-prospeccao-contatos`, JSON.stringify(contatosProspeccao));
+                    if (soLocal.length) enviarContatosNuvem(Object.fromEntries(soLocal.map(id => [id, contatosProspeccao[id]])));
+                    setContatosStatus('ok', `<i class="fa-solid fa-shield-halved mr-1"></i> <b>${Object.keys(contatosProspeccao).length} contatos sincronizados na nuvem</b> — visíveis só com login de diretor, em qualquer aparelho.`);
+                }, err => {
+                    console.warn('Contatos (nuvem) erro:', err);
+                    setContatosStatus('aberto', err && err.code === 'permission-denied'
+                        ? '<i class="fa-solid fa-key mr-1"></i> <b>Falta liberar o diretor no Firebase.</b> A área protegida dos contatos existe, mas a regra ainda bloqueia até o login. No Firebase Console → Firestore → Regras, acrescente:<pre class="mt-1.5 p-2 rounded bg-slate-950 text-[10px] text-emerald-300 whitespace-pre-wrap select-all">match /privado/{doc} {\n  allow read, write: if request.auth != null;\n}</pre>Até lá, telefone e e-mail ficam só neste navegador.'
+                        : '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Não foi possível ler os contatos da nuvem. Ficam só neste navegador por enquanto.');
+                });
+            });
+        }
+
+        function enviarContatosNuvem(parcial) {
+            if (!fbDb || !isDiretor || contatosNuvemSegura !== true || !parcial || !Object.keys(parcial).length) return Promise.resolve(false);
+            return docContatosNuvem().set({ contatos: parcial, _updatedAt: Date.now() }, { merge: true })
+                .then(() => true)
+                .catch(err => { console.warn('Falha ao enviar contatos:', err); return false; });
+        }
         function dataLeadCrm(v) {
             if (v instanceof Date && !isNaN(v)) return v;
             if (typeof v === 'number' && v > 20000) { // número de série do Excel
@@ -2124,6 +2210,7 @@
             novas.forEach(r => { if (porId[r.ID]) atualizados++; porId[r.ID] = r; });
             Object.assign(contatosProspeccao, contatosNovos);
             saveLocalSetting(`${appId}-prospeccao-contatos`, JSON.stringify(contatosProspeccao));
+            enviarContatosNuvem(contatosNovos); // só envia com login de diretor + regra fechada
             // Colunas = união de todas as linhas (o Papa.unparse usaria só as da 1ª linha e perderia
             // colunas novas, ex.: "Tag", quando a 1ª linha é um lead antigo).
             const todasLinhas = Object.values(porId);
@@ -3382,6 +3469,7 @@
                     firebase.auth().onAuthStateChanged(function (user) {
                         isDiretor = !!user;
                         updateAuthUI(user);
+                        iniciarContatosNuvem(user);
                     });
                 }
             } catch (e) {
