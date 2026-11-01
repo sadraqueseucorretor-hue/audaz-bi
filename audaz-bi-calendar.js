@@ -556,7 +556,10 @@ const CAL_METRICS = {
             const fa = chip('filtrarDetailLeadsFase', '', !detailLeadsFase, 'Todas', baseFa.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + fases.map(k => chip('filtrarDetailLeadsFase', k.replace(/'/g, "\\'"), detailLeadsFase === k, escDet(rotFa[k]), contFa[k], k === 'sem' ? 'bg-slate-900 text-slate-400 border-slate-700' : corFase(rotFa[k]))).join('');
 
-            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${linha('Sistema', sis)}${linha('Fase', fa)}${linha('Separar', sep)}${linha('Fonte', fon)}${linha('Ranking', rk)}</div>`;
+            // Leads do Salesforce sem fase "NN - ..." = vieram de Excel antigo, sem a coluna FASES DA OPORTUNIDADE.
+            const sfSemFase = detailLeadsTodos.filter(r => sistemaLead(r) === 'salesforce' && !/^\d+\s*-/.test(String(r['Situação'] || '').trim())).length;
+            const avisoFase = sfSemFase ? `<span class="text-[10px] text-amber-300 ml-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>${sfSemFase} lead(s) do Salesforce sem fase — anexe em Prospecção o Excel novo (com a coluna "FASES DA OPORTUNIDADE").</span>` : '';
+            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${linha('Sistema', sis)}${linha('Fase', fa + avisoFase)}${linha('Separar', sep)}${linha('Fonte', fon)}${linha('Ranking', rk)}</div>`;
         }
         function aplicarFiltrosDetailLeads() {
             currentDetailRows = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
