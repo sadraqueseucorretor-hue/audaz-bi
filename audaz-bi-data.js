@@ -2058,7 +2058,7 @@
                     'Cliente': cliente,
                     'Corretor': map.nome,
                     'Equipe': '',
-                    'Situação': String(col(l, 'status da oportunidade') || '').trim(),
+                    'Situação': String(col(l, 'fases da oportunidade', 'fase da oportunidade', 'status da oportunidade') || '').trim(),
                     'Cadastro': `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`,
                     'Mês Comercial': mesComercialDaDataProspeccao(d),
                     'Origem': String(col(l, 'origem da conta') || '').trim(),
