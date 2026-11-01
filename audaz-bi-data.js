@@ -2021,6 +2021,7 @@
         // (ex.: só a última semana) soma ao mês em vez de apagar o resto; o mesmo lead anexado
         // de novo só é atualizado. Telefone e e-mail NÃO entram nas linhas (a Prospecção sincroniza
         // pela nuvem, legível por qualquer um) — vão pra contatosProspeccao, só neste navegador.
+        const escapeHtmlLite = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         function applyProspeccaoLeadsCrm(linhas) {
             const col = (obj, ...nomes) => {
                 const chaves = Object.keys(obj);
@@ -2073,7 +2074,12 @@
                 showToast('Nenhum lead encontrado — confira se é o relatório com "Nome do corretor" e "Data de criação".', true);
                 return false;
             }
-            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'Salesforce (Excel)', semCorretor, semData, naoReconhecidos });
+            const contFase = {};
+            novas.forEach(r => { const f = r['Situação'] || 'Sem fase'; contFase[f] = (contFase[f] || 0) + 1; });
+            const extraHtml = Object.keys(contFase).length && !(Object.keys(contFase).length === 1 && contFase['Sem fase'])
+                ? `<p class="mt-1 text-slate-300"><b>Fases:</b> ${Object.keys(contFase).sort().map(f => `${escapeHtmlLite(f)} · ${contFase[f]}`).join(' &nbsp;|&nbsp; ')}</p>`
+                : `<p class="mt-1 text-amber-300"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Esse Excel não tem a coluna "FASES DA OPORTUNIDADE" — os leads entraram sem fase.</p>`;
+            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'Salesforce (Excel)', semCorretor, semData, naoReconhecidos, extraHtml });
         }
 
         // ===== LEADS DO DV ON (PDF "Print_leads - Lead Manager", 31/10/2026) =====
