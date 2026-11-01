@@ -550,10 +550,16 @@ const CAL_METRICS = {
             const rows = currentDetailRows;
             let html = '';
             if (!detailLeadsTodos.some(r => contatoDoLead(r).tel || contatoDoLead(r).email)) {
-                html += `<tr><td colspan="6" class="p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-200">
-                    <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail não estão neste navegador — eles ficam só no computador onde o Excel (Salesforce) / PDF (DV On) foi anexado.
-                    <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleProspeccaoModal();" class="ml-1 underline font-bold text-amber-300 hover:text-amber-100">Anexar o Excel aqui</button>
-                </td></tr>`;
+                const logado = typeof isDiretor !== 'undefined' && isDiretor;
+                html += logado
+                    ? `<tr><td colspan="6" class="p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-200">
+                        <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail ainda não carregaram. ${typeof contatosStatus !== 'undefined' && contatosStatus.estado === 'aberto' ? 'A proteção do Firebase não está ativa — veja o aviso na janela de Prospecção.' : 'Se os arquivos foram anexados antes da sincronização, anexe de novo o Excel (Salesforce) / PDF (DV On) no computador onde eles estão.'}
+                        <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleProspeccaoModal();" class="ml-1 underline font-bold text-amber-300 hover:text-amber-100">Abrir Prospecção</button>
+                    </td></tr>`
+                    : `<tr><td colspan="6" class="p-2.5 bg-slate-800/60 border-b border-slate-700 text-[11px] text-slate-300">
+                        <i class="fa-solid fa-lock mr-1"></i> Telefone e e-mail dos clientes são protegidos — só aparecem com login de diretor.
+                        <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleAuthModal();" class="ml-1 underline font-bold text-sky-300 hover:text-sky-100">Entrar como diretor</button>
+                    </td></tr>`;
             }
             if (!rows.length) html += `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum lead com esses filtros.</td></tr>`;
             rows.forEach(r => {
