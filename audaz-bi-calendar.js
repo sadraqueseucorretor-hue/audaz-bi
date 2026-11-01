@@ -428,7 +428,7 @@ const CAL_METRICS = {
             <th class="p-2">Corretor</th>
             <th class="p-2">Origem · Empreendimento</th>
             <th class="p-2">Criado em</th>
-            <th class="p-2 pr-3">Situação</th>`;
+            <th class="p-2 pr-3">Fase</th>`;
 
         const ehLeadCrm = r => /^(OP|DV)-\d+/i.test(String(r && r.ID || '')); // OP = Excel do Salesforce · DV = PDF do DV On
         const escDet = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -478,6 +478,7 @@ const CAL_METRICS = {
         let detailLeadsFonte = '';
         let detailLeadsBolsao = '';   // '' | 'bolsao' | 'fora'
         let detailLeadsSistema = '';  // '' | 'salesforce' | 'dvon'
+        let detailLeadsFase = '';     // Fase da oportunidade (coluna "FASES DA OPORTUNIDADE" do Salesforce)
         // Sistema de origem do lead: Excel = Salesforce (ID "OP-..."), PDF = DV On (ID "DV-...").
         const sistemaLead = r => /^DV-/i.test(String(r && r.ID || '')) ? 'dvon' : 'salesforce';
         const SISTEMA_INFO = {
@@ -490,6 +491,18 @@ const CAL_METRICS = {
         const passaBolsao0 = r => !detailLeadsBolsao || (detailLeadsBolsao === 'bolsao' ? ehBolsao(r) : !ehBolsao(r));
         const passaBolsao = r => passaBolsao0(r);
         const passaFonte = r => !detailLeadsFonte || fonteChave(r) === detailLeadsFonte;
+        const faseChave = r => stripDiacritics(String(r && r['Situação'] || '').trim()).toLowerCase().replace(/\s+/g, ' ') || 'sem';
+        const passaFase = r => !detailLeadsFase || faseChave(r) === detailLeadsFase;
+        // Cor da fase: perdido = vermelho, crédito/aprovado/venda = verde, aguardando/pendente = âmbar,
+        // concluído/encerrado = cinza, em atendimento e demais = azul.
+        const corFase = t => {
+            const x = stripDiacritics(String(t || '')).toLowerCase();
+            if (/perdid|descart|cancel/.test(x)) return 'bg-rose-500/10 text-rose-300 border-rose-500/25';
+            if (/credito|aprov|venda|ganh|contrat/.test(x)) return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25';
+            if (/aguard|pendente/.test(x)) return 'bg-amber-500/10 text-amber-300 border-amber-500/25';
+            if (/encerr|conclu/.test(x)) return 'bg-slate-800/60 text-slate-400 border-slate-700';
+            return 'bg-sky-500/10 text-sky-300 border-sky-500/25';
+        };
         const passaRanking = r => !detailLeadsFiltro || (rankingLead(r).chave || 'sem') === detailLeadsFiltro;
 
         function renderDetailLeadsChips() {
@@ -498,7 +511,7 @@ const CAL_METRICS = {
             const linha = (titulo, conteudo) => `<div class="flex flex-wrap items-center gap-1.5"><span class="w-[78px] shrink-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">${titulo}</span>${conteudo}</div>`;
 
             // 1) Separação por bolsão
-            const baseB = detailLeadsTodos.filter(r => passaSistema(r) && passaFonte(r) && passaRanking(r));
+            const baseB = detailLeadsTodos.filter(r => passaSistema(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
             const nB = baseB.filter(ehBolsao).length;
             const temTag = detailLeadsTodos.some(ehBolsao);
             const sep = chip('filtrarDetailLeadsBolsao', '', !detailLeadsBolsao, 'Todos', baseB.length, 'bg-slate-800 text-slate-200 border-slate-700')
@@ -507,7 +520,7 @@ const CAL_METRICS = {
                 + (temTag ? '' : '<span class="text-[10px] text-slate-500 ml-1">(anexe de novo o Excel do Salesforce pra trazer a Tag Bolsão)</span>');
 
             // 2) Fontes (Origem)
-            const baseF = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaRanking(r));
+            const baseF = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaRanking(r) && passaFase(r));
             const contF = {}, rotF = {};
             baseF.forEach(r => { const k = fonteChave(r); contF[k] = (contF[k] || 0) + 1; if (!rotF[k]) rotF[k] = String(r.Origem || '').trim() || 'Sem fonte'; });
             const fontes = Object.keys(contF).sort((a, b) => (a === 'sem') - (b === 'sem') || contF[b] - contF[a]);
@@ -515,7 +528,7 @@ const CAL_METRICS = {
                 + fontes.map(k => chip('filtrarDetailLeadsFonte', k.replace(/'/g, "\\'"), detailLeadsFonte === k, escDet(rotF[k]), contF[k], k === 'sem' ? 'bg-slate-900 text-slate-400 border-slate-700' : 'bg-violet-500/10 text-violet-300 border-violet-500/25')).join('');
 
             // 3) Ranking
-            const baseR = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r));
+            const baseR = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaFase(r));
             const cont = {};
             baseR.forEach(r => { const k = rankingLead(r).chave || 'sem'; cont[k] = (cont[k] || 0) + 1; });
             const chaves = RANKING_ORDEM.filter(k => cont[k]).concat(Object.keys(cont).filter(k => !RANKING_ORDEM.includes(k) && k !== 'sem')).concat(cont.sem ? ['sem'] : []);
@@ -528,22 +541,32 @@ const CAL_METRICS = {
                 }).join('');
 
             // 0) Sistema (Salesforce = Excel · DV On = PDF)
-            const baseS = detailLeadsTodos.filter(r => passaBolsao(r) && passaFonte(r) && passaRanking(r));
+            const baseS = detailLeadsTodos.filter(r => passaBolsao(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
             const nS = { salesforce: 0, dvon: 0 };
             baseS.forEach(r => nS[sistemaLead(r)]++);
             const sis = chip('filtrarDetailLeadsSistema', '', !detailLeadsSistema, 'Todos', baseS.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + ['salesforce', 'dvon'].map(k => chip('filtrarDetailLeadsSistema', k, detailLeadsSistema === k, `<i class="fa-solid ${SISTEMA_INFO[k].icone} mr-1"></i>${SISTEMA_INFO[k].nome}`, nS[k], SISTEMA_INFO[k].cor)).join('');
 
-            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${linha('Sistema', sis)}${linha('Separar', sep)}${linha('Fonte', fon)}${linha('Ranking', rk)}</div>`;
+            // 4) Fase da oportunidade — em ordem do funil do CRM ("01 - ...", "02 - ...", "12 - ...")
+            const baseFa = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r));
+            const contFa = {}, rotFa = {};
+            baseFa.forEach(r => { const k = faseChave(r); contFa[k] = (contFa[k] || 0) + 1; if (!rotFa[k]) rotFa[k] = String(r['Situação'] || '').trim() || 'Sem fase'; });
+            const numFase = k => { const m = /^(\d+)/.exec(k); return m ? +m[1] : 999; };
+            const fases = Object.keys(contFa).sort((a, b) => (a === 'sem') - (b === 'sem') || numFase(a) - numFase(b) || a.localeCompare(b));
+            const fa = chip('filtrarDetailLeadsFase', '', !detailLeadsFase, 'Todas', baseFa.length, 'bg-slate-800 text-slate-200 border-slate-700')
+                + fases.map(k => chip('filtrarDetailLeadsFase', k.replace(/'/g, "\\'"), detailLeadsFase === k, escDet(rotFa[k]), contFa[k], k === 'sem' ? 'bg-slate-900 text-slate-400 border-slate-700' : corFase(rotFa[k]))).join('');
+
+            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${linha('Sistema', sis)}${linha('Fase', fa)}${linha('Separar', sep)}${linha('Fonte', fon)}${linha('Ranking', rk)}</div>`;
         }
         function aplicarFiltrosDetailLeads() {
-            currentDetailRows = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r));
+            currentDetailRows = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
             renderDetailLeadsChips();
             renderDetailLeadsRows();
         }
         function filtrarDetailLeads(k) { detailLeadsFiltro = (k && detailLeadsFiltro === k) ? '' : k; aplicarFiltrosDetailLeads(); }
         function filtrarDetailLeadsFonte(k) { detailLeadsFonte = (k && detailLeadsFonte === k) ? '' : k; aplicarFiltrosDetailLeads(); }
         function filtrarDetailLeadsSistema(k) { detailLeadsSistema = (k && detailLeadsSistema === k) ? '' : k; aplicarFiltrosDetailLeads(); }
+        function filtrarDetailLeadsFase(k) { detailLeadsFase = (k && detailLeadsFase === k) ? '' : k; aplicarFiltrosDetailLeads(); }
         function filtrarDetailLeadsBolsao(k) { detailLeadsBolsao = (k && detailLeadsBolsao === k) ? '' : k; aplicarFiltrosDetailLeads(); }
         function renderDetailLeadsRows() {
             const tableBody = document.getElementById('detailTableBody');
@@ -566,7 +589,7 @@ const CAL_METRICS = {
             rows.forEach(r => {
                 const c = contatoDoLead(r);
                 const sit = String(r['Situação'] || '-');
-                const sitCor = /encerr|conclu/i.test(sit) ? 'text-slate-500 bg-slate-800/60' : /pendente/i.test(sit) ? 'text-amber-300 bg-amber-500/10' : 'text-sky-300 bg-sky-500/10';
+                const sitCor = 'border ' + corFase(sit);
                 const origem = String(r.Origem || '').trim(), emp = String(r.Empreendimento || '').trim();
                 html += `
                     <tr class="hover:bg-slate-950 transition align-top">
@@ -589,7 +612,7 @@ const CAL_METRICS = {
             });
             tableBody.innerHTML = html;
             const total = document.getElementById('detailCorrTotal');
-            if (total) total.textContent = (detailLeadsFiltro || detailLeadsFonte || detailLeadsBolsao || detailLeadsSistema) ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
+            if (total) total.textContent = (detailLeadsFiltro || detailLeadsFonte || detailLeadsBolsao || detailLeadsSistema || detailLeadsFase) ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
         }
 
         // Renderizador genérico do modal de detalhamento de clientes — usado pelo calendário,
@@ -611,7 +634,7 @@ const CAL_METRICS = {
                 // Mais recentes primeiro (Cadastro dd/mm/aaaa).
                 const dt = r => { const d = parseDate(r.Cadastro); return d ? d.getTime() : 0; };
                 detailLeadsTodos = rows.slice().sort((a, b) => dt(b) - dt(a));
-                detailLeadsFiltro = ''; detailLeadsFonte = ''; detailLeadsBolsao = ''; detailLeadsSistema = '';
+                detailLeadsFiltro = ''; detailLeadsFonte = ''; detailLeadsBolsao = ''; detailLeadsSistema = ''; detailLeadsFase = '';
                 currentDetailRows = detailLeadsTodos;
                 renderDetailLeadsChips();
                 renderDetailLeadsRows();
@@ -670,7 +693,7 @@ const CAL_METRICS = {
                 ['Fonte (origem)', r => r.Origem],
                 ['Tag Bolsão', r => r.Tag],
                 ['Empreendimento', r => r.Empreendimento],
-                ['Situação', r => r['Situação']],
+                ['Fase da oportunidade', r => r['Situação']],
                 ['Gerente (CRM)', r => r['Gerente CRM']]
             ];
         }
