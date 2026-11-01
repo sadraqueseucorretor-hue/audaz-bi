@@ -467,7 +467,7 @@ const CAL_METRICS = {
             const box = document.getElementById('detailModalBox');
             if (box) { box.classList.toggle('max-w-2xl', !leads); box.classList.toggle('max-w-5xl', leads); }
             const wrap = document.getElementById('detailTableWrap');
-            if (wrap) { wrap.classList.toggle('max-h-64', !leads); wrap.classList.toggle('max-h-[55vh]', leads); }
+            if (wrap) { wrap.classList.toggle('max-h-64', !leads); }
             const chips = document.getElementById('detailLeadsChips');
             if (chips) { chips.classList.toggle('hidden', !leads); if (!leads) chips.innerHTML = ''; }
         }
