@@ -553,7 +553,8 @@ const CAL_METRICS = {
                 const logado = typeof isDiretor !== 'undefined' && isDiretor;
                 html += logado
                     ? `<tr><td colspan="6" class="p-2.5 bg-amber-500/10 border-b border-amber-500/20 text-[11px] text-amber-200">
-                        <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail ainda não carregaram. ${typeof contatosStatus !== 'undefined' && contatosStatus.estado === 'aberto' ? 'A proteção do Firebase não está ativa — veja o aviso na janela de Prospecção.' : 'Se os arquivos foram anexados antes da sincronização, anexe de novo o Excel (Salesforce) / PDF (DV On) no computador onde eles estão.'}
+                        <i class="fa-solid fa-phone-slash mr-1"></i> Telefone e e-mail ainda não carregaram.
+                        ${typeof contatosStatus !== 'undefined' && contatosStatus.msg && contatosStatus.estado !== 'ok' ? `<div class="mt-1.5 text-slate-200">${contatosStatus.msg}</div>` : 'Se os arquivos foram anexados antes da sincronização, anexe de novo o Excel (Salesforce) / PDF (DV On) no computador onde eles estão.'}
                         <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleProspeccaoModal();" class="ml-1 underline font-bold text-amber-300 hover:text-amber-100">Abrir Prospecção</button>
                     </td></tr>`
                     : `<tr><td colspan="6" class="p-2.5 bg-slate-800/60 border-b border-slate-700 text-[11px] text-slate-300">
