@@ -261,6 +261,26 @@
                                 <span class="normal-case font-medium text-slate-600">— clique em vários pra comparar</span>
                             </p>
                             <div id="mesComercialPills" class="flex items-center gap-1.5 flex-wrap"></div>
+                            <!-- Filtro por datas (De / Até) -->
+                            <div id="filtroDatasBox" class="mt-3 pt-3 border-t border-slate-800 transition">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                                    <i class="fa-solid fa-calendar-check text-amber-400"></i> Datas
+                                    <span id="filtroDatasAviso" class="hidden normal-case font-semibold text-amber-300">— filtro por datas ativo (mês e semana ficam de lado)</span>
+                                </p>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <label class="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">De <input type="date" id="filtroDataDe" onchange="setFiltroDatas(this.value, document.getElementById('filtroDataAte').value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200 focus:border-amber-500 outline-none [color-scheme:dark]"></label>
+                                    <label class="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">Até <input type="date" id="filtroDataAte" onchange="setFiltroDatas(document.getElementById('filtroDataDe').value, this.value)" class="bg-slate-950 border border-slate-800 text-xs rounded-lg px-2 py-1.5 text-slate-200 focus:border-amber-500 outline-none [color-scheme:dark]"></label>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                    <button type="button" onclick="atalhoFiltroDatas('hoje')" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 transition">Hoje</button>
+                                    <button type="button" onclick="atalhoFiltroDatas('ontem')" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 transition">Ontem</button>
+                                    <button type="button" onclick="atalhoFiltroDatas('semana')" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 transition">Esta semana</button>
+                                    <button type="button" onclick="atalhoFiltroDatas('7')" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 transition">Últimos 7 dias</button>
+                                    <button type="button" onclick="atalhoFiltroDatas('30')" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 transition">Últimos 30 dias</button>
+                                    <button type="button" onclick="atalhoFiltroDatas('mesCal')" class="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-800 bg-slate-950 text-slate-300 hover:text-white hover:border-slate-600 transition">Mês do calendário</button>
+                                    <button type="button" onclick="atalhoFiltroDatas('')" class="text-[10px] font-bold px-2 py-1 rounded-lg text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-xmark mr-1"></i>Limpar datas</button>
+                                </div>
+                            </div>
                         </div>
                         <!-- Semana -->
                         <div class="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
@@ -1845,8 +1865,8 @@
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
-    <script src="./audaz-bi-data.js?v=sistemas-dados-20261104"></script>
-    <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
+    <script src="./audaz-bi-data.js?v=datas-20261104"></script>
+    <script src="./audaz-bi-filters.js?v=datas-20261104"></script>
     <script src="./audaz-bi-analytics.js?v=leads-equipe-20261031"></script>
     <script src="./audaz-bi-calendar.js?v=busca-20261103"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
