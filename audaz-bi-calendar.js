@@ -458,19 +458,19 @@ const CAL_METRICS = {
             const chip = (fn, k, ativo, rotulo, n, cor) => `<button onclick="${fn}('${k}')" class="text-[10px] font-bold px-2 py-1 rounded-lg border transition ${ativo ? 'ring-2 ring-white/50 ' : 'opacity-75 hover:opacity-100 '}${cor}">${rotulo} <span class="ml-0.5 text-white">${n}</span></button>`;
             const linha = (titulo, conteudo) => `<div class="flex flex-wrap items-center gap-1.5"><span class="w-[78px] shrink-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">${titulo}</span>${conteudo}</div>`;
 
-            const baseS = detailProdTodos.filter(passaProdConstrutora);
+            const baseS = detailProdTodos.filter(r => passaBusca(r) && passaProdConstrutora(r));
             const contS = {}; baseS.forEach(r => { const k = statusProd(r); contS[k] = (contS[k] || 0) + 1; });
             const st = chip('filtrarDetailProdStatus', '', !detailProdStatus, 'Todos', baseS.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + Object.keys(STATUS_PROD).filter(k => contS[k]).map(k => chip('filtrarDetailProdStatus', k, detailProdStatus === k, `<i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}`, contS[k], STATUS_PROD[k].cor)).join('');
 
-            const baseC = detailProdTodos.filter(passaProdStatus);
+            const baseC = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r));
             const contC = {}, rotC = {};
             baseC.forEach(r => { const k = construtoraChave(r); contC[k] = (contC[k] || 0) + 1; if (!rotC[k]) rotC[k] = String(r.Construtora || '').trim() || 'Sem construtora'; });
             const cks = Object.keys(contC).sort((a, b) => (a === 'sem') - (b === 'sem') || contC[b] - contC[a]);
             const co = chip('filtrarDetailProdConstrutora', '', !detailProdConstrutora, 'Todas', baseC.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + cks.map(k => chip('filtrarDetailProdConstrutora', k.replace(/'/g, "\\'"), detailProdConstrutora === k, escDet(rotC[k]), contC[k], 'bg-violet-500/10 text-violet-300 border-violet-500/25')).join('');
 
-            const vis = detailProdTodos.filter(r => passaProdStatus(r) && passaProdConstrutora(r));
+            const vis = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r));
             const vgv = vis.reduce((a, r) => a + vgvNum(r), 0);
             const resumo = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-1">
                 ${['venda', 'aprovado', 'pendente', 'reprovado'].map(k => { const n = vis.filter(r => statusProd(r) === k).length; return `<div class="rounded-lg border ${STATUS_PROD[k].cor} px-2.5 py-1"><div class="text-[9px] uppercase font-bold tracking-wider opacity-80"><i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}</div><div class="text-base font-black text-white leading-tight">${n}</div></div>`; }).join('')}
@@ -481,8 +481,8 @@ const CAL_METRICS = {
         function renderDetailProdRows() {
             const tableBody = document.getElementById('detailTableBody');
             const rows = currentDetailRows;
-            if (!rows.length) { tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">${detailProdTodos.length ? 'Nenhum cliente com esses filtros.' : 'Nenhum cliente neste recorte.'}</td></tr>`; }
-            else tableBody.innerHTML = rows.map(r => {
+            if (!rows.length) { tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">${detailProdTodos.length ? (detailBusca ? `Nada encontrado pra "${escDet(detailBusca)}" com esses filtros.` : 'Nenhum cliente com esses filtros.') : 'Nenhum cliente neste recorte.'}</td></tr>`; }
+            else tableBody.innerHTML = rows.slice(0, DETAIL_MAX_LINHAS).map(r => {
                 const k = statusProd(r), sit = sitProd(r) || '-';
                 const datas = [['Análise', r['Data Cadastro']], ['Aprovação', r['Data Aprovação']], ['Venda', r['Data Ganho']]]
                     .filter(d => d[1]).map(d => `<div class="whitespace-nowrap"><span class="text-slate-500">${d[0]}:</span> <span class="text-slate-300">${escDet(d[1])}</span></div>`).join('') || '<span class="text-slate-600">-</span>';
@@ -509,14 +509,14 @@ const CAL_METRICS = {
                         </td>
                         <td class="p-2.5 pr-3 text-right text-[11px] font-bold whitespace-nowrap ${vg > 0 ? 'text-indigo-300' : 'text-slate-600'}">${vg > 0 ? formatCurrency(vg) : '—'}</td>
                     </tr>`;
-            }).join('');
+            }).join('') + avisoMaisLinhas(rows.length);
             const total = document.getElementById('detailCorrTotal');
-            if (total && (detailProdStatus || detailProdConstrutora)) total.textContent = `${rows.length} de ${detailProdTodos.length}`;
+            if (total && (detailBusca || detailProdStatus || detailProdConstrutora)) total.textContent = `${rows.length} de ${detailProdTodos.length}`;
             else if (total && detailProdTotalLabel) total.textContent = detailProdTotalLabel;
         }
         let detailProdTotalLabel = '';
         function aplicarFiltrosDetailProd() {
-            currentDetailRows = detailProdTodos.filter(r => passaProdStatus(r) && passaProdConstrutora(r));
+            currentDetailRows = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r));
             renderDetailProdChips();
             renderDetailProdRows();
         }
@@ -610,8 +610,9 @@ const CAL_METRICS = {
             const chip = (fn, k, ativo, rotulo, n, cor) => `<button onclick="${fn}('${k}')" class="text-[10px] font-bold px-2 py-1 rounded-lg border transition ${ativo ? 'ring-2 ring-white/50 ' : 'opacity-75 hover:opacity-100 '}${cor}">${rotulo} <span class="ml-0.5 text-white">${n}</span></button>`;
             const linha = (titulo, conteudo) => `<div class="flex flex-wrap items-center gap-1.5"><span class="w-[78px] shrink-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">${titulo}</span>${conteudo}</div>`;
 
+            const leadsBuscados = detailLeadsTodos.filter(passaBusca);
             // 1) Separação por bolsão
-            const baseB = detailLeadsTodos.filter(r => passaSistema(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
+            const baseB = leadsBuscados.filter(r => passaSistema(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
             const nB = baseB.filter(ehBolsao).length;
             const temTag = detailLeadsTodos.some(ehBolsao);
             const sep = chip('filtrarDetailLeadsBolsao', '', !detailLeadsBolsao, 'Todos', baseB.length, 'bg-slate-800 text-slate-200 border-slate-700')
@@ -620,7 +621,7 @@ const CAL_METRICS = {
                 + (temTag ? '' : '<span class="text-[10px] text-slate-500 ml-1">(anexe de novo o Excel do Salesforce pra trazer a Tag Bolsão)</span>');
 
             // 2) Fontes (Origem)
-            const baseF = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaRanking(r) && passaFase(r));
+            const baseF = leadsBuscados.filter(r => passaSistema(r) && passaBolsao(r) && passaRanking(r) && passaFase(r));
             const contF = {}, rotF = {};
             baseF.forEach(r => { const k = fonteChave(r); contF[k] = (contF[k] || 0) + 1; if (!rotF[k]) rotF[k] = String(r.Origem || '').trim() || 'Sem fonte'; });
             const fontes = Object.keys(contF).sort((a, b) => (a === 'sem') - (b === 'sem') || contF[b] - contF[a]);
@@ -628,7 +629,7 @@ const CAL_METRICS = {
                 + fontes.map(k => chip('filtrarDetailLeadsFonte', k.replace(/'/g, "\\'"), detailLeadsFonte === k, escDet(rotF[k]), contF[k], k === 'sem' ? 'bg-slate-900 text-slate-400 border-slate-700' : 'bg-violet-500/10 text-violet-300 border-violet-500/25')).join('');
 
             // 3) Ranking
-            const baseR = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaFase(r));
+            const baseR = leadsBuscados.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaFase(r));
             const cont = {};
             baseR.forEach(r => { const k = rankingLead(r).chave || 'sem'; cont[k] = (cont[k] || 0) + 1; });
             const chaves = RANKING_ORDEM.filter(k => cont[k]).concat(Object.keys(cont).filter(k => !RANKING_ORDEM.includes(k) && k !== 'sem')).concat(cont.sem ? ['sem'] : []);
@@ -641,14 +642,14 @@ const CAL_METRICS = {
                 }).join('');
 
             // 0) Sistema (Salesforce = Excel · DV On = PDF)
-            const baseS = detailLeadsTodos.filter(r => passaBolsao(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
+            const baseS = leadsBuscados.filter(r => passaBolsao(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
             const nS = { salesforce: 0, dvon: 0 };
             baseS.forEach(r => nS[sistemaLead(r)]++);
             const sis = chip('filtrarDetailLeadsSistema', '', !detailLeadsSistema, 'Todos', baseS.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + ['salesforce', 'dvon'].map(k => chip('filtrarDetailLeadsSistema', k, detailLeadsSistema === k, `<i class="fa-solid ${SISTEMA_INFO[k].icone} mr-1"></i>${SISTEMA_INFO[k].nome}`, nS[k], SISTEMA_INFO[k].cor)).join('');
 
             // 4) Fase da oportunidade — em ordem do funil do CRM ("01 - ...", "02 - ...", "12 - ...")
-            const baseFa = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r));
+            const baseFa = leadsBuscados.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r));
             const contFa = {}, rotFa = {};
             baseFa.forEach(r => { const k = faseChave(r); contFa[k] = (contFa[k] || 0) + 1; if (!rotFa[k]) rotFa[k] = String(r['Situação'] || '').trim() || 'Sem fase'; });
             const numFase = k => { const m = /^(\d+)/.exec(k); return m ? +m[1] : 999; };
@@ -662,7 +663,7 @@ const CAL_METRICS = {
             el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${linha('Sistema', sis)}${linha('Fase', fa + avisoFase)}${linha('Separar', sep)}${linha('Fonte', fon)}${linha('Ranking', rk)}</div>`;
         }
         function aplicarFiltrosDetailLeads() {
-            currentDetailRows = detailLeadsTodos.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
+            currentDetailRows = detailLeadsTodos.filter(r => passaBusca(r) && passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
             renderDetailLeadsChips();
             renderDetailLeadsRows();
         }
@@ -688,8 +689,8 @@ const CAL_METRICS = {
                         <button onclick="document.getElementById('calendarDetailModal').classList.add('hidden'); toggleAuthModal();" class="ml-1 underline font-bold text-sky-300 hover:text-sky-100">Entrar como diretor</button>
                     </td></tr>`;
             }
-            if (!rows.length) html += `<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhum lead com esses filtros.</td></tr>`;
-            rows.forEach(r => {
+            if (!rows.length) html += `<tr><td colspan="6" class="p-4 text-center text-slate-500">${detailBusca ? `Nada encontrado pra "${escDet(detailBusca)}" com esses filtros.` : 'Nenhum lead com esses filtros.'}</td></tr>`;
+            rows.slice(0, DETAIL_MAX_LINHAS).forEach(r => {
                 const c = contatoDoLead(r);
                 const sit = String(r['Situação'] || '-');
                 const sitCor = 'border ' + corFase(sit);
@@ -713,10 +714,99 @@ const CAL_METRICS = {
                         <td class="p-2.5 pr-3"><span class="text-[9px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 whitespace-nowrap ${sitCor}">${escDet(sit)}</span></td>
                     </tr>`;
             });
-            tableBody.innerHTML = html;
+            tableBody.innerHTML = html + avisoMaisLinhas(rows.length);
             const total = document.getElementById('detailCorrTotal');
-            if (total) total.textContent = (detailLeadsFiltro || detailLeadsFonte || detailLeadsBolsao || detailLeadsSistema || detailLeadsFase) ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
+            if (total) total.textContent = (detailBusca || detailLeadsFiltro || detailLeadsFonte || detailLeadsBolsao || detailLeadsSistema || detailLeadsFase) ? `${rows.length} de ${detailLeadsTodos.length} leads` : `${detailLeadsTodos.length} ${detailLeadsTodos.length === 1 ? 'lead' : 'leads'}`;
         }
+
+
+        // ===== BUSCA (dentro do Detalhamento + busca global do topo) =====
+        // Texto livre, sem diferenciar maiúsculas/acentos; várias palavras = todas precisam bater
+        // (ex.: "matheus whatsapp"). Procura em TODAS as colunas da linha (cliente, corretor,
+        // equipe, origem/campanha, empreendimento, construtora, fase, ID, datas...) e, nos leads,
+        // também no telefone (com ou sem máscara) e e-mail. Combina com os chips de filtro.
+        let detailBusca = '';
+        let detailBuscaTermos = [];
+        let detailBuscaCache = new WeakMap();
+        let detailBuscaGlobal = null; // { termo, leads, prod, base } quando o modal veio da busca do topo
+        const normBusca = t => stripDiacritics(String(t == null ? '' : t)).toLowerCase();
+        function textoBuscaRow(r) {
+            let t = detailBuscaCache.get(r);
+            if (t !== undefined) return t;
+            const partes = Object.keys(r).filter(k => k.charAt(0) !== '_').map(k => r[k]);
+            if (ehLeadCrm(r)) { const c = contatoDoLead(r); if (c.tel) partes.push(c.tel, String(c.tel).replace(/\D/g, '')); if (c.email) partes.push(c.email); }
+            t = normBusca(partes.join(' \u0001 ')).replace(/\s+/g, ' ');
+            detailBuscaCache.set(r, t);
+            return t;
+        }
+        function passaBusca(r) {
+            if (!detailBuscaTermos.length) return true;
+            const t = textoBuscaRow(r);
+            return detailBuscaTermos.every(w => t.includes(w) || (/^[\d\s().+-]+$/.test(w) && w.replace(/\D/g, '') && t.includes(w.replace(/\D/g, ''))));
+        }
+        function definirBusca(termo) {
+            detailBusca = String(termo || '').trim();
+            detailBuscaTermos = normBusca(detailBusca).split(/\s+/).filter(Boolean);
+            const inp = document.getElementById('detailBuscaInput');
+            if (inp && inp.value !== detailBusca && document.activeElement !== inp) inp.value = detailBusca;
+        }
+        let detailModoLeads = false;
+        let detailBuscaTimer = null;
+        function buscarNoDetalhe(termo) {
+            clearTimeout(detailBuscaTimer);
+            detailBuscaTimer = setTimeout(() => {
+                definirBusca(termo);
+                if (detailBuscaGlobal) { detailBuscaGlobal.termo = detailBusca; renderBuscaFontes(); }
+                if (detailModoLeads) aplicarFiltrosDetailLeads();
+                else aplicarFiltrosDetailProd();
+            }, 120);
+        }
+        // Lista grande sem filtro trava o navegador: mostra as primeiras e pede pra refinar.
+        const DETAIL_MAX_LINHAS = 400;
+        const avisoMaisLinhas = total => total > DETAIL_MAX_LINHAS
+            ? `<tr><td colspan="6" class="p-3 text-center text-[11px] text-slate-500">Mostrando ${DETAIL_MAX_LINHAS} de ${total}. Use a busca ou os filtros pra encontrar o resto (o Excel/PDF exporta todos).</td></tr>` : '';
+
+        // Busca global (campo no topo): procura em TODOS os leads da Prospecção e em TODA a
+        // produção (análises/aprovações/vendas), sem o filtro de período, e abre o Detalhamento.
+        function buscaGlobal(termo) {
+            termo = String(termo || '').trim();
+            if (!termo) return;
+            const leads = (typeof prospeccaoDataset !== 'undefined' && prospeccaoDataset) || [];
+            const prod = (typeof dataset !== 'undefined' && dataset) || [];
+            definirBusca(termo);
+            const nL = leads.filter(passaBusca).length, nP = prod.filter(passaBusca).length;
+            detailBuscaGlobal = { termo, leads, prod, base: (nL && nL >= nP) || (!nP && leads.length) ? 'leads' : 'prod' };
+            abrirBuscaGlobal(detailBuscaGlobal.base);
+            if (!nL && !nP) showToast(`Nada encontrado pra "${termo}".`, true);
+        }
+        function abrirBuscaGlobal(base) {
+            const g = detailBuscaGlobal; if (!g) return;
+            g.base = base;
+            const rows = base === 'leads' ? g.leads : g.prod;
+            showDetailModal({
+                label1: 'Busca global', label2: 'Base', nome: `"${g.termo}"`,
+                dataStr: base === 'leads' ? 'Leads da Prospecção' : 'Produção (análises/vendas)',
+                rows, totalLabel: `${rows.length}`, busca: g.termo, buscaGlobal: true, forcarLeads: base === 'leads'
+            });
+            document.getElementById('detailModalTitle').textContent = 'Busca';
+            document.getElementById('detailModalSubtitle').textContent = 'Todos os meses carregados · refine pelo campo abaixo ou pelos filtros';
+        }
+        function renderBuscaFontes() {
+            const el = document.getElementById('detailBuscaFontes'); if (!el) return;
+            const g = detailBuscaGlobal;
+            if (!g) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+            const nL = g.leads.filter(passaBusca).length, nP = g.prod.filter(passaBusca).length;
+            const b = (k, rot, ic, n) => `<button onclick="abrirBuscaGlobal('${k}')" class="text-[10px] font-bold px-2.5 py-1 rounded-lg border transition ${g.base === k ? 'ring-2 ring-white/50 bg-brand-500/15 text-brand-300 border-brand-500/40' : 'opacity-75 hover:opacity-100 bg-slate-800 text-slate-300 border-slate-700'}"><i class="fa-solid ${ic} mr-1"></i>${rot} <span class="ml-0.5 text-white">${n}</span></button>`;
+            el.innerHTML = `<div class="flex flex-wrap items-center gap-1.5"><span class="w-[78px] shrink-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Procurar em</span>${b('leads', 'Leads (Prospecção)', 'fa-bullseye', nL)}${b('prod', 'Produção (análises/vendas)', 'fa-file-signature', nP)}</div>`;
+            el.classList.remove('hidden');
+        }
+        document.addEventListener('keydown', e => {
+            const alvo = e.target, digitando = alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.isContentEditable);
+            if (((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'k' || e.key === 'K')) || (e.key === '/' && !digitando)) {
+                const inp = document.getElementById('buscaGlobalInput');
+                if (inp) { e.preventDefault(); inp.focus(); inp.select(); }
+            }
+        });
 
         // Renderizador genérico do modal de detalhamento de clientes — usado pelo calendário,
         // pelo funil de vendas e pelos rankings comerciais (corretor/equipe).
@@ -730,17 +820,28 @@ const CAL_METRICS = {
 
             currentDetailRows = rows;
             currentDetailTitle = `${nome} - ${dataStr}`;
+            // Busca: vem preenchida da busca global; abrir por outro caminho (funil, calendário,
+            // ranking) começa sem busca e sai do modo "busca global".
+            if (!opts.buscaGlobal) detailBuscaGlobal = null;
+            detailBuscaCache = new WeakMap();
+            definirBusca(opts.busca || '');
+            const buscaInp = document.getElementById('detailBuscaInput');
+            if (buscaInp) buscaInp.value = detailBusca;
+            renderBuscaFontes();
+            const tituloEl = document.getElementById('detailModalTitle'), subEl = document.getElementById('detailModalSubtitle');
+            if (!opts.buscaGlobal && tituloEl && tituloEl.textContent === 'Busca') { tituloEl.textContent = 'Detalhamento de Produção'; subEl.textContent = 'Corretor e Data selecionados'; }
 
-            const modoLeads = rows.length > 0 && rows.every(ehLeadCrm);
+            // Busca global na base de leads: força o layout de leads mesmo com linhas antigas
+            // (CSV de antes do Excel do CRM, ID só numérico).
+            const modoLeads = opts.forcarLeads || (rows.length > 0 && rows.every(ehLeadCrm));
             setDetailLayout(modoLeads);
+            detailModoLeads = modoLeads;
             if (modoLeads) {
                 // Mais recentes primeiro (Cadastro dd/mm/aaaa).
                 const dt = r => { const d = parseDate(r.Cadastro); return d ? d.getTime() : 0; };
                 detailLeadsTodos = rows.slice().sort((a, b) => dt(b) - dt(a));
                 detailLeadsFiltro = ''; detailLeadsFonte = ''; detailLeadsBolsao = ''; detailLeadsSistema = ''; detailLeadsFase = '';
-                currentDetailRows = detailLeadsTodos;
-                renderDetailLeadsChips();
-                renderDetailLeadsRows();
+                aplicarFiltrosDetailLeads();
                 document.getElementById('calendarDetailModal').classList.remove('hidden');
                 return;
             }
@@ -749,9 +850,7 @@ const CAL_METRICS = {
             detailProdTodos = rows.slice().sort((a, b) => dtP(b) - dtP(a));
             detailProdStatus = ''; detailProdConstrutora = ''; detailProdShowCorretor = showCorretor !== false;
             detailProdTotalLabel = totalLabel;
-            currentDetailRows = detailProdTodos;
-            renderDetailProdChips();
-            renderDetailProdRows();
+            aplicarFiltrosDetailProd();
 
             document.getElementById('calendarDetailModal').classList.remove('hidden');
         }
