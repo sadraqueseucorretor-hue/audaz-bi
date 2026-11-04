@@ -50,6 +50,64 @@
             try { const saved = JSON.parse(localStorage.getItem(`${appId}-organograma`) || '[]'); organograma = Array.isArray(saved) ? saved : []; }
             catch (e) { organograma = []; }
         }
+        // ===== SISTEMAS E DADOS DO CORRETOR (04/11/2026) =====
+        // Sistemas em que a pessoa está cadastrada (node.sistemas = ['c2s','bora','dvon']) ficam no
+        // organograma (config/settings, público como o resto do organograma). node.sistema segue
+        // 'com'/'sem' (derivado) pra compatibilidade com o que já existia.
+        // E-mail, telefone e data de nascimento são dados PESSOAIS: ficam só no documento protegido
+        // privado/corretores-dados (lido/gravado só com login de diretor) + cópia local deste navegador.
+        const SISTEMAS_CORRETOR = [
+            { k: 'c2s', nome: 'C2S', cor: 'text-sky-300 bg-sky-500/10 border-sky-500/25' },
+            { k: 'bora', nome: 'Bora Vender', cor: 'text-violet-300 bg-violet-500/10 border-violet-500/25' },
+            { k: 'dvon', nome: 'DV On', cor: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/25' }
+        ];
+        function orgSistemasBadges(node) {
+            const lista = Array.isArray(node.sistemas) ? node.sistemas : [];
+            const chip = (txt, cor) => `<span class="inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${cor}">${txt}</span>`;
+            if (lista.length) return SISTEMAS_CORRETOR.filter(x => lista.includes(x.k)).map(x => chip(x.nome, x.cor)).join('');
+            if (node.sistema === 'sem') return chip('Sem sistema', 'text-amber-300 bg-amber-500/10 border-transparent');
+            if (node.sistema === 'com') return chip('Com sistema (definir quais)', 'text-emerald-300 bg-emerald-500/10 border-transparent');
+            return chip('Sistema não definido', 'text-slate-400 bg-slate-500/10 border-transparent');
+        }
+
+        let dadosCorretores = {};   // orgPersonKey(nome) -> { email, tel, nasc: 'AAAA-MM-DD' }
+        let dadosCorretoresUnsub = null;
+        let dadosCorretoresDaNuvem = false;
+                const LS_DADOS_CORRETORES = () => `${typeof appId !== 'undefined' ? appId : 'audaz-bi-v1'}-corretores-dados`;
+        const docDadosCorretores = () => fbDb.collection('privado').doc('corretores-dados');
+        try { dadosCorretores = JSON.parse(localStorage.getItem(LS_DADOS_CORRETORES()) || '{}') || {}; } catch (e) { dadosCorretores = {}; }
+        function salvarDadosCorretoresLocal() { try { localStorage.setItem(LS_DADOS_CORRETORES(), JSON.stringify(dadosCorretores)); } catch (e) {} }
+        function iniciarDadosCorretoresNuvem(user) {
+            if (dadosCorretoresUnsub) { dadosCorretoresUnsub(); dadosCorretoresUnsub = null; }
+            if (typeof fbDb === 'undefined' || !fbDb) return;
+            if (!user) {
+                if (dadosCorretoresDaNuvem) { dadosCorretores = {}; try { localStorage.removeItem(LS_DADOS_CORRETORES()); } catch (e) {} dadosCorretoresDaNuvem = false; }
+                renderOrganograma(); return;
+            }
+            dadosCorretoresUnsub = docDadosCorretores().onSnapshot(snap => {
+                const nuvem = (snap.exists && snap.data() && snap.data().pessoas) || {};
+                const soLocal = Object.keys(dadosCorretores).filter(k => !nuvem[k]);
+                dadosCorretores = Object.assign({}, dadosCorretores, nuvem);
+                dadosCorretoresDaNuvem = true;
+                salvarDadosCorretoresLocal();
+                if (soLocal.length) docDadosCorretores().set({ pessoas: Object.fromEntries(soLocal.map(k => [k, dadosCorretores[k]])), _updatedAt: Date.now() }, { merge: true }).catch(() => {});
+                renderOrganograma();
+            }, err => console.warn('Dados dos corretores (nuvem):', err));
+        }
+        function orgDadosLinha(node) {
+            if (!isDiretor) return '';
+            const d = dadosCorretores[orgPersonKey(node.name)]; if (!d) return '';
+            const partes = [];
+            if (d.tel) { const dig = String(d.tel).replace(/\D/g, ''); partes.push(`<a href="https://wa.me/${dig.length <= 11 ? '55' + dig : dig}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="text-emerald-300 hover:text-emerald-200" title="WhatsApp"><i class="fa-brands fa-whatsapp mr-0.5"></i>${orgEsc(d.tel)}</a>`); }
+            if (d.nasc) {
+                const [a, m, dd] = String(d.nasc).split('-');
+                const hoje = new Date(); const doMes = +m === hoje.getMonth() + 1; const ehHoje = doMes && +dd === hoje.getDate();
+                partes.push(`<span class="${doMes ? 'text-pink-300 font-bold' : 'text-slate-400'}" title="${ehHoje ? 'Aniversário HOJE' : doMes ? 'Aniversário este mês' : 'Data de nascimento'}">🎂 ${dd}/${m}${ehHoje ? ' · hoje!' : ''}</span>`);
+            }
+            if (d.email) partes.push(`<span class="text-slate-500 truncate max-w-[160px]" title="${orgEsc(d.email)}"><i class="fa-regular fa-envelope mr-0.5"></i>${orgEsc(d.email)}</span>`);
+            return partes.length ? `<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px]">${partes.join('')}</div>` : '';
+        }
+
         function orgEsc(v) { return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
         function orgId() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `org-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
         function saveOrganograma() {
@@ -179,15 +237,20 @@
                 const parentControl = node.role === 'Gerente'
                     ? `<label class="block text-[9px] text-slate-500 uppercase tracking-wider mt-2">Equipe do BI<select id="orgTeam-${orgEsc(node.id)}" class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none"><option value="">Sem equipe vinculada</option>${getOrgTeamNames().map(team => `<option value="${orgEsc(team)}" ${node.equipe === team ? 'selected' : ''}>${orgEsc(team)}</option>`).join('')}</select></label>`
                     : `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2"><select id="orgRole-${orgEsc(node.id)}" onchange="updateOrgParentOptions(this.value,'${orgEsc(node.id)}')" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${['Corretor','Captador','Estagiário'].map(r => `<option ${node.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select><select id="orgParent-${orgEsc(node.id)}" class="bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none">${parents.length ? parents.map(o => `<option value="${orgEsc(o.id)}" ${node.parentId === o.id ? 'selected' : ''}>${orgEsc(o.name)}</option>`).join('') : '<option value="">Cadastre um gerente primeiro</option>'}</select></div>`;
-                const systemStatus = node.sistema === 'com' ? 'Com sistema' : node.sistema === 'sem' ? 'Sem sistema' : 'Sistema não definido';
-                const systemColor = node.sistema === 'com' ? 'text-emerald-300 bg-emerald-500/10' : node.sistema === 'sem' ? 'text-amber-300 bg-amber-500/10' : 'text-slate-400 bg-slate-500/10';
-                const systemControl = `<label class="block text-[9px] text-slate-500 uppercase tracking-wider mt-2">Acesso ao sistema<select id="orgSystem-${orgEsc(node.id)}" class="w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg px-2 py-2 text-[11px] text-slate-200 outline-none"><option value="" ${!node.sistema ? 'selected' : ''}>Definir situação</option><option value="com" ${node.sistema === 'com' ? 'selected' : ''}>Com sistema</option><option value="sem" ${node.sistema === 'sem' ? 'selected' : ''}>Sem sistema</option></select></label>`;
-                return `<details class="org-node-edit"><summary>${node.role === 'Gerente' ? 'Vincular equipe' : 'Editar vínculo'}</summary><span class="inline-flex mt-2 px-2 py-1 rounded-full text-[10px] font-bold ${systemColor}">${systemStatus}</span>${parentControl}${systemControl}<div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div></details>`;
+                const sisAtuais = Array.isArray(node.sistemas) ? node.sistemas : [];
+                const inp = 'w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-[11px] text-slate-200 outline-none focus:border-brand-500';
+                const dd = dadosCorretores[orgPersonKey(node.name)] || {};
+                const systemControl = `<div class="mt-2"><div class="text-[9px] text-slate-500 uppercase tracking-wider">Sistemas cadastrados</div><div class="flex flex-wrap gap-1.5 mt-1">${SISTEMAS_CORRETOR.map(x => `<label class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-slate-800 bg-slate-900 text-[11px] text-slate-200 cursor-pointer"><input type="checkbox" id="orgSis-${orgEsc(node.id)}-${x.k}" ${sisAtuais.includes(x.k) ? 'checked' : ''} class="accent-sky-500">${x.nome}</label>`).join('')}</div><div class="text-[9px] text-slate-600 mt-1">Nenhum marcado = Sem sistema</div></div>
+                    <div class="mt-2 pt-2 border-t border-slate-800"><div class="text-[9px] text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-lock mr-1"></i>Dados pessoais <span class="normal-case tracking-normal text-slate-600">(só diretor vê)</span></div>
+                        <label class="block text-[9px] text-slate-500 mt-1">E-mail<input type="email" id="orgEmail-${orgEsc(node.id)}" value="${orgEsc(dd.email)}" placeholder="nome@email.com" class="${inp}"></label>
+                        <div class="grid grid-cols-1 gap-0"><label class="block text-[9px] text-slate-500 mt-1">Telefone<input type="tel" id="orgTel-${orgEsc(node.id)}" value="${orgEsc(dd.tel)}" placeholder="(85) 99999-9999" class="${inp}"></label>
+                        <label class="block text-[9px] text-slate-500 mt-1">Nascimento<input type="date" id="orgNasc-${orgEsc(node.id)}" value="${orgEsc(dd.nasc)}" class="${inp}"></label></div></div>`;
+                return `<details class="org-node-edit"><summary>${node.role === 'Gerente' ? 'Vincular equipe' : 'Editar vínculo'}</summary><div class="flex flex-wrap gap-1 mt-2">${orgSistemasBadges(node)}</div>${parentControl}${systemControl}<div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div></details>`;
             };
-            const renderBroker = (broker, color) => `<div class="org-broker-entry"><article data-org-scope="broker" data-org-name="${orgEsc(broker.name)}" role="button" tabindex="0" title="Ver indicadores de ${orgEsc(broker.name)}" class="org-broker-row${orgDashboardScope?.kind === 'broker' && orgPersonKey(orgDashboardScope.name) === orgPersonKey(broker.name) ? ' org-selected' : ''}" style="--team-color:${color}"><div class="org-broker-avatar shrink-0">${corretorAvatarInner(broker.name,'h-12 w-12','text-[10px]')}</div><div class="min-w-0"><div class="org-broker-name">${orgEsc(broker.name)}</div><div class="org-broker-role">${orgEsc(broker.role || "Corretor")}</div><div class="flex items-center gap-1.5 mt-1"><span class="org-broker-active">Ativo</span><span class="inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-bold ${broker.sistema === 'com' ? 'text-emerald-300 bg-emerald-500/10' : broker.sistema === 'sem' ? 'text-amber-300 bg-amber-500/10' : 'text-slate-400 bg-slate-500/10'}">${broker.sistema === 'com' ? 'Com sistema' : broker.sistema === 'sem' ? 'Sem sistema' : 'Sistema não definido'}</span></div></div></article>${renderEdit(broker)}</div>`;
+            const renderBroker = (broker, color) => `<div class="org-broker-entry"><article data-org-scope="broker" data-org-name="${orgEsc(broker.name)}" role="button" tabindex="0" title="Ver indicadores de ${orgEsc(broker.name)}" class="org-broker-row${orgDashboardScope?.kind === 'broker' && orgPersonKey(orgDashboardScope.name) === orgPersonKey(broker.name) ? ' org-selected' : ''}" style="--team-color:${color}"><div class="org-broker-avatar shrink-0">${corretorAvatarInner(broker.name,'h-12 w-12','text-[10px]')}</div><div class="min-w-0"><div class="org-broker-name">${orgEsc(broker.name)}</div><div class="org-broker-role">${orgEsc(broker.role || "Corretor")}</div><div class="flex flex-wrap items-center gap-1.5 mt-1"><span class="org-broker-active">Ativo</span>${orgSistemasBadges(broker)}</div>${orgDadosLinha(broker)}</div></article>${renderEdit(broker)}</div>`;
             tree.innerHTML = managers.length ? `<div class="org-chart-level-label">Gerentes</div><div class="org-chart-manager-grid">${teams.map(({manager,brokers},i) => {
                 const color = colors[i % colors.length];
-                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div data-org-scope="team" data-org-name="${orgEsc(manager.name)}" data-org-manager-id="${orgEsc(manager.id)}" role="button" tabindex="0" title="Ver os indicadores da equipe de ${orgEsc(manager.name)}" class="org-manager-person${orgDashboardScope?.kind === 'team' && orgDashboardScope.managerId === manager.id ? ' org-selected' : ''}"><div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="inline-flex mt-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${manager.sistema === 'com' ? 'text-emerald-300 bg-emerald-500/10' : manager.sistema === 'sem' ? 'text-amber-300 bg-amber-500/10' : 'text-slate-400 bg-slate-500/10'}">${manager.sistema === 'com' ? 'Com sistema' : manager.sistema === 'sem' ? 'Sem sistema' : 'Sistema não definido'}</div><div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'integrante' : 'integrantes'}</div></div></div>${renderEdit(manager)}</article></section>`;
+                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div data-org-scope="team" data-org-name="${orgEsc(manager.name)}" data-org-manager-id="${orgEsc(manager.id)}" role="button" tabindex="0" title="Ver os indicadores da equipe de ${orgEsc(manager.name)}" class="org-manager-person${orgDashboardScope?.kind === 'team' && orgDashboardScope.managerId === manager.id ? ' org-selected' : ''}"><div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="flex flex-wrap gap-1 mt-1">${orgSistemasBadges(manager)}</div>${orgDadosLinha(manager)}<div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'integrante' : 'integrantes'}</div></div></div>${renderEdit(manager)}</article></section>`;
             }).join('')}</div><div class="org-chart-level-label mt-5">Equipes do BI</div><div class="org-chart-team-grid">${teams.map(({manager,brokers},i) => {
                 const color = colors[i % colors.length];
                 return `<section class="org-team-group" style="--team-color:${color}"><article class="org-team-card${organogramaSelectedTeamId === manager.id ? ' org-team-selected' : ''}"><button type="button" class="org-team-select" aria-pressed="${organogramaSelectedTeamId === manager.id}" title="Abrir o painel e destacar esta equipe" onclick="selectOrgTeamCard('${orgEsc(manager.id)}')"><span><i class="fa-solid fa-users mr-1.5"></i> ${orgEsc(manager.equipe || 'Sem equipe')}</span><span class="org-team-count">${brokers.length}</span></button><div class="text-[10px] text-slate-500 mb-2">${orgEsc(manager.name)}</div><div class="org-broker-list">${brokers.length ? brokers.map(b=>renderBroker(b,color)).join('') : `<div class="text-[11px] text-slate-500 text-center py-5">${manager.equipe ? 'Nenhum corretor ativo nesta equipe do BI' : 'Vincule uma equipe ao gerente acima'}</div>`}</div></article></section>`;
@@ -215,7 +278,24 @@
         function saveOrgMember(id) {
             if (!isDiretor) return;
             const node = organograma.find(n => n.id === id); if (!node) return;
-            node.sistema = document.getElementById(`orgSystem-${id}`)?.value || '';
+            node.sistemas = SISTEMAS_CORRETOR.map(x => x.k).filter(k => document.getElementById(`orgSis-${id}-${k}`)?.checked);
+            node.sistema = node.sistemas.length ? 'com' : 'sem';
+            const chave = orgPersonKey(node.name);
+            const dados = {
+                email: (document.getElementById(`orgEmail-${id}`)?.value || '').trim(),
+                tel: (document.getElementById(`orgTel-${id}`)?.value || '').trim(),
+                nasc: document.getElementById(`orgNasc-${id}`)?.value || ''
+            };
+            const antes = dadosCorretores[chave] || {};
+            if (dados.email !== (antes.email || '') || dados.tel !== (antes.tel || '') || dados.nasc !== (antes.nasc || '')) {
+                if (dados.email || dados.tel || dados.nasc) dadosCorretores[chave] = dados; else delete dadosCorretores[chave];
+                salvarDadosCorretoresLocal();
+                if (typeof fbDb !== 'undefined' && fbDb) {
+                    const valor = dadosCorretores[chave] ? dados : firebase.firestore.FieldValue.delete();
+                    docDadosCorretores().set({ pessoas: { [chave]: valor }, _updatedAt: Date.now() }, { merge: true })
+                        .catch(err => { console.warn('Falha ao salvar dados do corretor:', err); if (typeof showToast === 'function') showToast('Dados pessoais salvos só neste navegador (falha na nuvem).', true); });
+                }
+            }
             if (node.role === 'Gerente') {
                 node.equipe = document.getElementById(`orgTeam-${id}`)?.value || '';
                 node.parentId = 'regional'; saveOrganograma(); return;
