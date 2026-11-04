@@ -1656,11 +1656,6 @@
             return trimmed.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
         }
 
-        // Limite de segurança pra não estourar o teto de 1MB do documento de configurações no
-        // Firestore (compartilhado com metas/corretores/fotos/etc.) — acima disso a sincronização
-        // da Prospecção fica só local (localStorage) neste navegador, sem quebrar o resto.
-        const PROSPECCAO_FIRESTORE_LIMIT = 700 * 1024;
-
         // Reconstrói prospeccaoDataset (usado pelo resto do app) juntando as linhas de TODOS os
         // meses carregados em prospeccaoPorMes. Renormaliza o Corretor de cada linha de novo aqui
         // (não só no upload) pra "curar" duplicatas de nome que já tenham sido salvas antes da
@@ -1780,7 +1775,7 @@
                 // Só empurra pra nuvem numa ação real do usuário (upload/remover) — carregar do
                 // cache local no boot não deve reenviar (evita sobrescrever uma versão mais nova
                 // que outro dispositivo tenha salvo enquanto este estava sem abrir).
-                pushCloudSettings();
+                enviarProspeccaoNuvem(mesesEncontrados);
             }
             renderProspeccaoMesesList();
             applyFilters();
@@ -1954,6 +1949,176 @@
             }[estado] || 'border-slate-700 bg-slate-950/60 text-slate-400';
             el.className = `mb-4 rounded-lg border p-2.5 text-[11px] leading-relaxed ${estilo}`;
             el.innerHTML = msg;
+        }
+
+        // ===== PROSPECÇÃO NA NUVEM: 1 DOCUMENTO POR MÊS COMERCIAL =====
+        // Cada mês fica em prospeccao/{AAAA-MM} = { mes, csvText, uploadedAt }, fora do
+        // config/settings — aquele documento tem teto de 1 MB e os leads (30–47 KB por mês) já
+        // ocupavam quase metade; ao estourar, TODAS as configurações parariam de salvar.
+        // Leitura pública como o config; escrita só com login. Regra esperada no Console:
+        //   match /prospeccao/{doc} { allow read: if true; allow write: if request.auth != null; }
+        // Transição: enquanto o config/settings ainda tiver o campo antigo prospeccaoPorMes, ele
+        // continua valendo (somado aos docs novos). O login de diretor copia cada mês pro doc dele
+        // e só depois de conferir no servidor apaga o campo antigo (migrarProspeccaoLegado).
+        let prospeccaoUnsub = null;
+        let prospeccaoDocsNuvem = null;    // { 'Outubro/2026': { csvText, uploadedAt } } · null = coleção não lida do servidor
+        let prospeccaoLegadoNuvem = null;  // campo antigo config/settings.prospeccaoPorMes · null = não existe mais
+        let prospeccaoLegadoLido = false;  // config/settings já chegou ao menos uma vez
+        let migrandoProspeccao = false;
+        let avisoRegraProspeccao = false;
+        const prospeccaoAplicada = {};     // mes -> csvText da nuvem já aplicado (não reprocessa a cada snapshot)
+
+        function prospeccaoDocId(mes) {
+            const idx = MESES_IDX[normalizeMes(mes)], ano = getMesAno(mes);
+            return (idx === undefined || !ano) ? null : `${ano}-${String(idx + 1).padStart(2, '0')}`;
+        }
+
+        function setProspeccaoNuvemStatus(estado) {
+            const el = document.getElementById('prospeccaoNuvemStatus');
+            if (!el) return;
+            if (estado === 'ok' || !isDiretor) { el.classList.add('hidden'); return; }
+            el.className = 'mb-4 rounded-lg border p-2.5 text-[11px] leading-relaxed border-rose-500/40 bg-rose-500/10 text-rose-300';
+            el.innerHTML = estado === 'regra'
+                ? '<i class="fa-solid fa-key mr-1"></i> <b>Falta liberar a Prospecção no Firebase.</b> Cada mês agora fica num documento próprio (o de configurações estava perto do limite de 1 MB). No Firebase Console → Firestore → Regras, acrescente:<pre class="mt-1.5 p-2 rounded bg-slate-950 text-[10px] text-emerald-300 whitespace-pre-wrap select-all">match /prospeccao/{doc} {\n  allow read: if true;\n  allow write: if request.auth != null;\n}</pre>Até lá, os meses continuam no documento antigo e neste navegador.'
+                : '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Não foi possível salvar a Prospecção na nuvem agora (sem conexão?). Os leads continuam neste navegador.';
+            el.classList.remove('hidden');
+        }
+
+        function tratarErroProspeccaoNuvem(err) {
+            console.warn('Prospecção (nuvem) erro:', err);
+            const regra = err && err.code === 'permission-denied';
+            setProspeccaoNuvemStatus(regra ? 'regra' : 'erro');
+            if (regra && avisoRegraProspeccao) return; // a migração tenta a cada snapshot do config: avisa uma vez só
+            if (regra) avisoRegraProspeccao = true;
+            if (isDiretor) showToast(regra ? 'Prospecção não sincronizada: falta a regra do Firebase (veja na janela de Prospecção).' : 'Falha ao sincronizar a Prospecção. Os leads continuam neste navegador.', true);
+        }
+
+        function startProspeccaoSync() {
+            if (!fbDb || prospeccaoUnsub) return;
+            prospeccaoUnsub = fbDb.collection('prospeccao').onSnapshot(snap => {
+                // Sem conexão o SDK pode entregar um snapshot vazio do cache — não serve pra
+                // decidir que um mês foi removido.
+                if (snap.metadata && snap.metadata.fromCache && snap.empty) return;
+                const docs = {};
+                snap.forEach(d => {
+                    const v = d.data() || {};
+                    if (typeof v.mes === 'string' && typeof v.csvText === 'string' && v.csvText) docs[v.mes] = v;
+                });
+                prospeccaoDocsNuvem = docs;
+                aplicarProspeccaoNuvem();
+            }, err => {
+                prospeccaoUnsub = null; // o listener morre no erro; o próximo login tenta de novo
+                if (err && err.code === 'permission-denied') setProspeccaoNuvemStatus('regra');
+                console.warn('Prospecção (nuvem) leitura:', err);
+            });
+        }
+
+        // Junta o campo antigo do config (se ainda existir) com os docs por mês (que prevalecem) e
+        // aplica no que está carregado. Só remove um mês local quando as DUAS fontes já foram lidas.
+        function aplicarProspeccaoNuvem() {
+            const nuvem = {};
+            Object.keys(prospeccaoLegadoNuvem || {}).forEach(mes => {
+                const t = prospeccaoLegadoNuvem[mes];
+                if (typeof t === 'string' && t) nuvem[mes] = { csvText: t, uploadedAt: null };
+            });
+            Object.keys(prospeccaoDocsNuvem || {}).forEach(mes => { nuvem[mes] = prospeccaoDocsNuvem[mes]; });
+            let mudou = false;
+            try {
+                if (prospeccaoDocsNuvem && prospeccaoLegadoLido) {
+                    Object.keys(prospeccaoPorMes).forEach(mes => {
+                        if (!nuvem[mes]) { delete prospeccaoPorMes[mes]; delete prospeccaoAplicada[mes]; mudou = true; }
+                    });
+                }
+                Object.keys(nuvem).forEach(mes => {
+                    const n = nuvem[mes];
+                    if (prospeccaoAplicada[mes] === n.csvText && prospeccaoPorMes[mes]) return;
+                    if (applyProspeccaoCsvText(n.csvText, { silent: true })) {
+                        prospeccaoAplicada[mes] = n.csvText;
+                        if (n.uploadedAt && prospeccaoPorMes[mes]) prospeccaoPorMes[mes].uploadedAt = n.uploadedAt;
+                        mudou = true;
+                    }
+                });
+            } catch (e) { console.warn(e); }
+            if (mudou) {
+                rebuildProspeccaoDataset();
+                saveProspeccaoLocal();
+                renderProspeccaoMesesList();
+                if (appBooted && typeof applyFilters === 'function') applyFilters();
+            }
+        }
+
+        function enviarProspeccaoNuvem(meses) {
+            if (!fbDb || !isDiretor) {
+                updateSettingsSyncStatus('local', 'Prospecção salva só neste navegador · entre como diretor para sincronizar');
+                return Promise.resolve(false);
+            }
+            const batch = fbDb.batch();
+            let n = 0;
+            (meses || []).forEach(mes => {
+                const m = prospeccaoPorMes[mes], id = prospeccaoDocId(mes);
+                if (!m || !id) return;
+                batch.set(fbDb.collection('prospeccao').doc(id), { mes, csvText: m.csvText, uploadedAt: m.uploadedAt || Date.now(), _updatedAt: Date.now() });
+                prospeccaoAplicada[mes] = m.csvText;
+                n++;
+            });
+            if (!n) return Promise.resolve(false);
+            return batch.commit()
+                .then(() => {
+                    setProspeccaoNuvemStatus('ok');
+                    updateSettingsSyncStatus('saved', `Prospecção sincronizada às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
+                    return true;
+                })
+                .catch(err => { tratarErroProspeccaoNuvem(err); return false; });
+        }
+
+        function apagarProspeccaoNuvem(mes) {
+            delete prospeccaoAplicada[mes];
+            if (!fbDb || !isDiretor) return Promise.resolve(false);
+            const id = prospeccaoDocId(mes);
+            const tarefas = [];
+            if (id) tarefas.push(fbDb.collection('prospeccao').doc(id).delete());
+            // Durante a transição o mês ainda pode estar no campo antigo — sem tirar de lá, voltaria.
+            if (prospeccaoLegadoNuvem && mes in prospeccaoLegadoNuvem) {
+                tarefas.push(fbDb.collection('config').doc('settings').update(new firebase.firestore.FieldPath('prospeccaoPorMes', mes), firebase.firestore.FieldValue.delete()));
+            }
+            return Promise.all(tarefas).then(() => true).catch(err => { tratarErroProspeccaoNuvem(err); return false; });
+        }
+
+        // Copia cada mês do campo antigo config/settings.prospeccaoPorMes pro doc próprio (sem
+        // sobrescrever um doc que já exista — ele é mais novo), confere no servidor que TODOS os
+        // meses estão lá e só então apaga o campo antigo. Qualquer falha no meio deixa o campo
+        // antigo intacto (nada se perde) e tenta de novo no próximo login.
+        function migrarProspeccaoLegado() {
+            if (migrandoProspeccao || !fbDb || !isDiretor || !prospeccaoLegadoNuvem) return;
+            const legado = prospeccaoLegadoNuvem;
+            const meses = Object.keys(legado).filter(mes => typeof legado[mes] === 'string' && legado[mes] && prospeccaoDocId(mes));
+            const col = fbDb.collection('prospeccao');
+            migrandoProspeccao = true;
+            Promise.all(meses.map(mes => col.doc(prospeccaoDocId(mes)).get({ source: 'server' })))
+                .then(snaps => {
+                    const batch = fbDb.batch();
+                    let n = 0;
+                    snaps.forEach((snap, i) => {
+                        if (snap.exists && snap.data() && snap.data().csvText) return;
+                        const mes = meses[i];
+                        const uploadedAt = (prospeccaoPorMes[mes] && prospeccaoPorMes[mes].uploadedAt) || Date.now();
+                        batch.set(snap.ref, { mes, csvText: legado[mes], uploadedAt, _updatedAt: Date.now(), _migradoDoConfig: true });
+                        n++;
+                    });
+                    return n ? batch.commit() : null;
+                })
+                .then(() => Promise.all(meses.map(mes => col.doc(prospeccaoDocId(mes)).get({ source: 'server' }))))
+                .then(snaps => {
+                    const faltando = meses.filter((mes, i) => !(snaps[i].exists && snaps[i].data() && snaps[i].data().csvText));
+                    if (faltando.length) throw new Error('Migração da Prospecção incompleta: ' + faltando.join(', '));
+                    return fbDb.collection('config').doc('settings').update({ prospeccaoPorMes: firebase.firestore.FieldValue.delete() });
+                })
+                .then(() => {
+                    setProspeccaoNuvemStatus('ok');
+                    if (meses.length) showToast(`Prospecção: ${meses.length} mês(es) movidos pra documentos próprios na nuvem.`);
+                })
+                .catch(tratarErroProspeccaoNuvem)
+                .finally(() => { migrandoProspeccao = false; });
         }
 
         function iniciarContatosNuvem(user) {
@@ -2245,7 +2410,7 @@
             delete prospeccaoPorMes[mes];
             rebuildProspeccaoDataset();
             saveProspeccaoLocal();
-            pushCloudSettings();
+            apagarProspeccaoNuvem(mes);
             applyFilters();
             renderProspeccaoMesesList();
             showToast(`Prospecção de ${mes} removida.`);
@@ -3476,6 +3641,9 @@
                         isDiretor = !!user;
                         updateAuthUI(user);
                         iniciarContatosNuvem(user);
+                        startProspeccaoSync();
+                        if (user) migrarProspeccaoLegado();
+                        else setProspeccaoNuvemStatus('ok');
                     });
                 }
             } catch (e) {
@@ -3484,6 +3652,7 @@
                 return;
             }
             // Lê as configurações compartilhadas do banco e abre o painel.
+            startProspeccaoSync();
             startCloudSync().then(function () {
                 if (!appBooted) { appBooted = true; bootApp(); }
             });
@@ -3632,18 +3801,12 @@
                 if (data.plantaoInfoEscala && typeof data.plantaoInfoEscala === 'object') { plantaoInfoEscala = Object.assign({ diamond: '', roleta: '', represados: '' }, data.plantaoInfoEscala); saveLocalSetting(`${appId}-plantao-info-escala`, JSON.stringify(plantaoInfoEscala)); }
                 if (Array.isArray(data.plantaoEscalas) && data.plantaoEscalas.length) { plantaoEscalasCfg = data.plantaoEscalas.filter(e => e && e.key).map(e => ({ key: e.key, label: e.label || e.key, cor: e.cor || 'violet', icon: e.icon || 'fa-star' })); saveLocalSetting(`${appId}-plantao-escalas`, JSON.stringify(plantaoEscalasCfg)); }
                 rebuildEscalasPlantaoDef();
-                if (data.prospeccaoPorMes && typeof data.prospeccaoPorMes === 'object') {
-                    const cloudMeses = data.prospeccaoPorMes;
-                    // Remove localmente os meses que não existem mais na nuvem (outro dispositivo
-                    // removeu enquanto este estava fechado).
-                    Object.keys(prospeccaoPorMes).forEach(mes => { if (!(mes in cloudMeses)) delete prospeccaoPorMes[mes]; });
-                    Object.keys(cloudMeses).forEach(mes => {
-                        const csvText = cloudMeses[mes];
-                        if (typeof csvText === 'string' && csvText) applyProspeccaoCsvText(csvText, { silent: true });
-                    });
-                    rebuildProspeccaoDataset();
-                    saveProspeccaoLocal();
-                }
+                // Prospecção: o campo antigo (antes de cada mês ter documento próprio) só vale
+                // enquanto existir — ver aplicarProspeccaoNuvem / migrarProspeccaoLegado.
+                prospeccaoLegadoNuvem = (data.prospeccaoPorMes && typeof data.prospeccaoPorMes === 'object' && Object.keys(data.prospeccaoPorMes).length) ? data.prospeccaoPorMes : null;
+                prospeccaoLegadoLido = true;
+                aplicarProspeccaoNuvem();
+                if (prospeccaoLegadoNuvem && isDiretor) migrarProspeccaoLegado();
             } catch (e) { console.warn(e); }
             applyingCloud = false;
         }
@@ -3747,18 +3910,11 @@
                             plantaoEscalas: plantaoEscalasCfg,
                             _updatedAt: Date.now()
                         };
-                        const porMesCsv = {};
-                        Object.keys(prospeccaoPorMes).forEach(mes => { porMesCsv[mes] = prospeccaoPorMes[mes].csvText; });
-                        const tamanhoTotal = Object.values(porMesCsv).reduce((s, t) => s + new Blob([t]).size, 0);
-                        const prospeccaoSomenteLocal = tamanhoTotal > PROSPECCAO_FIRESTORE_LIMIT && tamanhoTotal > 0;
-                        if (!prospeccaoSomenteLocal) payload.prospeccaoPorMes = porMesCsv;
+                        // A Prospecção NÃO vai aqui: cada mês tem documento próprio (enviarProspeccaoNuvem).
                         await fbDb.collection('config').doc('settings').set(payload, { merge: true });
-                        const savedMessage = prospeccaoSomenteLocal
-                            ? 'Configurações sincronizadas · prospecção somente neste navegador (limite da nuvem)'
-                            : `Configurações sincronizadas às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+                        const savedMessage = `Configurações sincronizadas às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
                         updateSettingsSyncStatus('saved', savedMessage);
-                        if (window.matchMedia && window.matchMedia('(max-width: 1279px)').matches && !prospeccaoSomenteLocal) showToast(savedMessage);
-                        if (prospeccaoSomenteLocal) showToast('Configurações sincronizadas; a prospecção excedeu o limite e ficou apenas neste navegador.', true);
+                        if (window.matchMedia && window.matchMedia('(max-width: 1279px)').matches) showToast(savedMessage);
                     } catch (error) {
                         console.warn('Falha ao salvar na nuvem:', error);
                         updateSettingsSyncStatus('error', 'Falha ao sincronizar configurações · alterações permanecem neste navegador');
