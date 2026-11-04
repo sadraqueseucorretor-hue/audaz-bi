@@ -609,44 +609,85 @@
             if (rankingEquipes.length === 0) {
                 eqBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-slate-500">Nenhuma equipe encontrada.</td></tr>`;
             } else {
+                // Visual (04/11/2026): medalha no top 3, gerente embaixo do nome, cada número com uma
+                // barrinha proporcional ao maior valor da coluna, zeros apagados e linha de TOTAL no fim.
+                const COLS = [
+                    { k: 'leads', cor: 'text-pink-400', barra: 'bg-pink-500', click: eqEsc => `abrirLeadsEquipe('${eqEsc}')`, tip: 'Ver leads da equipe' },
+                    { k: 'agendamentos', cor: 'text-violet-400', barra: 'bg-violet-500' },
+                    { k: 'compareceu', cor: 'text-cyan-400', barra: 'bg-cyan-500' },
+                    { k: 'analises', cor: 'text-slate-200', barra: 'bg-slate-400', click: eqEsc => `openRankingDetail('equipe','${eqEsc}','analises')`, tip: 'Ver clientes' },
+                    { k: 'aprovacoes', cor: 'text-amber-400', barra: 'bg-amber-500', click: eqEsc => `openRankingDetail('equipe','${eqEsc}','aprovacoes')`, tip: 'Ver clientes' },
+                    { k: 'vendas', cor: 'text-brand-400', barra: 'bg-brand-500', click: eqEsc => `openRankingDetail('equipe','${eqEsc}','vendas')`, tip: 'Ver clientes' }
+                ];
+                const maxCol = {};
+                COLS.forEach(c => { maxCol[c.k] = Math.max(0, ...rankingEquipes.map(e => e[c.k] || 0)); });
+                const maxVgv = Math.max(0, ...rankingEquipes.map(e => e.vgv || 0));
+                const cel = (eq, c, eqEsc) => {
+                    const v = eq[c.k] || 0, pct = maxCol[c.k] ? Math.round(v / maxCol[c.k] * 100) : 0;
+                    const clic = v > 0 && c.click;
+                    return `<td class="py-3 px-1 text-center"><div class="inline-flex flex-col items-center min-w-[44px] ${clic ? 'cursor-pointer group' : ''}" ${clic ? `onclick="${c.click(eqEsc)}" title="${c.tip}"` : ''}>
+                        <span class="text-sm tabular-nums ${v ? c.cor + ' font-bold' : 'text-slate-600'} ${clic ? 'group-hover:underline' : ''}">${v}</span>
+                        <span class="mt-1 h-1 w-10 rounded-full bg-slate-800 overflow-hidden"><span class="block h-full rounded-full ${c.barra}" style="width:${pct}%"></span></span></div></td>`;
+                };
+                const gerenteDaEquipe = nome => {
+                    const g = (typeof organograma !== 'undefined' ? organograma : []).find(n => n.role === 'Gerente' && n.equipe && rankingTeamKey(n.equipe) === rankingTeamKey(nome));
+                    return g ? g.name : '';
+                };
+                const medalha = i => i === 0 ? '<span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-xs font-black">1º</span>'
+                    : i === 1 ? '<span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-400/15 border border-slate-300/40 text-slate-200 text-xs font-black">2º</span>'
+                    : i === 2 ? '<span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-orange-700/25 border border-orange-500/40 text-orange-300 text-xs font-black">3º</span>'
+                    : `<span class="inline-flex h-7 w-7 items-center justify-center text-slate-500 text-xs font-bold">${i + 1}º</span>`;
                 rankingEquipes.forEach((eq, index) => {
                     const equipeKey = rankingTeamKey(eq.equipe);
                     const totalIntegrantes = equipeMembrosAtivos.get(equipeKey)?.size || 0;
                     const integrantesProdutivos = equipeMembrosProdutivos.get(equipeKey)?.size || 0;
-                    const percentualProdutivo = totalIntegrantes ? ((integrantesProdutivos / totalIntegrantes) * 100).toFixed(1) : '0.0';
-                    const classeProdutividade = !totalIntegrantes ? 'text-slate-500' : integrantesProdutivos ? 'text-emerald-400' : 'text-rose-400';
-                    let badgeClass = "text-slate-400";
-                    if (index === 0) badgeClass = "text-amber-400 font-extrabold";
-                    if (index === 1) badgeClass = "text-slate-300 font-extrabold";
+                    const pctProd = totalIntegrantes ? (integrantesProdutivos / totalIntegrantes) * 100 : 0;
+                    const corProd = !totalIntegrantes ? 'text-slate-500' : pctProd >= 50 ? 'text-emerald-400' : integrantesProdutivos ? 'text-amber-400' : 'text-rose-400';
+                    const barraProd = !totalIntegrantes ? 'bg-slate-600' : pctProd >= 50 ? 'bg-emerald-500' : integrantesProdutivos ? 'bg-amber-500' : 'bg-rose-500';
                     const eqEsc = eq.equipe.replace(/'/g, "\\'");
-
-                    const rowHtml = `
-                        <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
-                            <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
-                            <td class="py-3 font-semibold text-slate-200">Equipe ${eq.equipe}</td>
-                            <td class="py-3 text-center text-pink-400 font-semibold ${eq.leads > 0 ? 'cursor-pointer hover:text-pink-300 hover:underline' : ''}" ${eq.leads > 0 ? `onclick="abrirLeadsEquipe('${eqEsc}')"` : ''} title="${eq.leads > 0 ? 'Ver leads da equipe' : ''}">${eq.leads || 0}</td>
-                            <td class="py-3 text-center text-violet-400 font-semibold">${eq.agendamentos || 0}</td>
-                            <td class="py-3 text-center text-cyan-400 font-semibold">${eq.compareceu || 0}</td>
-                            <td class="py-3 text-center text-slate-400 ${eq.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${eq.analises > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','analises')"` : ''} title="${eq.analises > 0 ? 'Ver clientes' : ''}">${eq.analises}</td>
-                            <td class="py-3 text-center text-amber-500 font-semibold ${eq.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${eq.aprovacoes > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','aprovacoes')"` : ''} title="${eq.aprovacoes > 0 ? 'Ver clientes' : ''}">${eq.aprovacoes}</td>
-                            <td class="py-3 text-center text-brand-500 font-bold ${eq.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${eq.vendas > 0 ? `onclick="openRankingDetail('equipe','${eqEsc}','vendas')"` : ''} title="${eq.vendas > 0 ? 'Ver clientes' : ''}">${eq.vendas}</td>
-                            <td class="py-3 text-center" title="${integrantesProdutivos} de ${totalIntegrantes} integrantes ativos (incluindo o gerente) fizeram venda no período"><div class="font-bold ${classeProdutividade}">${percentualProdutivo}%</div><div class="text-[9px] text-slate-500">${integrantesProdutivos}/${totalIntegrantes} integrantes</div></td>
-                            <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(eq.vgv)}</td>
-                        </tr>
-                    `;
-                    eqBody.insertAdjacentHTML('beforeend', rowHtml);
+                    const ger = gerenteDaEquipe(eq.equipe);
+                    eqBody.insertAdjacentHTML('beforeend', `
+                        <tr class="hover:bg-slate-800/30 transition border-b border-slate-800/40 ${index === 0 ? 'bg-amber-500/[0.04]' : ''}">
+                            <td class="py-3 pl-2">${medalha(index)}</td>
+                            <td class="py-3 pr-2"><div class="font-bold text-slate-100 text-[13px] leading-tight whitespace-nowrap">Equipe ${eq.equipe}</div>${ger ? `<div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-user-tie mr-1"></i>${ger}</div>` : ''}</td>
+                            ${COLS.map(c => cel(eq, c, eqEsc)).join('')}
+                            <td class="py-3 px-1 text-center" title="${integrantesProdutivos} de ${totalIntegrantes} integrantes ativos (incluindo o gerente) fizeram venda no período">
+                                <div class="text-sm font-bold tabular-nums ${corProd}">${pctProd.toFixed(1)}%</div>
+                                <div class="mx-auto mt-1 h-1 w-14 rounded-full bg-slate-800 overflow-hidden"><div class="h-full rounded-full ${barraProd}" style="width:${Math.min(100, pctProd)}%"></div></div>
+                                <div class="text-[9px] text-slate-500 mt-0.5">${integrantesProdutivos}/${totalIntegrantes} integrantes</div></td>
+                            <td class="py-3 pr-2 text-right whitespace-nowrap"><div class="text-sm font-bold tabular-nums ${eq.vgv ? 'text-indigo-300' : 'text-slate-600'}">${formatBRL(eq.vgv)}</div>
+                                <div class="ml-auto mt-1 h-1 w-16 rounded-full bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-indigo-500" style="width:${maxVgv ? Math.round(eq.vgv / maxVgv * 100) : 0}%"></div></div></td>
+                        </tr>`);
                 });
             }
             const leadsRegional = (leadsPorEquipeCache.__regional || []).length;
-            if (leadsRegional && !selectedTeamFilter && !searchEquipeTerm) {
+            const mostrarRegional = leadsRegional && !selectedTeamFilter && !searchEquipeTerm;
+            if (mostrarRegional) {
                 const nomes = [...new Set(leadsPorEquipeCache.__regional.map(r => r.Corretor ? parseNomeCargo(r.Corretor).nome : 'Sem corretor'))].join(', ');
                 eqBody.insertAdjacentHTML('beforeend', `
-                    <tr class="bg-slate-950/40 border-t border-slate-800">
-                        <td class="py-2.5 pl-2 text-slate-600">—</td>
-                        <td class="py-2.5 text-slate-400 text-[11px]"><i class="fa-solid fa-user-tie mr-1 text-slate-500"></i>Regional (sem equipe)<div class="text-[9px] text-slate-500">${nomes}</div></td>
-                        <td class="py-2.5 text-center text-pink-400 font-semibold cursor-pointer hover:text-pink-300 hover:underline" onclick="abrirLeadsEquipe('__regional')" title="Ver leads da regional">${leadsRegional}</td>
+                    <tr class="bg-slate-950/40 border-b border-slate-800/40">
+                        <td class="py-2.5 pl-2"><span class="inline-flex h-7 w-7 items-center justify-center text-slate-600">—</span></td>
+                        <td class="py-2.5 text-slate-400 text-[12px]"><i class="fa-solid fa-user-tie mr-1 text-slate-500"></i>Regional (sem equipe)<div class="text-[9px] text-slate-500">${nomes}</div></td>
+                        <td class="py-2.5 text-center"><span class="text-sm font-bold text-pink-400 cursor-pointer hover:underline" onclick="abrirLeadsEquipe('__regional')" title="Ver leads da regional">${leadsRegional}</span></td>
                         <td colspan="7" class="py-2.5 text-[10px] text-slate-500 pl-3">Leads que ficaram com a regional (inclui os que vieram sem corretor).</td>
                     </tr>`);
+            }
+            // Linha de TOTAL (soma das equipes exibidas; Leads inclui os da regional).
+            const tabelaEq = eqBody.closest('table');
+            let foot = document.getElementById('rankingEquipesFoot');
+            if (!foot && tabelaEq) { foot = document.createElement('tfoot'); foot.id = 'rankingEquipesFoot'; tabelaEq.appendChild(foot); }
+            if (foot) {
+                const soma = k => rankingEquipes.reduce((a, e) => a + (e[k] || 0), 0);
+                const tot = { leads: soma('leads') + (mostrarRegional ? leadsRegional : 0), agendamentos: soma('agendamentos'), compareceu: soma('compareceu'), analises: soma('analises'), aprovacoes: soma('aprovacoes'), vendas: soma('vendas'), vgv: soma('vgv') };
+                const cores = { leads: 'text-pink-300', agendamentos: 'text-violet-300', compareceu: 'text-cyan-300', analises: 'text-white', aprovacoes: 'text-amber-300', vendas: 'text-brand-300' };
+                foot.innerHTML = rankingEquipes.length ? `
+                    <tr class="border-t-2 border-slate-700 bg-slate-950/60">
+                        <td class="py-3 pl-2"><span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-slate-300"><b class="text-[13px]">Σ</b></span></td>
+                        <td class="py-3 text-[11px] font-black uppercase tracking-wider text-slate-300">Total<div class="text-[9px] font-semibold normal-case tracking-normal text-slate-500">${rankingEquipes.length} ${rankingEquipes.length === 1 ? 'equipe' : 'equipes'}${mostrarRegional ? ' + regional (leads)' : ''}</div></td>
+                        ${['leads', 'agendamentos', 'compareceu', 'analises', 'aprovacoes', 'vendas'].map(k => `<td class="py-3 text-center"><span class="text-base font-black tabular-nums ${tot[k] ? cores[k] : 'text-slate-600'}">${tot[k]}</span></td>`).join('')}
+                        <td class="py-3 text-center"><span class="text-base font-black tabular-nums ${totalPessoasProdutivas ? 'text-emerald-300' : 'text-rose-400'}">${percentualProdutivoGeral.toFixed(1)}%</span><div class="text-[9px] text-slate-500">${totalPessoasProdutivas}/${totalPessoasAtivas} integrantes</div></td>
+                        <td class="py-3 pr-2 text-right whitespace-nowrap"><span class="text-base font-black tabular-nums ${tot.vgv ? 'text-indigo-300' : 'text-slate-600'}">${formatBRL(tot.vgv)}</span></td>
+                    </tr>` : '';
             }
 
             // Média de produção por corretor ativo, usando os mesmos totais e datas do ranking de equipes.
