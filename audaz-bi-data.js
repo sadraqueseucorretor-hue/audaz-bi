@@ -3641,6 +3641,7 @@
                         isDiretor = !!user;
                         updateAuthUI(user);
                         iniciarContatosNuvem(user);
+                        if (typeof iniciarDadosCorretoresNuvem === 'function') iniciarDadosCorretoresNuvem(user);
                         startProspeccaoSync();
                         if (user) migrarProspeccaoLegado();
                         else setProspeccaoNuvemStatus('ok');
