@@ -180,6 +180,11 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <!-- Busca global: cliente, corretor, campanha, empreendimento, telefone... (atalho "/" ou Ctrl/Cmd+K) -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[11px] pointer-events-none"></i>
+                        <input id="buscaGlobalInput" type="search" autocomplete="off" placeholder="Buscar cliente, corretor, campanha…" title="Busca em todos os leads e em toda a produção — Enter pra buscar (atalho: / ou Ctrl+K)" onkeydown="if(event.key==='Enter'){buscaGlobal(this.value)}else if(event.key==='Escape'){this.value='';this.blur()}" class="w-40 sm:w-56 lg:w-72 bg-slate-900/80 border border-slate-700 rounded-lg pl-7 pr-2 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500/60 transition">
+                    </div>
                     <!-- Período de Ativação do Dashboard -->
                     <div class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
                         <button onclick="setPeriod('hoje')" id="btn-hoje" class="period-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">Hoje</button>
@@ -1445,6 +1450,11 @@
                             </button>
                         </div>
                     </div>
+                    <div class="relative mb-2 shrink-0">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                        <input id="detailBuscaInput" type="search" autocomplete="off" oninput="buscarNoDetalhe(this.value)" placeholder="Buscar neste recorte: cliente, corretor, campanha, empreendimento, telefone, e-mail, fase…" class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500/60 transition">
+                    </div>
+                    <div id="detailBuscaFontes" class="hidden mb-2 shrink-0"></div>
                     <div id="detailLeadsChips" class="hidden mb-2 shrink-0"></div>
                     <div id="detailTableWrap" class="overflow-y-auto overflow-x-auto max-h-64 min-h-0 flex-1 border border-slate-800 rounded-lg">
                         <table class="w-full text-left text-xs border-collapse">
@@ -1838,7 +1848,7 @@
     <script src="./audaz-bi-data.js?v=prospeccao-docs-20261103"></script>
     <script src="./audaz-bi-filters.js?v=metas-contexto-20261023-fix1"></script>
     <script src="./audaz-bi-analytics.js?v=leads-equipe-20261031"></script>
-    <script src="./audaz-bi-calendar.js?v=detalhe-producao-20261031"></script>
+    <script src="./audaz-bi-calendar.js?v=busca-20261103"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
     <script src="./audaz-bi-calc.js?v=calc-20261031"></script>
 </body>
