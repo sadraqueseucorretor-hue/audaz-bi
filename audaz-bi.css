@@ -111,3 +111,11 @@ body {
             #plantaoPrintArea .pp-info .pp-bloco { display: inline-block; vertical-align: top; width: 31%; margin-right: 2%; border: 0.8pt solid #000; padding: 2mm; }
             #plantaoPrintArea .pp-rodape { margin-top: 4mm; font-size: 8pt; }
         }
+
+        /* Botão "ficha" do corretor no organograma (só diretor) */
+        .org-manager-person,.org-broker-row { position:relative; }
+        .org-ficha-btn { position:absolute; top:.45rem; right:.45rem; height:28px; width:28px; border-radius:8px; border:1px solid #334155; background:rgba(15,23,42,.9); color:#64748b; display:inline-flex; align-items:center; justify-content:center; font-size:12px; z-index:2; transition:all .15s; }
+        .org-ficha-btn.tem { color:#7dd3fc; border-color:rgba(14,165,233,.45); }
+        .org-ficha-btn:hover { color:#fff; border-color:#0ea5e9; background:#0c4a6e; }
+        .org-ficha-niver { position:absolute; top:-7px; right:-7px; font-size:11px; line-height:1; }
+        .org-broker-row:has(.org-ficha-btn),.org-manager-person:has(.org-ficha-btn) { padding-right:2.4rem; }
