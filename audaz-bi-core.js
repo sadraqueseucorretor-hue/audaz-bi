@@ -94,19 +94,69 @@
                 renderOrganograma();
             }, err => console.warn('Dados dos corretores (nuvem):', err));
         }
-        function orgDadosLinha(node) {
+        // Botão "ficha" no canto do cartão (só diretor): abre e-mail, telefone, nascimento e observações.
+        function orgFichaBotao(node) {
             if (!isDiretor) return '';
-            const d = dadosCorretores[orgPersonKey(node.name)]; if (!d) return '';
-            const partes = [];
-            if (d.tel) { const dig = String(d.tel).replace(/\D/g, ''); partes.push(`<a href="https://wa.me/${dig.length <= 11 ? '55' + dig : dig}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="text-emerald-300 hover:text-emerald-200" title="WhatsApp"><i class="fa-brands fa-whatsapp mr-0.5"></i>${orgEsc(d.tel)}</a>`); }
-            if (d.nasc) {
-                const [a, m, dd] = String(d.nasc).split('-');
-                const hoje = new Date(); const doMes = +m === hoje.getMonth() + 1; const ehHoje = doMes && +dd === hoje.getDate();
-                partes.push(`<span class="${doMes ? 'text-pink-300 font-bold' : 'text-slate-400'}" title="${ehHoje ? 'Aniversário HOJE' : doMes ? 'Aniversário este mês' : 'Data de nascimento'}">🎂 ${dd}/${m}${ehHoje ? ' · hoje!' : ''}</span>`);
-            }
-            if (d.email) partes.push(`<span class="text-slate-500 truncate max-w-[160px]" title="${orgEsc(d.email)}"><i class="fa-regular fa-envelope mr-0.5"></i>${orgEsc(d.email)}</span>`);
-            return partes.length ? `<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[10px]">${partes.join('')}</div>` : '';
+            const d = dadosCorretores[orgPersonKey(node.name)] || {};
+            const tem = !!(d.email || d.tel || d.nasc || d.obs);
+            const mes = d.nasc ? +String(d.nasc).split('-')[1] === new Date().getMonth() + 1 : false;
+            return `<button type="button" class="org-ficha-btn${tem ? ' tem' : ''}" onclick="event.stopPropagation(); abrirFichaCorretor('${orgEsc(node.id)}')" title="${tem ? 'Ver e-mail, telefone e informações' : 'Sem dados cadastrados — clique para ver'}"><i class="fa-solid fa-address-card"></i>${mes ? '<span class="org-ficha-niver" title="Aniversário este mês">🎂</span>' : ''}</button>`;
         }
+        function fecharFichaCorretor() { const m = document.getElementById('orgFichaModal'); if (m) m.remove(); }
+        function abrirFichaCorretor(id) {
+            const node = organograma.find(n => n.id === id); if (!node || !isDiretor) return;
+            fecharFichaCorretor();
+            const d = dadosCorretores[orgPersonKey(node.name)] || {};
+            const gerente = node.role === 'Gerente' ? node : organograma.find(n => n.id === node.parentId);
+            const equipe = gerente && gerente.equipe ? gerente.equipe : '';
+            const dig = String(d.tel || '').replace(/\D/g, ''), wa = dig ? `https://wa.me/${dig.length <= 11 ? '55' + dig : dig}` : '';
+            let nascHtml = '<span class="text-slate-600">Não informado</span>';
+            if (d.nasc) {
+                const [a, m, dd] = String(d.nasc).split('-').map(Number);
+                const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+                let idade = hoje.getFullYear() - a; if (hoje.getMonth() + 1 < m || (hoje.getMonth() + 1 === m && hoje.getDate() < dd)) idade--;
+                let prox = new Date(hoje.getFullYear(), m - 1, dd); if (prox < hoje) prox = new Date(hoje.getFullYear() + 1, m - 1, dd);
+                const faltam = Math.round((prox - hoje) / 86400000);
+                nascHtml = `${String(dd).padStart(2, '0')}/${String(m).padStart(2, '0')}/${a} <span class="text-slate-500">· ${idade} anos</span><div class="text-[11px] mt-0.5 ${faltam <= 30 ? 'text-pink-300 font-bold' : 'text-slate-500'}">🎂 ${faltam === 0 ? 'Aniversário HOJE!' : faltam === 1 ? 'Aniversário amanhã' : `Aniversário em ${faltam} dias`}</div>`;
+            }
+            const linha = (ico, rot, val, acoes = '') => `<div class="flex items-start gap-3 py-2.5 border-b border-slate-800/80"><i class="fa-solid ${ico} text-slate-500 w-4 mt-0.5 text-center"></i><div class="min-w-0 flex-1"><div class="text-[9px] uppercase tracking-wider font-bold text-slate-500">${rot}</div><div class="text-[13px] text-slate-100 break-words select-text">${val}</div></div>${acoes ? `<div class="flex gap-1 shrink-0">${acoes}</div>` : ''}</div>`;
+            const btn = (ico, title, attr) => `<button type="button" title="${title}" ${attr} class="h-8 w-8 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 hover:text-white hover:border-slate-500 inline-flex items-center justify-center text-xs"><i class="${ico}"></i></button>`;
+            const copiar = v => btn('fa-regular fa-copy', 'Copiar', `onclick="copiarFichaCampo(this, '${orgEsc(String(v).replace(/'/g, "\\'"))}')"`);
+            const textoTudo = [node.name, `${node.role || 'Corretor'}${equipe ? ' · ' + equipe : ''}`, d.tel && `Telefone: ${d.tel}`, d.email && `E-mail: ${d.email}`, d.nasc && `Nascimento: ${d.nasc.split('-').reverse().join('/')}`].filter(Boolean).join('\n');
+            const html = `<div id="orgFichaModal" class="fixed inset-0 z-[80] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4" onclick="if (event.target === this) fecharFichaCorretor()">
+                <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-5 relative max-h-[calc(100vh-2rem)] overflow-y-auto">
+                    <button onclick="fecharFichaCorretor()" class="absolute top-3 right-3 text-slate-400 hover:text-white h-8 w-8"><i class="fa-solid fa-xmark"></i></button>
+                    <div class="flex items-center gap-3 pr-8">
+                        <div class="shrink-0">${corretorAvatarInner(node.name, 'h-14 w-14', 'text-xs')}</div>
+                        <div class="min-w-0"><div class="text-base font-black text-white leading-tight">${orgEsc(node.name)}</div>
+                            <div class="text-[12px] text-slate-400">${orgEsc(node.role === 'Gerente' ? 'Gerente de Equipe' : (node.role || 'Corretor'))}${equipe ? ` · <b class="text-slate-300">${orgEsc(equipe)}</b>` : ''}${gerente && gerente !== node ? ` · ${orgEsc(gerente.name)}` : ''}</div></div>
+                    </div>
+                    <div class="mt-3"><div class="text-[9px] uppercase tracking-wider font-bold text-slate-500 mb-1">Sistemas</div><div class="flex flex-wrap gap-1">${orgSistemasBadges(node)}</div></div>
+                    <div class="mt-2">
+                        ${linha('fa-phone', 'Telefone', d.tel ? orgEsc(d.tel) : '<span class="text-slate-600">Não informado</span>', d.tel ? btn('fa-brands fa-whatsapp', 'Abrir WhatsApp', `onclick="window.open('${wa}','_blank','noopener')"`) + btn('fa-solid fa-phone', 'Ligar', `onclick="location.href='tel:+${dig.length <= 11 ? '55' + dig : dig}'"`) + copiar(d.tel) : '')}
+                        ${linha('fa-envelope', 'E-mail', d.email ? orgEsc(d.email) : '<span class="text-slate-600">Não informado</span>', d.email ? btn('fa-solid fa-paper-plane', 'Enviar e-mail', `onclick="location.href='mailto:${orgEsc(d.email)}'"`) + copiar(d.email) : '')}
+                        ${linha('fa-cake-candles', 'Nascimento', nascHtml)}
+                        ${linha('fa-note-sticky', 'Informações adicionais', d.obs ? orgEsc(d.obs).replace(/\n/g, '<br>') : '<span class="text-slate-600">Nenhuma</span>')}
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="copiarFichaCampo(this, ${orgEsc(JSON.stringify(textoTudo))})" class="flex-1 py-2 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-[11px] font-bold hover:border-slate-500"><i class="fa-regular fa-copy mr-1"></i>Copiar ficha</button>
+                        <button onclick="editarFichaCorretor('${orgEsc(node.id)}')" class="flex-1 py-2 rounded-lg border border-brand-500/40 bg-brand-600/20 text-brand-300 text-[11px] font-bold hover:bg-brand-600/30"><i class="fa-solid fa-pen mr-1"></i>Editar dados</button>
+                    </div>
+                    <div class="text-[10px] text-slate-600 mt-3 text-center"><i class="fa-solid fa-lock mr-1"></i>Dados protegidos — visíveis só com login de diretor</div>
+                </div></div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
+        function copiarFichaCampo(el, txt) {
+            const ok = () => { const o = el.innerHTML; el.innerHTML = '<i class="fa-solid fa-check"></i>' + (el.textContent.trim() ? ' Copiado' : ''); setTimeout(() => { el.innerHTML = o; }, 1200); };
+            if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok).catch(() => {}); else ok();
+        }
+        function editarFichaCorretor(id) {
+            fecharFichaCorretor();
+            const el = document.getElementById(`orgEmail-${id}`); if (!el) return;
+            const det = el.closest('details'); if (det) det.open = true;
+            el.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => el.focus(), 300);
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('orgFichaModal')) fecharFichaCorretor(); });
 
         function orgEsc(v) { return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
         function orgId() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `org-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
@@ -244,13 +294,14 @@
                     <div class="mt-2 pt-2 border-t border-slate-800"><div class="text-[9px] text-slate-500 uppercase tracking-wider"><i class="fa-solid fa-lock mr-1"></i>Dados pessoais <span class="normal-case tracking-normal text-slate-600">(só diretor vê)</span></div>
                         <label class="block text-[9px] text-slate-500 mt-1">E-mail<input type="email" id="orgEmail-${orgEsc(node.id)}" value="${orgEsc(dd.email)}" placeholder="nome@email.com" class="${inp}"></label>
                         <div class="grid grid-cols-1 gap-0"><label class="block text-[9px] text-slate-500 mt-1">Telefone<input type="tel" id="orgTel-${orgEsc(node.id)}" value="${orgEsc(dd.tel)}" placeholder="(85) 99999-9999" class="${inp}"></label>
-                        <label class="block text-[9px] text-slate-500 mt-1">Nascimento<input type="date" id="orgNasc-${orgEsc(node.id)}" value="${orgEsc(dd.nasc)}" class="${inp}"></label></div></div>`;
+                        <label class="block text-[9px] text-slate-500 mt-1">Nascimento<input type="date" id="orgNasc-${orgEsc(node.id)}" value="${orgEsc(dd.nasc)}" class="${inp}"></label></div>
+                        <label class="block text-[9px] text-slate-500 mt-1">Informações adicionais<textarea id="orgObs-${orgEsc(node.id)}" rows="2" placeholder="CRECI, endereço, observações…" class="${inp} resize-y">${orgEsc(dd.obs)}</textarea></label></div>`;
                 return `<details class="org-node-edit"><summary>${node.role === 'Gerente' ? 'Vincular equipe' : 'Editar vínculo'}</summary><div class="flex flex-wrap gap-1 mt-2">${orgSistemasBadges(node)}</div>${parentControl}${systemControl}<div class="flex justify-end gap-2 mt-2"><button onclick="saveOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="removeOrgMember('${orgEsc(node.id)}')" class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div></details>`;
             };
-            const renderBroker = (broker, color) => `<div class="org-broker-entry"><article data-org-scope="broker" data-org-name="${orgEsc(broker.name)}" role="button" tabindex="0" title="Ver indicadores de ${orgEsc(broker.name)}" class="org-broker-row${orgDashboardScope?.kind === 'broker' && orgPersonKey(orgDashboardScope.name) === orgPersonKey(broker.name) ? ' org-selected' : ''}" style="--team-color:${color}"><div class="org-broker-avatar shrink-0">${corretorAvatarInner(broker.name,'h-12 w-12','text-[10px]')}</div><div class="min-w-0"><div class="org-broker-name">${orgEsc(broker.name)}</div><div class="org-broker-role">${orgEsc(broker.role || "Corretor")}</div><div class="flex flex-wrap items-center gap-1.5 mt-1"><span class="org-broker-active">Ativo</span>${orgSistemasBadges(broker)}</div>${orgDadosLinha(broker)}</div></article>${renderEdit(broker)}</div>`;
+            const renderBroker = (broker, color) => `<div class="org-broker-entry"><article data-org-scope="broker" data-org-name="${orgEsc(broker.name)}" role="button" tabindex="0" title="Ver indicadores de ${orgEsc(broker.name)}" class="org-broker-row${orgDashboardScope?.kind === 'broker' && orgPersonKey(orgDashboardScope.name) === orgPersonKey(broker.name) ? ' org-selected' : ''}" style="--team-color:${color}">${orgFichaBotao(broker)}<div class="org-broker-avatar shrink-0">${corretorAvatarInner(broker.name,'h-12 w-12','text-[10px]')}</div><div class="min-w-0"><div class="org-broker-name">${orgEsc(broker.name)}</div><div class="org-broker-role">${orgEsc(broker.role || "Corretor")}</div><div class="flex flex-wrap items-center gap-1.5 mt-1"><span class="org-broker-active">Ativo</span>${orgSistemasBadges(broker)}</div></div></article>${renderEdit(broker)}</div>`;
             tree.innerHTML = managers.length ? `<div class="org-chart-level-label">Gerentes</div><div class="org-chart-manager-grid">${teams.map(({manager,brokers},i) => {
                 const color = colors[i % colors.length];
-                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div data-org-scope="team" data-org-name="${orgEsc(manager.name)}" data-org-manager-id="${orgEsc(manager.id)}" role="button" tabindex="0" title="Ver os indicadores da equipe de ${orgEsc(manager.name)}" class="org-manager-person${orgDashboardScope?.kind === 'team' && orgDashboardScope.managerId === manager.id ? ' org-selected' : ''}"><div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="flex flex-wrap gap-1 mt-1">${orgSistemasBadges(manager)}</div>${orgDadosLinha(manager)}<div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'integrante' : 'integrantes'}</div></div></div>${renderEdit(manager)}</article></section>`;
+                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div data-org-scope="team" data-org-name="${orgEsc(manager.name)}" data-org-manager-id="${orgEsc(manager.id)}" role="button" tabindex="0" title="Ver os indicadores da equipe de ${orgEsc(manager.name)}" class="org-manager-person${orgDashboardScope?.kind === 'team' && orgDashboardScope.managerId === manager.id ? ' org-selected' : ''}">${orgFichaBotao(manager)}<div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div><div class="flex flex-wrap gap-1 mt-1">${orgSistemasBadges(manager)}</div><div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'integrante' : 'integrantes'}</div></div></div>${renderEdit(manager)}</article></section>`;
             }).join('')}</div><div class="org-chart-level-label mt-5">Equipes do BI</div><div class="org-chart-team-grid">${teams.map(({manager,brokers},i) => {
                 const color = colors[i % colors.length];
                 return `<section class="org-team-group" style="--team-color:${color}"><article class="org-team-card${organogramaSelectedTeamId === manager.id ? ' org-team-selected' : ''}"><button type="button" class="org-team-select" aria-pressed="${organogramaSelectedTeamId === manager.id}" title="Abrir o painel e destacar esta equipe" onclick="selectOrgTeamCard('${orgEsc(manager.id)}')"><span><i class="fa-solid fa-users mr-1.5"></i> ${orgEsc(manager.equipe || 'Sem equipe')}</span><span class="org-team-count">${brokers.length}</span></button><div class="text-[10px] text-slate-500 mb-2">${orgEsc(manager.name)}</div><div class="org-broker-list">${brokers.length ? brokers.map(b=>renderBroker(b,color)).join('') : `<div class="text-[11px] text-slate-500 text-center py-5">${manager.equipe ? 'Nenhum corretor ativo nesta equipe do BI' : 'Vincule uma equipe ao gerente acima'}</div>`}</div></article></section>`;
@@ -284,11 +335,12 @@
             const dados = {
                 email: (document.getElementById(`orgEmail-${id}`)?.value || '').trim(),
                 tel: (document.getElementById(`orgTel-${id}`)?.value || '').trim(),
-                nasc: document.getElementById(`orgNasc-${id}`)?.value || ''
+                nasc: document.getElementById(`orgNasc-${id}`)?.value || '',
+                obs: (document.getElementById(`orgObs-${id}`)?.value || '').trim()
             };
             const antes = dadosCorretores[chave] || {};
-            if (dados.email !== (antes.email || '') || dados.tel !== (antes.tel || '') || dados.nasc !== (antes.nasc || '')) {
-                if (dados.email || dados.tel || dados.nasc) dadosCorretores[chave] = dados; else delete dadosCorretores[chave];
+            if (['email', 'tel', 'nasc', 'obs'].some(k => dados[k] !== (antes[k] || ''))) {
+                if (dados.email || dados.tel || dados.nasc || dados.obs) dadosCorretores[chave] = dados; else delete dadosCorretores[chave];
                 salvarDadosCorretoresLocal();
                 if (typeof fbDb !== 'undefined' && fbDb) {
                     const valor = dadosCorretores[chave] ? dados : firebase.firestore.FieldValue.delete();
