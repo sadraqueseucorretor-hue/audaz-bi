@@ -1557,6 +1557,7 @@
         function agendaMatchesRef(row, refDate, metric = (isCompareceu(row) ? 'compareceu' : 'agendamentos')) {
             const d = parseDate(agendaDateForMetric(row, metric));
             if (!d) return false;
+            if (typeof filtroDatasAtivo === 'function' && filtroDatasAtivo()) return dentroFiltroDatas(d);
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
             let matchesPeriod = false;
             if (useMesRef) {
