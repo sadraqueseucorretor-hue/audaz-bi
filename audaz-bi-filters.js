@@ -298,6 +298,7 @@
             if (empreendimento) chips.push({ label: empreendimento, remove: () => { document.getElementById('filterEmpreendimento').value = ''; applyFilters(); } });
             selMeses.forEach(m => chips.push({ label: mesLabelAbbrev(m), remove: () => selectMesComercial(m) }));
             if (selSemana) chips.push({ label: `${selSemana}ª Semana`, remove: () => selectSemana('') });
+            if (filtroDatasAtivo()) chips.push({ label: `Datas: ${filtroDatas.de ? fmtIsoBr(filtroDatas.de) : '…'} até ${filtroDatas.ate ? fmtIsoBr(filtroDatas.ate) : '…'}`, remove: () => setFiltroDatas('', '') });
 
             if (chips.length === 0) {
                 chipsEl.innerHTML = '<span class="text-[11px] text-slate-600">Nenhum filtro ativo</span>';
@@ -328,6 +329,7 @@
             Array.from(document.getElementById('filterMes').options).forEach(o => { o.selected = false; });
             document.getElementById('filterAno').value = "";
             document.getElementById('filterSemana').value = "";
+            filtroDatas = { de: '', ate: '' }; renderFiltroDatas();
             renderMesComercialPills();
             renderSemanaPills();
             applyFilters();
@@ -487,7 +489,50 @@
         // filtro de "Semana" (do mês) ativo, também com essa semana REAL (segunda a domingo, dentro
         // da janela do mês comercial da PRÓPRIA métrica), usando a MESMA data da métrica. Assim cada
         // métrica confere a SUA própria coluna, não fica presa à de Cadastro.
+        // ===== FILTRO POR DATAS (04/11/2026) =====
+        // "De / Até" livre. Quando ativo, cada métrica confere a SUA data (Data Cadastro, Data
+        // Aprovação, Data Ganho, data da visita, Cadastro do lead) dentro do intervalo e o recorte de
+        // Mês Comercial / Semana fica de lado (os pills continuam lá, só não recortam).
+        let filtroDatas = { de: '', ate: '' }; // 'AAAA-MM-DD'
+        const isoParaData = (iso, fim) => { if (!iso) return null; const [a, m, d] = iso.split('-').map(Number); return fim ? new Date(a, m - 1, d, 23, 59, 59, 999) : new Date(a, m - 1, d); };
+        function filtroDatasAtivo() { return !!(filtroDatas.de || filtroDatas.ate); }
+        function dentroFiltroDatas(d) {
+            if (!d) return false;
+            const de = isoParaData(filtroDatas.de), ate = isoParaData(filtroDatas.ate, true);
+            return (!de || d >= de) && (!ate || d <= ate);
+        }
+        const isoDe = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const fmtIsoBr = iso => iso ? iso.split('-').reverse().join('/') : '';
+        function setFiltroDatas(de, ate) {
+            if (de && ate && de > ate) [de, ate] = [ate, de];
+            filtroDatas = { de: de || '', ate: ate || '' };
+            renderFiltroDatas();
+            applyFilters();
+        }
+        function atalhoFiltroDatas(tipo) {
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            const menos = n => { const d = new Date(hoje); d.setDate(d.getDate() - n); return d; };
+            if (tipo === 'hoje') return setFiltroDatas(isoDe(hoje), isoDe(hoje));
+            if (tipo === 'ontem') return setFiltroDatas(isoDe(menos(1)), isoDe(menos(1)));
+            if (tipo === '7') return setFiltroDatas(isoDe(menos(6)), isoDe(hoje));
+            if (tipo === '30') return setFiltroDatas(isoDe(menos(29)), isoDe(hoje));
+            if (tipo === 'semana') { const dow = hoje.getDay(); const seg = menos(dow === 0 ? 6 : dow - 1); return setFiltroDatas(isoDe(seg), isoDe(hoje)); }
+            if (tipo === 'mesCal') return setFiltroDatas(isoDe(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), isoDe(hoje));
+            return setFiltroDatas('', '');
+        }
+        function renderFiltroDatas() {
+            const de = document.getElementById('filtroDataDe'), ate = document.getElementById('filtroDataAte');
+            if (de) de.value = filtroDatas.de; if (ate) ate.value = filtroDatas.ate;
+            const ativo = filtroDatasAtivo();
+            const box = document.getElementById('filtroDatasBox');
+            if (box) box.classList.toggle('border-amber-500/50', ativo);
+            const aviso = document.getElementById('filtroDatasAviso');
+            if (aviso) aviso.classList.toggle('hidden', !ativo);
+            ['mesComercialPills', 'semanaPills'].forEach(id => { const el = document.getElementById(id); if (el) el.style.opacity = ativo ? '.35' : ''; });
+        }
+
         function metricMatchesRef(row, mesField, dateField, refDate) {
+            if (filtroDatasAtivo()) return dentroFiltroDatas(parseDate(row[dateField]));
             const useMesRef = (currentPeriod === 'mes' || currentPeriod === 'ano') && !isMockDataActive;
             const periodOk = useMesRef
                 ? checkMesPeriodMatch(row[mesField], currentPeriod, refDate, getSelectedMeses())
