@@ -763,11 +763,24 @@
                                     </h3>
                                     <p class="text-[10px] text-slate-500">Medição consolidada de sinergia e entrega comercial</p>
                                 </div>
+                                <div class="flex items-center gap-2">
+                                <div id="rankingEqColunasWrap" class="relative">
+                                    <button type="button" onclick="abrirMenuColunasRankingEquipes(event)" class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-slate-600 text-xs rounded-lg px-3 py-1.5 text-slate-300 transition" title="Escolher colunas visíveis">
+                                        <i class="fa-solid fa-table-columns text-slate-500"></i> Colunas
+                                        <span id="rankingEqColunasBadge" class="hidden rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-bold px-1.5" title="Colunas ocultas"></span>
+                                    </button>
+                                    <div id="rankingEqColunasMenu" class="hidden absolute right-0 mt-1 z-30 w-52 rounded-xl border border-slate-700 bg-slate-900 shadow-xl p-2">
+                                        <p class="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Mostrar colunas</p>
+                                        <div id="rankingEqColunasLista"></div>
+                                        <button type="button" onclick="mostrarTodasColunasRankingEquipes()" class="mt-1 w-full text-[11px] text-emerald-300 hover:bg-slate-800/60 rounded-lg py-1.5">Mostrar todas</button>
+                                    </div>
+                                </div>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500">
                                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                                     </span>
                                     <input type="text" id="searchEquipe" oninput="drawTables()" placeholder="Procurar equipe..." class="bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-300 w-full sm:w-48 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition">
+                                </div>
                                 </div>
                             </div>
 
@@ -788,14 +801,14 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Equipe</th>
-                                            <th class="pb-3 text-center" title="Leads recebidos no mês (Salesforce + DV On), pela equipe do corretor no organograma">Leads</th>
-                                            <th class="pb-3 text-center">Agendamentos</th>
-                                            <th class="pb-3 text-center">Compareceu</th>
-                                            <th class="pb-3 text-center">Análises</th>
-                                            <th class="pb-3 text-center">Aprovs</th>
-                                            <th class="pb-3 text-center">Vendas</th>
-                                            <th class="pb-3 text-center" title="Percentual de integrantes ativos cadastrados na equipe (incluindo o gerente) com ao menos uma venda no período">Equipe produtiva</th>
-                                            <th class="pb-3 text-right pr-2">VGV</th>
+                                            <th data-col="leads" class="pb-3 text-center" title="Leads recebidos no mês (Salesforce + DV On), pela equipe do corretor no organograma">Leads</th>
+                                            <th data-col="agendamentos" class="pb-3 text-center">Agendamentos</th>
+                                            <th data-col="compareceu" class="pb-3 text-center">Compareceu</th>
+                                            <th data-col="analises" class="pb-3 text-center">Análises</th>
+                                            <th data-col="aprovacoes" class="pb-3 text-center">Aprovs</th>
+                                            <th data-col="vendas" class="pb-3 text-center">Vendas</th>
+                                            <th data-col="produtiva" class="pb-3 text-center" title="Percentual de integrantes ativos cadastrados na equipe (incluindo o gerente) com ao menos uma venda no período">Equipe produtiva</th>
+                                            <th data-col="vgv" class="pb-3 text-right pr-2">VGV</th>
                                         </tr>
                                     </thead>
                                     <tbody id="rankingEquipesBody" class="divide-y divide-slate-800/40 text-xs">
@@ -1867,7 +1880,7 @@
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
     <script src="./audaz-bi-data.js?v=mes-ref-config-20261105b"></script>
     <script src="./audaz-bi-filters.js?v=datas-20261104"></script>
-    <script src="./audaz-bi-analytics.js?v=ranking-equipes-total-20261104"></script>
+    <script src="./audaz-bi-analytics.js?v=ranking-colunas-20261105"></script>
     <script src="./audaz-bi-calendar.js?v=busca-20261103"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
     <script src="./audaz-bi-calc.js?v=calc-20261031"></script>
