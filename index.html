@@ -699,7 +699,7 @@
 <div class="grid grid-cols-1 gap-6" id="rankingsSection">
                     
                     <!-- Tabela de Ranking de Corretores -->
-                    <div class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col justify-between">
+                    <div id="rankingCorretoresCard" class="bg-slate-900/40 rounded-2xl border border-slate-800 p-6 flex flex-col justify-between">
                         <div>
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                                 <div>
@@ -708,11 +708,24 @@
                                     </h3>
                                     <p class="text-[10px] text-slate-500">Análises: cadastro · Aprovações: data aprovada · Vendas: data de ganho · Agendamentos: data marcada · Visitas: data realizada. Ordene pelos botões abaixo.</p>
                                 </div>
+                                <div class="flex items-center gap-2">
+                                <div class="rank-colunas-wrap relative">
+                                    <button type="button" onclick="abrirMenuColunasRanking('corretores', event)" class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-slate-600 text-xs rounded-lg px-3 py-1.5 text-slate-300 transition" title="Escolher colunas visíveis">
+                                        <i class="fa-solid fa-table-columns text-slate-500"></i> Colunas
+                                        <span id="rankColunasBadge-corretores" class="hidden rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-bold px-1.5" title="Colunas ocultas"></span>
+                                    </button>
+                                    <div id="rankColunasMenu-corretores" class="hidden absolute right-0 mt-1 z-30 w-52 rounded-xl border border-slate-700 bg-slate-900 shadow-xl p-2">
+                                        <p class="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Mostrar colunas</p>
+                                        <div id="rankColunasLista-corretores"></div>
+                                        <button type="button" onclick="mostrarTodasColunasRanking('corretores')" class="mt-1 w-full text-[11px] text-emerald-300 hover:bg-slate-800/60 rounded-lg py-1.5">Mostrar todas</button>
+                                    </div>
+                                </div>
                                 <div class="relative">
                                     <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 text-slate-500">
                                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                                     </span>
                                     <input type="text" id="searchCorretor" oninput="drawTables()" placeholder="Procurar corretor..." class="bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-slate-300 w-full sm:w-48 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition">
+                                </div>
                                 </div>
                             </div>
 
@@ -734,15 +747,15 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Corretor</th>
-                                            <th class="pb-3 text-center" title="Data em que o atendimento foi agendado">Agend.</th>
-                                            <th class="pb-3 text-center" title="Data em que a visita ocorreu">Visitas</th>
-                                            <th class="pb-3 text-center" title="Data de cadastro">Análises</th>
-                                            <th class="pb-3 text-center" title="Data de aprovação; usa cadastro como respaldo quando a data não está preenchida">Aprovs</th>
-                                            <th class="pb-3 text-center" title="Data de ganho da venda; respeita o modo Geral/Finalizadas">Vendas</th>
+                                            <th data-col="agendamentos" class="pb-3 text-center" title="Data em que o atendimento foi agendado">Agend.</th>
+                                            <th data-col="compareceu" class="pb-3 text-center" title="Data em que a visita ocorreu">Visitas</th>
+                                            <th data-col="analises" class="pb-3 text-center" title="Data de cadastro">Análises</th>
+                                            <th data-col="aprovacoes" class="pb-3 text-center" title="Data de aprovação; usa cadastro como respaldo quando a data não está preenchida">Aprovs</th>
+                                            <th data-col="vendas" class="pb-3 text-center" title="Data de ganho da venda; respeita o modo Geral/Finalizadas">Vendas</th>
                                             
-                                            <th class="pb-3 text-center whitespace-nowrap" id="thVendasJanelaIPC" title="Vendas na janela do IPC — independente do período filtrado acima">Vendas 3M</th>
-                                            <th class="pb-3 text-center whitespace-nowrap" title="IPC — Índice de Produtividade do Corretor: vendas dos últimos 3 meses comerciais ÷ 3 (média mensal)">IPC</th>
-                                            <th class="pb-3 text-right pr-2">VGV</th>
+                                            <th data-col="vendas3m" class="pb-3 text-center whitespace-nowrap" id="thVendasJanelaIPC" title="Vendas na janela do IPC — independente do período filtrado acima">Vendas 3M</th>
+                                            <th data-col="ipc" class="pb-3 text-center whitespace-nowrap" title="IPC — Índice de Produtividade do Corretor: vendas dos últimos 3 meses comerciais ÷ 3 (média mensal)">IPC</th>
+                                            <th data-col="vgv" class="pb-3 text-right pr-2">VGV</th>
                                         </tr>
                                     </thead>
                                     <tbody id="rankingCorretoresBody" class="divide-y divide-slate-800/40 text-xs">
@@ -764,15 +777,15 @@
                                     <p class="text-[10px] text-slate-500">Medição consolidada de sinergia e entrega comercial</p>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                <div id="rankingEqColunasWrap" class="relative">
-                                    <button type="button" onclick="abrirMenuColunasRankingEquipes(event)" class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-slate-600 text-xs rounded-lg px-3 py-1.5 text-slate-300 transition" title="Escolher colunas visíveis">
+                                <div class="rank-colunas-wrap relative">
+                                    <button type="button" onclick="abrirMenuColunasRanking('equipes', event)" class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 hover:border-slate-600 text-xs rounded-lg px-3 py-1.5 text-slate-300 transition" title="Escolher colunas visíveis">
                                         <i class="fa-solid fa-table-columns text-slate-500"></i> Colunas
-                                        <span id="rankingEqColunasBadge" class="hidden rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-bold px-1.5" title="Colunas ocultas"></span>
+                                        <span id="rankColunasBadge-equipes" class="hidden rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-bold px-1.5" title="Colunas ocultas"></span>
                                     </button>
-                                    <div id="rankingEqColunasMenu" class="hidden absolute right-0 mt-1 z-30 w-52 rounded-xl border border-slate-700 bg-slate-900 shadow-xl p-2">
+                                    <div id="rankColunasMenu-equipes" class="hidden absolute right-0 mt-1 z-30 w-52 rounded-xl border border-slate-700 bg-slate-900 shadow-xl p-2">
                                         <p class="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Mostrar colunas</p>
-                                        <div id="rankingEqColunasLista"></div>
-                                        <button type="button" onclick="mostrarTodasColunasRankingEquipes()" class="mt-1 w-full text-[11px] text-emerald-300 hover:bg-slate-800/60 rounded-lg py-1.5">Mostrar todas</button>
+                                        <div id="rankColunasLista-equipes"></div>
+                                        <button type="button" onclick="mostrarTodasColunasRanking('equipes')" class="mt-1 w-full text-[11px] text-emerald-300 hover:bg-slate-800/60 rounded-lg py-1.5">Mostrar todas</button>
                                     </div>
                                 </div>
                                 <div class="relative">
@@ -1880,7 +1893,7 @@
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
     <script src="./audaz-bi-data.js?v=mes-ref-config-20261105b"></script>
     <script src="./audaz-bi-filters.js?v=datas-20261104"></script>
-    <script src="./audaz-bi-analytics.js?v=ranking-colunas-20261105"></script>
+    <script src="./audaz-bi-analytics.js?v=ranking-colunas-20261105b"></script>
     <script src="./audaz-bi-calendar.js?v=busca-20261103"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
     <script src="./audaz-bi-calc.js?v=calc-20261031"></script>
