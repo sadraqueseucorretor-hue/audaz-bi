@@ -3300,7 +3300,7 @@
                     ${fila.length ? fila.map((pessoa, idx) => `
                         <div class="flex items-center gap-2 bg-slate-950/50 border border-slate-800/70 rounded-lg px-2.5 py-1.5">
                             <span class="${escalaDef.text} font-extrabold text-xs w-6 shrink-0">${idx + 1}º</span>
-                            ${corretorAvatarInner(pessoa.nome, 'h-6 w-6', 'text-[9px]', 'shrink-0')}
+                            ${plantaoAvatar(pessoa, 'h-6 w-6', 'text-[9px]')}
                             <span class="flex-1 min-w-0 truncate text-sm font-semibold text-slate-200">${pessoa.nome}</span>
                             <button onclick="togglePlantaoConfirmado('${escalaKey}','${iso}',${idx})" class="text-[9px] font-bold px-1.5 py-1 rounded transition shrink-0 ${pessoa.confirmado ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-amber-500/15 text-amber-400 hover:bg-amber-500/25'}">${pessoa.confirmado ? 'Confirmado' : 'Aguardando'}</button>
                             <button onclick="moverPlantaoDia('${escalaKey}','${iso}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="h-7 w-7 shrink-0 rounded text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-up text-[10px]"></i></button>
@@ -3342,48 +3342,41 @@
             renderPlantoes();
         }
 
-        // ===== EQUIPE INTEIRA NO PLANTÃO (05/11/2026) =====
-        // Integrantes de cada equipe = corretores ativos cujo vínculo no organograma aponta pra ela
-        // (mesma regra do resto do BI, getRankingTeamForBroker), incluindo o gerente.
-        function plantaoMembrosEquipe(equipe) {
-            const k = rankingTeamKey(equipe);
-            return getActiveCorretores().filter(n => { const t = getRankingTeamForBroker(n); return t && rankingTeamKey(t) === k; })
-                .sort((a, b) => {
-                    // Gerente primeiro, depois ordem alfabética.
-                    const g = n => (typeof organograma !== 'undefined' && organograma.some(o => o.role === 'Gerente' && orgPersonKey(o.name) === orgPersonKey(n))) ? 0 : 1;
-                    return g(a) - g(b) || a.localeCompare(b, 'pt-BR');
-                });
+        // ===== EQUIPE NO PLANTÃO (05/11/2026) =====
+        // Uma escala pode receber a EQUIPE como um item só ("Equipe BARUC"), ocupando 1 vaga —
+        // { nome: 'Equipe BARUC', equipe: 'BARUC', confirmado }. O `nome` já vem pronto pra
+        // impressão/resumo/total, que só leem p.nome.
+        function plantaoAvatar(pessoa, tam, txt) {
+            if (pessoa && pessoa.equipe) return `<span class="${tam} shrink-0 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 inline-flex items-center justify-center"><i class="fa-solid fa-people-group ${txt}"></i></span>`;
+            return corretorAvatarInner(pessoa.nome, tam, txt, 'shrink-0');
         }
         function plantaoEquipesBotoesHTML(escalaKey, iso, nomesNaFila) {
             const vistas = new Set();
-            const equipes = (typeof getOrgTeamNames === 'function' ? getOrgTeamNames() : [])
+            // Só as equipes que têm gerente no organograma (as 5 equipes do BI).
+            const equipes = (typeof organograma !== 'undefined' ? organograma : []).filter(n => n.role === 'Gerente' && n.equipe).map(n => n.equipe)
                 .map(eq => (typeof canonicalRankingTeamName === 'function' && canonicalRankingTeamName(eq)) || eq)
-                .filter(eq => { const k = rankingTeamKey(eq); if (vistas.has(k)) return false; vistas.add(k); return true; })
-                .map(eq => ({ eq, membros: plantaoMembrosEquipe(eq) })).filter(x => x.membros.length);
+                .filter(eq => { const k = rankingTeamKey(eq); if (!k || vistas.has(k)) return false; vistas.add(k); return true; })
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'));
             if (!equipes.length) return '';
             const esc = t => String(t).replace(/'/g, "\\'").replace(/"/g, '&quot;');
             return `<div class="mt-3 pt-3 border-t border-slate-800/60">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5"><i class="fa-solid fa-people-group mr-1"></i>Adicionar equipe inteira</p>
-                <div class="flex flex-wrap gap-1.5">${equipes.map(({ eq, membros }) => {
-                    const faltam = membros.filter(n => !nomesNaFila.includes(n)).length;
-                    return `<button type="button" ${faltam ? '' : 'disabled'} onclick="adicionarEquipePlantao('${escalaKey}','${iso}','${esc(eq)}')" title="${esc(membros.join(', '))}"
-                        class="text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 disabled:opacity-35 disabled:cursor-not-allowed transition">${eq} <span class="text-sky-200/70 font-semibold">· ${faltam ? membros.length : '✓'}</span></button>`;
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5"><i class="fa-solid fa-people-group mr-1"></i>Colocar equipe no plantão</p>
+                <div class="flex flex-wrap gap-1.5">${equipes.map(eq => {
+                    const ja = nomesNaFila.includes(`Equipe ${eq}`);
+                    return `<button type="button" ${ja ? 'disabled' : ''} onclick="adicionarEquipePlantao('${escalaKey}','${iso}','${esc(eq)}')"
+                        class="text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20 disabled:opacity-35 disabled:cursor-not-allowed transition"><i class="fa-solid fa-people-group mr-1 text-[10px]"></i>${eq}${ja ? ' ✓' : ''}</button>`;
                 }).join('')}</div></div>`;
         }
         function adicionarEquipePlantao(escalaKey, iso, equipe) {
             if (!escalasPlantao[escalaKey][iso]) escalasPlantao[escalaKey][iso] = [];
             const fila = escalasPlantao[escalaKey][iso];
-            const vagas = vagasPorEscala[escalaKey];
-            const novos = plantaoMembrosEquipe(equipe).filter(n => !fila.some(p => p.nome === n));
-            const livres = Math.max(0, vagas - fila.length);
-            const entram = novos.slice(0, livres), fora = novos.slice(livres);
-            entram.forEach(nome => fila.push({ nome, confirmado: false }));
-            if (!fila.length) delete escalasPlantao[escalaKey][iso];
+            const nome = `Equipe ${equipe}`;
+            if (fila.some(p => p.nome === nome)) return;
+            if (fila.length >= vagasPorEscala[escalaKey]) { showToast('Vagas completas pra essa escala nesse dia.', true); return; }
+            fila.push({ nome, equipe, confirmado: false });
             saveEscalasPlantao();
             renderPlantaoDiaModalConteudo();
             renderPlantoes();
-            if (fora.length) showToast(`Equipe ${equipe}: ${entram.length} entraram; ${fora.length} ficaram de fora por falta de vaga (${fora.join(', ')}). Aumente as vagas na engrenagem ⚙ se quiser todos.`, true);
-            else showToast(`Equipe ${equipe}: ${entram.length} ${entram.length === 1 ? 'pessoa adicionada' : 'pessoas adicionadas'} ao plantão.`);
         }
 
         function removerPlantaoDia(escalaKey, iso, idx) {
@@ -3436,7 +3429,7 @@
                         ${fila.map((pessoa, idx) => `
                             <div class="flex items-start gap-1.5 min-w-0">
                                 <span class="text-[10px] font-extrabold ${escalaDef.text} w-4 shrink-0 pt-0.5">${idx + 1}º</span>
-                                ${corretorAvatarInner(pessoa.nome, 'h-5 w-5', 'text-[8px]', 'shrink-0')}
+                                ${plantaoAvatar(pessoa, 'h-5 w-5', 'text-[8px]')}
                                 <span class="text-xs font-semibold text-slate-100 leading-tight break-words">${pessoa.nome}</span>
                             </div>`).join('')}
                     </div>` : `
