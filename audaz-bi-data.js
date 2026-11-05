@@ -1399,7 +1399,13 @@
             return best; // { ano, idx, nome } ou null
         }
         // Data de referência do mês comercial corrente (dia 15 do mês, para os cálculos por mês).
+        // O mês comercial CONFIGURADO que contém hoje manda (getMesComercialAtualPorData, o mesmo que
+        // metas/ritmo já usam). Sem isso, 1 linha da planilha marcada com o mês seguinte antes do fim
+        // do mês comercial (cadastro de 05/11 marcado "novembro" com Outubro indo até 09/11) fazia o
+        // painel inteiro pular pro mês novo com quase nada (05/11/2026).
         function commercialRefDate(fallback) {
+            const cfgHoje = typeof getMesComercialAtualPorData === 'function' ? getMesComercialAtualPorData() : null;
+            if (cfgHoje && cfgHoje.idx !== undefined) return new Date(Number(cfgHoje.ano), cfgHoje.idx, 15);
             const lc = getLatestCommercialMonth();
             return lc ? new Date(lc.ano, lc.idx, 15) : fallback;
         }
