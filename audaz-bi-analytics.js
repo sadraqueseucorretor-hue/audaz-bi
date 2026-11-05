@@ -625,7 +625,7 @@
                 const cel = (eq, c, eqEsc) => {
                     const v = eq[c.k] || 0, pct = maxCol[c.k] ? Math.round(v / maxCol[c.k] * 100) : 0;
                     const clic = v > 0 && c.click;
-                    return `<td class="py-3 px-1 text-center"><div class="inline-flex flex-col items-center min-w-[44px] ${clic ? 'cursor-pointer group' : ''}" ${clic ? `onclick="${c.click(eqEsc)}" title="${c.tip}"` : ''}>
+                    return `<td data-col="${c.k}" class="py-3 px-1 text-center"><div class="inline-flex flex-col items-center min-w-[44px] ${clic ? 'cursor-pointer group' : ''}" ${clic ? `onclick="${c.click(eqEsc)}" title="${c.tip}"` : ''}>
                         <span class="text-sm tabular-nums ${v ? c.cor + ' font-bold' : 'text-slate-600'} ${clic ? 'group-hover:underline' : ''}">${v}</span>
                         <span class="mt-1 h-1 w-10 rounded-full bg-slate-800 overflow-hidden"><span class="block h-full rounded-full ${c.barra}" style="width:${pct}%"></span></span></div></td>`;
                 };
@@ -651,11 +651,11 @@
                             <td class="py-3 pl-2">${medalha(index)}</td>
                             <td class="py-3 pr-2"><div class="font-bold text-slate-100 text-[13px] leading-tight whitespace-nowrap">Equipe ${eq.equipe}</div>${ger ? `<div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-user-tie mr-1"></i>${ger}</div>` : ''}</td>
                             ${COLS.map(c => cel(eq, c, eqEsc)).join('')}
-                            <td class="py-3 px-1 text-center" title="${integrantesProdutivos} de ${totalIntegrantes} integrantes ativos (incluindo o gerente) fizeram venda no período">
+                            <td data-col="produtiva" class="py-3 px-1 text-center" title="${integrantesProdutivos} de ${totalIntegrantes} integrantes ativos (incluindo o gerente) fizeram venda no período">
                                 <div class="text-sm font-bold tabular-nums ${corProd}">${pctProd.toFixed(1)}%</div>
                                 <div class="mx-auto mt-1 h-1 w-14 rounded-full bg-slate-800 overflow-hidden"><div class="h-full rounded-full ${barraProd}" style="width:${Math.min(100, pctProd)}%"></div></div>
                                 <div class="text-[9px] text-slate-500 mt-0.5">${integrantesProdutivos}/${totalIntegrantes} integrantes</div></td>
-                            <td class="py-3 pr-2 text-right whitespace-nowrap"><div class="text-sm font-bold tabular-nums ${eq.vgv ? 'text-indigo-300' : 'text-slate-600'}">${formatBRL(eq.vgv)}</div>
+                            <td data-col="vgv" class="py-3 pr-2 text-right whitespace-nowrap"><div class="text-sm font-bold tabular-nums ${eq.vgv ? 'text-indigo-300' : 'text-slate-600'}">${formatBRL(eq.vgv)}</div>
                                 <div class="ml-auto mt-1 h-1 w-16 rounded-full bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-indigo-500" style="width:${maxVgv ? Math.round(eq.vgv / maxVgv * 100) : 0}%"></div></div></td>
                         </tr>`);
                 });
@@ -668,7 +668,7 @@
                     <tr class="bg-slate-950/40 border-b border-slate-800/40">
                         <td class="py-2.5 pl-2"><span class="inline-flex h-7 w-7 items-center justify-center text-slate-600">—</span></td>
                         <td class="py-2.5 text-slate-400 text-[12px]"><i class="fa-solid fa-user-tie mr-1 text-slate-500"></i>Regional (sem equipe)<div class="text-[9px] text-slate-500">${nomes}</div></td>
-                        <td class="py-2.5 text-center"><span class="text-sm font-bold text-pink-400 cursor-pointer hover:underline" onclick="abrirLeadsEquipe('__regional')" title="Ver leads da regional">${leadsRegional}</span></td>
+                        <td data-col="leads" class="py-2.5 text-center"><span class="text-sm font-bold text-pink-400 cursor-pointer hover:underline" onclick="abrirLeadsEquipe('__regional')" title="Ver leads da regional">${leadsRegional}</span></td>
                         <td colspan="7" class="py-2.5 text-[10px] text-slate-500 pl-3">Leads que ficaram com a regional (inclui os que vieram sem corretor).</td>
                     </tr>`);
             }
@@ -684,9 +684,9 @@
                     <tr class="border-t-2 border-slate-700 bg-slate-950/60">
                         <td class="py-3 pl-2"><span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-slate-300"><b class="text-[13px]">Σ</b></span></td>
                         <td class="py-3 text-[11px] font-black uppercase tracking-wider text-slate-300">Total<div class="text-[9px] font-semibold normal-case tracking-normal text-slate-500">${rankingEquipes.length} ${rankingEquipes.length === 1 ? 'equipe' : 'equipes'}${mostrarRegional ? ' + regional (leads)' : ''}</div></td>
-                        ${['leads', 'agendamentos', 'compareceu', 'analises', 'aprovacoes', 'vendas'].map(k => `<td class="py-3 text-center"><span class="text-base font-black tabular-nums ${tot[k] ? cores[k] : 'text-slate-600'}">${tot[k]}</span></td>`).join('')}
-                        <td class="py-3 text-center"><span class="text-base font-black tabular-nums ${totalPessoasProdutivas ? 'text-emerald-300' : 'text-rose-400'}">${percentualProdutivoGeral.toFixed(1)}%</span><div class="text-[9px] text-slate-500">${totalPessoasProdutivas}/${totalPessoasAtivas} integrantes</div></td>
-                        <td class="py-3 pr-2 text-right whitespace-nowrap"><span class="text-base font-black tabular-nums ${tot.vgv ? 'text-indigo-300' : 'text-slate-600'}">${formatBRL(tot.vgv)}</span></td>
+                        ${['leads', 'agendamentos', 'compareceu', 'analises', 'aprovacoes', 'vendas'].map(k => `<td data-col="${k}" class="py-3 text-center"><span class="text-base font-black tabular-nums ${tot[k] ? cores[k] : 'text-slate-600'}">${tot[k]}</span></td>`).join('')}
+                        <td data-col="produtiva" class="py-3 text-center"><span class="text-base font-black tabular-nums ${totalPessoasProdutivas ? 'text-emerald-300' : 'text-rose-400'}">${percentualProdutivoGeral.toFixed(1)}%</span><div class="text-[9px] text-slate-500">${totalPessoasProdutivas}/${totalPessoasAtivas} integrantes</div></td>
+                        <td data-col="vgv" class="py-3 pr-2 text-right whitespace-nowrap"><span class="text-base font-black tabular-nums ${tot.vgv ? 'text-indigo-300' : 'text-slate-600'}">${formatBRL(tot.vgv)}</span></td>
                     </tr>` : '';
             }
 
@@ -2777,3 +2777,55 @@
                 totalLabel: `${rows.length} ${rows.length === 1 ? 'lead' : 'leads'}`
             });
         }
+
+        // Colunas do Ranking de Equipes (05/11/2026): o gestor esconde/mostra colunas pelo botão "Colunas".
+        // Preferência por navegador (localStorage); aplicada via <style> gerado, então vale também
+        // para as linhas redesenhadas a cada drawTables().
+        const RANKING_EQ_COLUNAS = [
+            ['leads', 'Leads'], ['agendamentos', 'Agendamentos'], ['compareceu', 'Compareceu'], ['analises', 'Análises'],
+            ['aprovacoes', 'Aprovs'], ['vendas', 'Vendas'], ['produtiva', 'Equipe produtiva'], ['vgv', 'VGV']
+        ];
+        const LS_RANKING_EQ_OCULTAS = () => `${typeof appId !== 'undefined' ? appId : 'audaz-bi-v1'}-ranking-equipes-colunas-ocultas`;
+        let rankingEqOcultas = [];
+        try { const v = JSON.parse(localStorage.getItem(LS_RANKING_EQ_OCULTAS()) || '[]'); rankingEqOcultas = Array.isArray(v) ? v : []; } catch (e) { rankingEqOcultas = []; }
+
+        function aplicarColunasRankingEquipes() {
+            let st = document.getElementById('rankingEqColunasStyle');
+            if (!st) { st = document.createElement('style'); st.id = 'rankingEqColunasStyle'; document.head.appendChild(st); }
+            st.textContent = rankingEqOcultas.map(k => `#rankingEquipesCard [data-col="${k}"]{display:none}`).join('\n');
+            const n = rankingEqOcultas.length;
+            const badge = document.getElementById('rankingEqColunasBadge');
+            if (badge) { badge.textContent = n; badge.classList.toggle('hidden', !n); }
+            const lista = document.getElementById('rankingEqColunasLista');
+            if (lista) lista.innerHTML = RANKING_EQ_COLUNAS.map(([k, rot]) => `
+                <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs text-slate-300">
+                    <input type="checkbox" class="accent-emerald-500" ${rankingEqOcultas.includes(k) ? '' : 'checked'} onchange="toggleColunaRankingEquipes('${k}', this.checked)">${rot}</label>`).join('');
+        }
+
+        function toggleColunaRankingEquipes(k, visivel) {
+            rankingEqOcultas = rankingEqOcultas.filter(x => x !== k);
+            if (!visivel) rankingEqOcultas.push(k);
+            try { localStorage.setItem(LS_RANKING_EQ_OCULTAS(), JSON.stringify(rankingEqOcultas)); } catch (e) {}
+            aplicarColunasRankingEquipes();
+        }
+
+        function mostrarTodasColunasRankingEquipes() {
+            rankingEqOcultas = [];
+            try { localStorage.setItem(LS_RANKING_EQ_OCULTAS(), '[]'); } catch (e) {}
+            aplicarColunasRankingEquipes();
+        }
+
+        function abrirMenuColunasRankingEquipes(ev) {
+            if (ev) ev.stopPropagation();
+            const m = document.getElementById('rankingEqColunasMenu');
+            if (!m) return;
+            aplicarColunasRankingEquipes();
+            m.classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', e => {
+            const m = document.getElementById('rankingEqColunasMenu');
+            if (m && !m.classList.contains('hidden') && !e.target.closest('#rankingEqColunasWrap')) m.classList.add('hidden');
+        });
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicarColunasRankingEquipes);
+        else aplicarColunasRankingEquipes();
