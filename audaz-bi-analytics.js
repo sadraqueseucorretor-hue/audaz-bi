@@ -477,18 +477,18 @@
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">${c.corretor}</td>
-                            <td class="py-3 text-center text-violet-400 font-semibold">${c.agendamentos || 0}</td>
-                            <td class="py-3 text-center text-cyan-400 font-semibold">${c.compareceu || 0}</td>
-                            <td class="py-3 text-center text-slate-400 ${c.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${c.analises > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','analises')"` : ''} title="${c.analises > 0 ? 'Ver clientes' : ''}">${c.analises}</td>
-                            <td class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
-                            <td class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
-                            <td class="py-3 text-center text-slate-400">${c.ipcNaoSeAplica ? '<span class="text-slate-600">—</span>' : (c.vendas3m || 0)}</td>
-                            <td class="py-3 text-center">
+                            <td data-col="agendamentos" class="py-3 text-center text-violet-400 font-semibold">${c.agendamentos || 0}</td>
+                            <td data-col="compareceu" class="py-3 text-center text-cyan-400 font-semibold">${c.compareceu || 0}</td>
+                            <td data-col="analises" class="py-3 text-center text-slate-400 ${c.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${c.analises > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','analises')"` : ''} title="${c.analises > 0 ? 'Ver clientes' : ''}">${c.analises}</td>
+                            <td data-col="aprovacoes" class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
+                            <td data-col="vendas" class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
+                            <td data-col="vendas3m" class="py-3 text-center text-slate-400">${c.ipcNaoSeAplica ? '<span class="text-slate-600">—</span>' : (c.vendas3m || 0)}</td>
+                            <td data-col="ipc" class="py-3 text-center">
                                 ${c.ipcNaoSeAplica
                                     ? `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded text-slate-600" title="Corretor desativado — o IPC mede a produtividade da equipe atual e não se aplica a ele. O histórico dele segue nas demais colunas.">—</span>`
                                     : `<span class="inline-block min-w-[3rem] px-1.5 py-0.5 rounded font-extrabold tabular-nums ${ipcBadge(c.ipc, ipcVisibleSnapshot.mediaEquipe)}" title="${(c.vendas3m || 0)} venda(s) em ${c.ipcJanelaTxt} ÷ ${c.ipcDivisor} — média do recorte: ${fmtIPC(ipcVisibleSnapshot.mediaEquipe)}">${fmtIPC(c.ipc)}</span>`}
                             </td>
-                            <td class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
+                            <td data-col="vgv" class="py-3 text-right pr-2 font-bold text-indigo-400 whitespace-nowrap">${formatBRL(c.vgv)}</td>
                         </tr>
                     `;
                     corrBody.insertAdjacentHTML('beforeend', rowHtml);
@@ -2778,54 +2778,64 @@
             });
         }
 
-        // Colunas do Ranking de Equipes (05/11/2026): o gestor esconde/mostra colunas pelo botão "Colunas".
+        // Colunas ocultáveis dos rankings (05/11/2026): botão "Colunas" no Ranking de Equipes e no de Corretores.
         // Preferência por navegador (localStorage); aplicada via <style> gerado, então vale também
-        // para as linhas redesenhadas a cada drawTables().
-        const RANKING_EQ_COLUNAS = [
-            ['leads', 'Leads'], ['agendamentos', 'Agendamentos'], ['compareceu', 'Compareceu'], ['analises', 'Análises'],
-            ['aprovacoes', 'Aprovs'], ['vendas', 'Vendas'], ['produtiva', 'Equipe produtiva'], ['vgv', 'VGV']
-        ];
-        const LS_RANKING_EQ_OCULTAS = () => `${typeof appId !== 'undefined' ? appId : 'audaz-bi-v1'}-ranking-equipes-colunas-ocultas`;
-        let rankingEqOcultas = [];
-        try { const v = JSON.parse(localStorage.getItem(LS_RANKING_EQ_OCULTAS()) || '[]'); rankingEqOcultas = Array.isArray(v) ? v : []; } catch (e) { rankingEqOcultas = []; }
+        // para as linhas redesenhadas a cada drawTables(). Células marcadas com data-col.
+        const RANKING_COLUNAS_CFG = {
+            equipes: { card: 'rankingEquipesCard', cols: [
+                ['leads', 'Leads'], ['agendamentos', 'Agendamentos'], ['compareceu', 'Compareceu'], ['analises', 'Análises'],
+                ['aprovacoes', 'Aprovs'], ['vendas', 'Vendas'], ['produtiva', 'Equipe produtiva'], ['vgv', 'VGV']] },
+            corretores: { card: 'rankingCorretoresCard', cols: [
+                ['agendamentos', 'Agend.'], ['compareceu', 'Visitas'], ['analises', 'Análises'], ['aprovacoes', 'Aprovs'],
+                ['vendas', 'Vendas'], ['vendas3m', 'Vendas 3M'], ['ipc', 'IPC'], ['vgv', 'VGV']] }
+        };
+        const LS_RANKING_OCULTAS = t => `${typeof appId !== 'undefined' ? appId : 'audaz-bi-v1'}-ranking-${t}-colunas-ocultas`;
+        const rankingOcultas = {};
+        Object.keys(RANKING_COLUNAS_CFG).forEach(t => {
+            try { const v = JSON.parse(localStorage.getItem(LS_RANKING_OCULTAS(t)) || '[]'); rankingOcultas[t] = Array.isArray(v) ? v : []; } catch (e) { rankingOcultas[t] = []; }
+        });
 
-        function aplicarColunasRankingEquipes() {
-            let st = document.getElementById('rankingEqColunasStyle');
-            if (!st) { st = document.createElement('style'); st.id = 'rankingEqColunasStyle'; document.head.appendChild(st); }
-            st.textContent = rankingEqOcultas.map(k => `#rankingEquipesCard [data-col="${k}"]{display:none}`).join('\n');
-            const n = rankingEqOcultas.length;
-            const badge = document.getElementById('rankingEqColunasBadge');
-            if (badge) { badge.textContent = n; badge.classList.toggle('hidden', !n); }
-            const lista = document.getElementById('rankingEqColunasLista');
-            if (lista) lista.innerHTML = RANKING_EQ_COLUNAS.map(([k, rot]) => `
-                <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs text-slate-300">
-                    <input type="checkbox" class="accent-emerald-500" ${rankingEqOcultas.includes(k) ? '' : 'checked'} onchange="toggleColunaRankingEquipes('${k}', this.checked)">${rot}</label>`).join('');
+        function aplicarColunasRanking() {
+            let st = document.getElementById('rankingColunasStyle');
+            if (!st) { st = document.createElement('style'); st.id = 'rankingColunasStyle'; document.head.appendChild(st); }
+            st.textContent = Object.entries(RANKING_COLUNAS_CFG).flatMap(([t, cfg]) =>
+                rankingOcultas[t].map(k => `#${cfg.card} [data-col="${k}"]{display:none}`)).join('\n');
+            Object.entries(RANKING_COLUNAS_CFG).forEach(([t, cfg]) => {
+                const n = rankingOcultas[t].length;
+                const badge = document.getElementById(`rankColunasBadge-${t}`);
+                if (badge) { badge.textContent = n; badge.classList.toggle('hidden', !n); }
+                const lista = document.getElementById(`rankColunasLista-${t}`);
+                if (lista) lista.innerHTML = cfg.cols.map(([k, rot]) => `
+                    <label class="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer text-xs text-slate-300">
+                        <input type="checkbox" class="accent-emerald-500" ${rankingOcultas[t].includes(k) ? '' : 'checked'} onchange="toggleColunaRanking('${t}','${k}', this.checked)">${rot}</label>`).join('');
+            });
         }
 
-        function toggleColunaRankingEquipes(k, visivel) {
-            rankingEqOcultas = rankingEqOcultas.filter(x => x !== k);
-            if (!visivel) rankingEqOcultas.push(k);
-            try { localStorage.setItem(LS_RANKING_EQ_OCULTAS(), JSON.stringify(rankingEqOcultas)); } catch (e) {}
-            aplicarColunasRankingEquipes();
+        function salvarColunasRanking(t) {
+            try { localStorage.setItem(LS_RANKING_OCULTAS(t), JSON.stringify(rankingOcultas[t])); } catch (e) {}
+            aplicarColunasRanking();
         }
 
-        function mostrarTodasColunasRankingEquipes() {
-            rankingEqOcultas = [];
-            try { localStorage.setItem(LS_RANKING_EQ_OCULTAS(), '[]'); } catch (e) {}
-            aplicarColunasRankingEquipes();
+        function toggleColunaRanking(t, k, visivel) {
+            rankingOcultas[t] = rankingOcultas[t].filter(x => x !== k);
+            if (!visivel) rankingOcultas[t].push(k);
+            salvarColunasRanking(t);
         }
 
-        function abrirMenuColunasRankingEquipes(ev) {
+        function mostrarTodasColunasRanking(t) { rankingOcultas[t] = []; salvarColunasRanking(t); }
+
+        function abrirMenuColunasRanking(t, ev) {
             if (ev) ev.stopPropagation();
-            const m = document.getElementById('rankingEqColunasMenu');
+            const m = document.getElementById(`rankColunasMenu-${t}`);
             if (!m) return;
-            aplicarColunasRankingEquipes();
+            aplicarColunasRanking();
+            document.querySelectorAll('[id^="rankColunasMenu-"]').forEach(o => { if (o !== m) o.classList.add('hidden'); });
             m.classList.toggle('hidden');
         }
 
         document.addEventListener('click', e => {
-            const m = document.getElementById('rankingEqColunasMenu');
-            if (m && !m.classList.contains('hidden') && !e.target.closest('#rankingEqColunasWrap')) m.classList.add('hidden');
+            if (e.target.closest('.rank-colunas-wrap')) return;
+            document.querySelectorAll('[id^="rankColunasMenu-"]').forEach(m => m.classList.add('hidden'));
         });
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicarColunasRankingEquipes);
-        else aplicarColunasRankingEquipes();
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicarColunasRanking);
+        else aplicarColunasRanking();
