@@ -3383,7 +3383,8 @@
             const fila = escalasPlantao[escalaKey][iso];
             if (!fila) return;
             fila.splice(idx, 1);
-            if (fila.length === 0) delete escalasPlantao[escalaKey][iso];
+            // Fica [] (não apaga a chave): a gravação na nuvem é com merge, e uma chave apagada
+            // NÃO some do Firestore — a última pessoa removida voltava na próxima sincronização.
             saveEscalasPlantao();
             renderPlantaoDiaModalConteudo();
             renderPlantoes();
