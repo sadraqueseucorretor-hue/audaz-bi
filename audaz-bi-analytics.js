@@ -333,7 +333,7 @@
         function setRankSort(campo) {
             rankSort = campo;
             // atualiza visual dos botões
-            ['analises','aprovacoes','vendas','agendamentos','compareceu','vgv','ipc'].forEach(k => {
+            ['leads','analises','aprovacoes','vendas','agendamentos','compareceu','vgv','ipc'].forEach(k => {
                 const b = document.getElementById('rankSort-' + k);
                 if (b) b.className = (k === campo)
                     ? 'rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition'
@@ -439,6 +439,23 @@
                 if (visitou) { corretoresMap[nome].compareceu++; getCorrCache(nome).compareceu.push(row); }
             });
 
+            // Leads (Prospecção: Salesforce + C2S + DV On) por corretor, no mesmo período do ranking de
+            // equipes. Quem não tem equipe no organograma (ex.: regional, que fica com os leads sem
+            // corretor) só ganha a coluna se já estiver na tabela por outra métrica.
+            leadsPorCorretorCache = {};
+            const refProspCorr = (typeof currentRefDateProspeccao !== 'undefined' && currentRefDateProspeccao) || refDateTables;
+            (filteredProspeccaoDataset || []).forEach(row => {
+                const nome = row.Corretor;
+                if (!nome || !personMatchesOrgDashboardScope(nome)) return;
+                const eqLead = getRankingTeamForBroker(nome);
+                if (selectedTeamFilter && rankingTeamKey(eqLead) !== rankingTeamKey(selectedTeamFilter)) return;
+                if (!eqLead && !corretoresMap[nome]) return;
+                if (!metricMatchesRef(row, '_MesComercialNorm', 'Cadastro', refProspCorr)) return;
+                if (!corretoresMap[nome]) corretoresMap[nome] = { corretor: nome, analises: 0, aprovacoes: 0, vendas: 0, agendamentos: 0, compareceu: 0, vgv: 0 };
+                corretoresMap[nome].leads = (corretoresMap[nome].leads || 0) + 1;
+                (leadsPorCorretorCache[nome] = leadsPorCorretorCache[nome] || []).push(row);
+            });
+
             // IPC (janela móvel de 3 meses comerciais) — calculado uma vez por render e anexado a
             // cada corretor da tabela. Repare que é uma janela DIFERENTE da das colunas Análises/
             // Aprovações/Vendas (que seguem o período filtrado): o IPC é sempre trimestral.
@@ -464,7 +481,7 @@
             corrBody.innerHTML = '';
 
             if (rankingCorretores.length === 0) {
-                corrBody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
+                corrBody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-slate-500">Nenhum corretor encontrado.</td></tr>`;
             } else {
                 rankingCorretores.forEach((c, index) => {
                     let badgeClass = "text-slate-400";
@@ -477,6 +494,7 @@
                         <tr class="hover:bg-slate-900/30 transition border-b border-slate-800/20">
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">${c.corretor}</td>
+                            <td data-col="leads" class="py-3 text-center text-pink-400 font-semibold ${c.leads > 0 ? 'cursor-pointer hover:text-pink-300 hover:underline' : ''}" ${c.leads > 0 ? `onclick="abrirLeadsCorretor('${nomeEsc}')"` : ''} title="${c.leads > 0 ? 'Ver leads' : ''}">${c.leads || 0}</td>
                             <td data-col="agendamentos" class="py-3 text-center text-violet-400 font-semibold">${c.agendamentos || 0}</td>
                             <td data-col="compareceu" class="py-3 text-center text-cyan-400 font-semibold">${c.compareceu || 0}</td>
                             <td data-col="analises" class="py-3 text-center text-slate-400 ${c.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${c.analises > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','analises')"` : ''} title="${c.analises > 0 ? 'Ver clientes' : ''}">${c.analises}</td>
@@ -2778,6 +2796,20 @@
             });
         }
 
+        // Leads por corretor — preenchido no ranking de corretores; clique na coluna "Leads".
+        let leadsPorCorretorCache = {};
+        function abrirLeadsCorretor(nome) {
+            const rows = leadsPorCorretorCache[nome] || [];
+            const ref = (typeof currentRefDateProspeccao !== 'undefined' && currentRefDateProspeccao) || new Date();
+            showDetailModal({
+                label1: 'Corretor', label2: 'Mês de Referência',
+                nome: `Leads — ${nome}`,
+                dataStr: `${getMesName(ref.getMonth() + 1)}/${ref.getFullYear()}`,
+                rows, showCorretor: true,
+                totalLabel: `${rows.length} ${rows.length === 1 ? 'lead' : 'leads'}`
+            });
+        }
+
         // Colunas ocultáveis dos rankings (05/11/2026): botão "Colunas" no Ranking de Equipes e no de Corretores.
         // Preferência por navegador (localStorage); aplicada via <style> gerado, então vale também
         // para as linhas redesenhadas a cada drawTables(). Células marcadas com data-col.
@@ -2786,7 +2818,7 @@
                 ['leads', 'Leads'], ['agendamentos', 'Agendamentos'], ['compareceu', 'Compareceu'], ['analises', 'Análises'],
                 ['aprovacoes', 'Aprovs'], ['vendas', 'Vendas'], ['produtiva', 'Equipe produtiva'], ['vgv', 'VGV']] },
             corretores: { card: 'rankingCorretoresCard', cols: [
-                ['agendamentos', 'Agend.'], ['compareceu', 'Visitas'], ['analises', 'Análises'], ['aprovacoes', 'Aprovs'],
+                ['leads', 'Leads'], ['agendamentos', 'Agend.'], ['compareceu', 'Visitas'], ['analises', 'Análises'], ['aprovacoes', 'Aprovs'],
                 ['vendas', 'Vendas'], ['vendas3m', 'Vendas 3M'], ['ipc', 'IPC'], ['vgv', 'VGV']] }
         };
         const LS_RANKING_OCULTAS = t => `${typeof appId !== 'undefined' ? appId : 'audaz-bi-v1'}-ranking-${t}-colunas-ocultas`;
