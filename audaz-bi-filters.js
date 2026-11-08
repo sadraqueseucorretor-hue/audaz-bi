@@ -338,6 +338,7 @@
 
         function applyFilters() {
             _semanasPorMetricaCache = {}; // um cache novo por render — ver getSemanaRangeParaMetrica
+            if (typeof alinharMesesComerciaisPorData === 'function') alinharMesesComerciaisPorData(dataset); // períodos podem ter mudado
             const selCorretor = document.getElementById('filterCorretor').value;
             const selEquipe = document.getElementById('filterEquipe').value;
             const selConstrutora = document.getElementById('filterConstrutora').value;
