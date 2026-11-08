@@ -431,7 +431,15 @@ const CAL_METRICS = {
         let detailProdConstrutora = '';
         let detailProdShowCorretor = true;
         const sitProd = r => String(r['Situação - Analise'] || r['Situação'] || '').trim();
+        // Linha da Agenda de Visitas (tem Horário + Status, sem Data Cadastro da planilha principal).
+        const ehAgendaProd = r => !!r && 'Horário' in r && 'Status' in r && !('Data Cadastro' in r);
+        const equipeProd = r => r.Equipe || (ehAgendaProd(r) && typeof getRankingTeamForBroker === 'function' ? getRankingTeamForBroker(r.Corretor) : '') || '';
+        const dataAgendaBr = v => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v || '')); return m ? `${m[3]}/${m[2]}/${m[1]}` : String(v || ''); };
         function statusProd(r) {
+            if (ehAgendaProd(r)) {
+                const st = stripDiacritics(String(r.Status || '')).toLowerCase();
+                return /nao.?compar/.test(st) ? 'nao_compareceu' : /compar/.test(st) ? 'compareceu' : 'agendada';
+            }
             if (typeof isGanho === 'function' && isGanho(r)) return 'venda';
             const t = stripDiacritics(sitProd(r)).toLowerCase();
             if (isAprovado(sitProd(r)) || /^aprovad/.test(t)) return 'aprovado';
@@ -446,6 +454,9 @@ const CAL_METRICS = {
             pendente: { nome: 'Pendentes', icone: 'fa-hourglass-half', cor: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
             reprovado: { nome: 'Reprovados', icone: 'fa-circle-xmark', cor: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
             bacen: { nome: 'BACEN', icone: 'fa-building-columns', cor: 'bg-orange-500/15 text-orange-300 border-orange-500/30' },
+            agendada: { nome: 'Agendadas', icone: 'fa-calendar-check', cor: 'bg-violet-500/15 text-violet-300 border-violet-500/30' },
+            compareceu: { nome: 'Compareceram', icone: 'fa-user-check', cor: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' },
+            nao_compareceu: { nome: 'Não compareceram', icone: 'fa-user-xmark', cor: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
             outro: { nome: 'Outros', icone: 'fa-circle', cor: 'bg-slate-800 text-slate-300 border-slate-700' }
         };
         const construtoraChave = r => stripDiacritics(String(r.Construtora || '').trim()).toLowerCase() || 'sem';
@@ -463,7 +474,7 @@ const CAL_METRICS = {
         const DIMS_PROD = {
             venda: tipoVenda,
             etapa: r => chaveProd(etapaVenda(r)),
-            equipe: r => chaveProd(r.Equipe),
+            equipe: r => chaveProd(equipeProd(r)),
             corretor: r => chaveProd(r.Corretor),
             empreendimento: r => chaveProd(r.Empreendimento)
         };
@@ -506,7 +517,7 @@ const CAL_METRICS = {
             // Equipe, Corretor e Empreendimento em seletores: podem ter muitas opções
             const seletor = (dim, titulo, campo) => {
                 const cont = {}, rot = {};
-                baseDim(dim).forEach(r => { const k = DIMS_PROD[dim](r); if (!k) return; cont[k] = (cont[k] || 0) + 1; if (!rot[k]) rot[k] = String(r[campo]).trim(); });
+                baseDim(dim).forEach(r => { const k = DIMS_PROD[dim](r); if (!k) return; cont[k] = (cont[k] || 0) + 1; if (!rot[k]) rot[k] = String(campo === 'Equipe' ? equipeProd(r) : r[campo]).trim(); });
                 const ks = Object.keys(cont).sort((a, b) => rot[a].localeCompare(rot[b], 'pt-BR'));
                 if (ks.length < 2 && !detailProdFiltros[dim]) return '';
                 const ativo = !!detailProdFiltros[dim];
@@ -522,7 +533,7 @@ const CAL_METRICS = {
             const vis = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r) && passaProdFiltros(r));
             const vgv = vis.reduce((a, r) => a + vgvNum(r), 0);
             const resumo = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-1">
-                ${['venda', 'aprovado', 'pendente', 'reprovado'].map(k => { const n = vis.filter(r => statusProd(r) === k).length; return `<div class="rounded-lg border ${STATUS_PROD[k].cor} px-2.5 py-1"><div class="text-[9px] uppercase font-bold tracking-wider opacity-80"><i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}</div><div class="text-base font-black text-white leading-tight">${n}</div></div>`; }).join('')}
+                ${(vis.length && vis.every(ehAgendaProd) ? ['agendada', 'compareceu', 'nao_compareceu'] : ['venda', 'aprovado', 'pendente', 'reprovado']).map(k => { const n = vis.filter(r => statusProd(r) === k).length; return `<div class="rounded-lg border ${STATUS_PROD[k].cor} px-2.5 py-1"><div class="text-[9px] uppercase font-bold tracking-wider opacity-80"><i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}</div><div class="text-base font-black text-white leading-tight">${n}</div></div>`; }).join('')}
             </div>${vgv > 0 ? `<div class="text-[11px] text-slate-400 mb-1">VGV do recorte: <b class="text-indigo-300">${formatCurrency(vgv)}</b></div>` : ''}`;
 
             el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${resumo}${linha('Status', st)}${ven ? linha('Venda', ven) : ''}${eks.length > 2 ? linha('Etapa', eta) : ''}${cks.length > 1 ? linha('Construtora', co) : ''}${seletores || limpar ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">${seletores}${limpar}</div>` : ''}</div>`;
@@ -533,7 +544,10 @@ const CAL_METRICS = {
             if (!rows.length) { tableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">${detailProdTodos.length ? (detailBusca ? `Nada encontrado pra "${escDet(detailBusca)}" com esses filtros.` : 'Nenhum cliente com esses filtros.') : 'Nenhum cliente neste recorte.'}</td></tr>`; }
             else tableBody.innerHTML = rows.slice(0, DETAIL_MAX_LINHAS).map(r => {
                 const k = statusProd(r), sit = sitProd(r) || '-';
-                const datas = [['Análise', r['Data Cadastro']], ['Aprovação', r['Data Aprovação']], ['Venda', r['Data Ganho']]]
+                const agenda = ehAgendaProd(r);
+                const datas = (agenda
+                    ? [['Agendado em', String(r['Data de Cadastro'] || '').split(' ')[0]], ['Visita', `${dataAgendaBr(r.Data)}${r['Horário'] ? ' ' + r['Horário'] : ''}`]]
+                    : [['Análise', r['Data Cadastro']], ['Aprovação', r['Data Aprovação']], ['Venda', r['Data Ganho']]])
                     .filter(d => d[1]).map(d => `<div class="whitespace-nowrap"><span class="text-slate-500">${d[0]}:</span> <span class="text-slate-300">${escDet(d[1])}</span></div>`).join('') || '<span class="text-slate-600">-</span>';
                 const vg = vgvNum(r);
                 return `
@@ -544,15 +558,18 @@ const CAL_METRICS = {
                         </td>
                         <td class="p-2.5 text-[11px]">
                             <div class="font-semibold text-slate-200">${escDet(r.Corretor || '-')}</div>
-                            ${r.Equipe ? `<div class="text-[10px] text-slate-500 uppercase tracking-wide">${escDet(r.Equipe)}</div>` : ''}
+                            ${equipeProd(r) ? `<div class="text-[10px] text-slate-500 uppercase tracking-wide">${escDet(equipeProd(r))}</div>` : ''}
                         </td>
                         <td class="p-2.5 text-[11px]">
                             ${r.Construtora ? `<span class="inline-block text-[9px] font-bold uppercase tracking-wide text-violet-300 bg-violet-500/10 border border-violet-500/20 rounded px-1.5 py-0.5 mb-1">${escDet(r.Construtora)}</span>` : ''}
                             <div class="text-slate-300 leading-snug max-w-[220px]">${escDet(r.Empreendimento || '-')}</div>
+                            ${agenda && r.Local ? `<div class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot mr-1"></i>${escDet(r.Local)}</div>` : ''}
                         </td>
                         <td class="p-2.5 text-[10px] leading-relaxed">${datas}</td>
                         <td class="p-2.5">
-                            <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide rounded border px-1.5 py-0.5 ${STATUS_PROD[k].cor}"><i class="fa-solid ${STATUS_PROD[k].icone}"></i>${k === 'venda' ? 'Venda' : escDet(sit)}</span>
+                            <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide rounded border px-1.5 py-0.5 ${STATUS_PROD[k].cor}"><i class="fa-solid ${STATUS_PROD[k].icone}"></i>${k === 'venda' ? 'Venda' : agenda ? { agendada: 'Agendada', compareceu: 'Compareceu', nao_compareceu: 'Não compareceu' }[k] : escDet(sit)}</span>
+                            ${agenda && sit && sit !== '-' ? `<div class="text-[9px] text-slate-500 mt-1">${escDet(sit)}</div>` : ''}
+                            ${agenda && r['Observações'] ? `<div class="text-[9px] text-slate-500 mt-0.5 max-w-[180px]">${escDet(r['Observações'])}</div>` : ''}
                             ${k === 'venda' && sit && sit !== '-' ? `<div class="text-[9px] text-slate-500 mt-1">${escDet(sit)}</div>` : ''}
                             ${k === 'venda' && r['Situação - Ganho'] ? `<div class="text-[9px] text-emerald-400/70 mt-0.5">${escDet(r['Situação - Ganho'])}</div>` : ''}
                         </td>
@@ -907,7 +924,7 @@ const CAL_METRICS = {
                 return;
             }
 
-            const dtP = r => { const d = parseDate(r['Data Ganho'] || r['Data Aprovação'] || r['Data Cadastro']); return d ? d.getTime() : 0; };
+            const dtP = r => { const d = parseDate(r['Data Ganho'] || r['Data Aprovação'] || r['Data Cadastro'] || r.Data); return d ? d.getTime() : 0; };
             detailProdTodos = rows.slice().sort((a, b) => dtP(b) - dtP(a));
             detailProdStatus = ''; detailProdConstrutora = ''; detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '' }; detailProdShowCorretor = showCorretor !== false;
             detailProdTotalLabel = totalLabel;
@@ -936,6 +953,13 @@ const CAL_METRICS = {
         }
 
         function colunasExportProd() {
+            if (currentDetailRows.length && currentDetailRows.every(ehAgendaProd)) return [
+                ['ID', r => r.ID], ['Cliente', r => r.Cliente], ['Corretor', r => r.Corretor], ['Equipe', r => equipeProd(r)],
+                ['Empreendimento', r => r.Empreendimento], ['Local', r => r.Local],
+                ['Status', r => STATUS_PROD[statusProd(r)].nome], ['Situação', r => sitProd(r)],
+                ['Agendado em', r => String(r['Data de Cadastro'] || '').split(' ')[0]], ['Data da visita', r => dataAgendaBr(r.Data)], ['Horário', r => r['Horário']],
+                ['Observações', r => r['Observações']]
+            ];
             return [
                 ['ID', r => r.ID], ['Cliente', r => r.Cliente], ['Corretor', r => r.Corretor], ['Equipe', r => r.Equipe],
                 ['Construtora', r => r.Construtora], ['Empreendimento', r => r.Empreendimento],
