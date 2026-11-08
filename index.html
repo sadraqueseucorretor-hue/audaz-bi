@@ -814,7 +814,7 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Equipe</th>
-                                            <th data-col="leads" class="pb-3 text-center" title="Leads recebidos no mês (Salesforce + DV On), pela equipe do corretor no organograma">Leads</th>
+                                            <th data-col="leads" class="pb-3 text-center" title="Leads recebidos no mês (Salesforce + C2S + DV On), pela equipe do corretor no organograma">Leads</th>
                                             <th data-col="agendamentos" class="pb-3 text-center">Agendamentos</th>
                                             <th data-col="compareceu" class="pb-3 text-center">Compareceu</th>
                                             <th data-col="analises" class="pb-3 text-center">Análises</th>
@@ -1819,12 +1819,12 @@
                 </div>
                 <div>
                     <h4 class="text-base font-bold text-slate-200">Prospecção (Leads)</h4>
-                    <p class="text-xs text-slate-500">Excel = Salesforce · PDF = DV On</p>
+                    <p class="text-xs text-slate-500">Excel = Salesforce ou C2S · PDF = DV On</p>
                 </div>
             </div>
 
             <p class="text-[11px] text-slate-400 leading-relaxed mb-4">
-                Alimenta a etapa <strong class="text-pink-300">"Prospecção"</strong> do Funil de Vendas. Anexe o <strong class="text-slate-300">Excel de oportunidades do Salesforce</strong> (.xlsx) ou o <strong class="text-slate-300">PDF do DV On</strong>. Cada lead entra no mês comercial da sua <strong class="text-slate-300">Data de criação</strong>, conforme os períodos de "Meses Comerciais". Anexar de novo <strong class="text-slate-300">soma</strong> ao mês (leads repetidos, pelo código OP, só são atualizados) — não apaga o que já estava.
+                Alimenta a etapa <strong class="text-pink-300">"Prospecção"</strong> do Funil de Vendas. Anexe o <strong class="text-slate-300">Excel de oportunidades do Salesforce</strong> (.xlsx), o <strong class="text-slate-300">Excel de leads do C2S</strong> (.xlsx) ou o <strong class="text-slate-300">PDF do DV On</strong>. Cada lead entra no mês comercial da sua <strong class="text-slate-300">Data de criação</strong>, conforme os períodos de "Meses Comerciais". Anexar de novo <strong class="text-slate-300">soma</strong> ao mês (leads repetidos, pelo código OP, só são atualizados) — não apaga o que já estava.
             </p>
 
             <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1 mb-4">
@@ -1832,12 +1832,13 @@
                 <p class="font-mono text-pink-400">Nome do corretor | Nome da oportunidade | STATUS DA OPORTUNIDADE | Data de criação</p>
                 <p>O nome completo do corretor é ligado ao nome do BI automaticamente (ex.: <span class="text-slate-300">FRANCISCO YAGO FREIRE DOS SANTOS → Yago Freire</span>; <span class="text-slate-300">EDUARDO DOS SANTOS DA SILVA → Eduardo Prudêncio</span>). O <strong class="text-slate-300">telefone e e-mail</strong> do cliente aparecem no detalhamento de clientes — guardados só neste navegador (não vão pra nuvem).</p>
                 <p class="text-slate-300 pt-1"><i class="fa-solid fa-file-pdf text-rose-400 mr-1"></i><b>DV On:</b> anexe o PDF "Print_leads - Lead Manager". Entra com origem <span class="text-slate-200">DV On</span>; lead que já está no Salesforce (mesmo telefone) não é contado de novo.</p>
+                <p class="text-slate-300 pt-1"><i class="fa-solid fa-file-excel text-emerald-400 mr-1"></i><b>C2S:</b> anexe o Excel exportado de Leads do C2S — o BI reconhece sozinho. Usa <span class="font-mono text-pink-400">Usuário responsável atual | Nome do cliente | Status do lead | Criado em</span>. Entra com origem <span class="text-slate-200">C2S</span>; lead que já está no Salesforce ou no DV On (mesmo telefone) não é contado de novo.</p>
                 <p class="text-slate-500">Ainda aceita o CSV antigo (ID | Cliente | Corretor | Equipe | Situação | Cadastro | Mês Comercial).</p>
             </div>
 
             <input type="file" id="prospeccaoFileInput" accept=".xlsx,.xls,.pdf,application/pdf,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" onchange="handleProspeccaoFileInput(event)">
             <button onclick="document.getElementById('prospeccaoFileInput').click()" class="w-full mb-3 py-2.5 px-4 bg-pink-600 hover:bg-pink-500 active:bg-pink-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-pink-500/20 transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-file-arrow-up"></i> Anexar Excel (Salesforce) ou PDF (DV On)
+                <i class="fa-solid fa-file-arrow-up"></i> Anexar Excel (Salesforce / C2S) ou PDF (DV On)
             </button>
             <div id="prospeccaoContatosStatus" class="mb-4 rounded-lg border border-slate-700 bg-slate-950/60 p-2.5 text-[11px] text-slate-400"><i class="fa-solid fa-lock mr-1"></i> Telefone e e-mail dos leads: entre como diretor pra sincronizar.</div>
             <div id="prospeccaoNuvemStatus" class="hidden mb-4 rounded-lg border p-2.5 text-[11px] leading-relaxed"></div>
@@ -1891,7 +1892,7 @@
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
-    <script src="./audaz-bi-data.js?v=mes-por-data-20261108"></script>
+    <script src="./audaz-bi-data.js?v=c2s-20261108"></script>
     <script src="./audaz-bi-filters.js?v=mes-por-data-20261108"></script>
     <script src="./audaz-bi-analytics.js?v=ranking-colunas-20261105b"></script>
     <script src="./audaz-bi-calendar.js?v=busca-20261103"></script>
