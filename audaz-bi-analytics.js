@@ -349,7 +349,7 @@
         function openRankingDetail(tipo, nome, metrica) {
             const cache = rankingRowsCache[tipo] && rankingRowsCache[tipo][nome];
             const rows = (cache && cache[metrica]) || [];
-            const metricaLbl = { analises: 'Análises', aprovacoes: 'Aprovações', vendas: 'Vendas' }[metrica] || metrica;
+            const metricaLbl = { analises: 'Análises', aprovacoes: 'Aprovações', vendas: 'Vendas', agendamentos: 'Agendamentos', compareceu: 'Visitas' }[metrica] || metrica;
             showDetailModal({
                 label1: tipo === 'corretor' ? 'Corretor' : 'Equipe',
                 label2: 'Métrica',
@@ -495,8 +495,8 @@
                             <td class="py-3 pl-2 font-bold ${badgeClass}">${index + 1}º</td>
                             <td class="py-3 font-semibold text-slate-200">${c.corretor}</td>
                             <td data-col="leads" class="py-3 text-center text-pink-400 font-semibold ${c.leads > 0 ? 'cursor-pointer hover:text-pink-300 hover:underline' : ''}" ${c.leads > 0 ? `onclick="abrirLeadsCorretor('${nomeEsc}')"` : ''} title="${c.leads > 0 ? 'Ver leads' : ''}">${c.leads || 0}</td>
-                            <td data-col="agendamentos" class="py-3 text-center text-violet-400 font-semibold">${c.agendamentos || 0}</td>
-                            <td data-col="compareceu" class="py-3 text-center text-cyan-400 font-semibold">${c.compareceu || 0}</td>
+                            <td data-col="agendamentos" class="py-3 text-center text-violet-400 font-semibold ${c.agendamentos > 0 ? 'cursor-pointer hover:text-violet-300 hover:underline' : ''}" ${c.agendamentos > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','agendamentos')"` : ''} title="${c.agendamentos > 0 ? 'Ver agendamentos' : ''}">${c.agendamentos || 0}</td>
+                            <td data-col="compareceu" class="py-3 text-center text-cyan-400 font-semibold ${c.compareceu > 0 ? 'cursor-pointer hover:text-cyan-300 hover:underline' : ''}" ${c.compareceu > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','compareceu')"` : ''} title="${c.compareceu > 0 ? 'Ver visitas' : ''}">${c.compareceu || 0}</td>
                             <td data-col="analises" class="py-3 text-center text-slate-400 ${c.analises > 0 ? 'cursor-pointer hover:text-white hover:underline' : ''}" ${c.analises > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','analises')"` : ''} title="${c.analises > 0 ? 'Ver clientes' : ''}">${c.analises}</td>
                             <td data-col="aprovacoes" class="py-3 text-center text-amber-500 font-semibold ${c.aprovacoes > 0 ? 'cursor-pointer hover:text-amber-300 hover:underline' : ''}" ${c.aprovacoes > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','aprovacoes')"` : ''} title="${c.aprovacoes > 0 ? 'Ver clientes' : ''}">${c.aprovacoes}</td>
                             <td data-col="vendas" class="py-3 text-center text-brand-500 font-bold ${c.vendas > 0 ? 'cursor-pointer hover:text-brand-300 hover:underline' : ''}" ${c.vendas > 0 ? `onclick="openRankingDetail('corretor','${nomeEsc}','vendas')"` : ''} title="${c.vendas > 0 ? 'Ver clientes' : ''}">${c.vendas}</td>
