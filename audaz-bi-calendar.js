@@ -453,30 +453,79 @@ const CAL_METRICS = {
         const passaProdConstrutora = r => !detailProdConstrutora || construtoraChave(r) === detailProdConstrutora;
         const vgvNum = r => parseFloat(r.VGV) || 0;
 
+        // Filtros da venda (combinam com Status/Construtora/busca): Venda (Finalizadas × Informadas,
+        // mesma regra do toggle do painel), Etapa ("Situação - Ganho" sem o "Ganho - ") e os seletores
+        // de Equipe, Corretor e Empreendimento. Cada opção conta o que passa nos OUTROS filtros.
+        let detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '' };
+        const chaveProd = v => stripDiacritics(String(v || '').trim()).toLowerCase().replace(/\s+/g, ' ');
+        const etapaVenda = r => isGanho(r) ? String(r['Situação - Ganho'] || '').replace(/^\s*Ganho\s*-\s*/i, '').trim() : '';
+        const tipoVenda = r => !isGanho(r) ? '' : (/venda informada/i.test(r['Situação - Ganho'] || '') ? 'informadas' : 'finalizadas');
+        const DIMS_PROD = {
+            venda: tipoVenda,
+            etapa: r => chaveProd(etapaVenda(r)),
+            equipe: r => chaveProd(r.Equipe),
+            corretor: r => chaveProd(r.Corretor),
+            empreendimento: r => chaveProd(r.Empreendimento)
+        };
+        const passaProdFiltros = (r, exceto) => Object.keys(DIMS_PROD).every(d => d === exceto || !detailProdFiltros[d] || DIMS_PROD[d](r) === detailProdFiltros[d]);
+        const haFiltroProd = () => Object.values(detailProdFiltros).some(Boolean);
+
         function renderDetailProdChips() {
             const el = document.getElementById('detailLeadsChips'); if (!el) return;
             const chip = (fn, k, ativo, rotulo, n, cor) => `<button onclick="${fn}('${k}')" class="text-[10px] font-bold px-2 py-1 rounded-lg border transition ${ativo ? 'ring-2 ring-white/50 ' : 'opacity-75 hover:opacity-100 '}${cor}">${rotulo} <span class="ml-0.5 text-white">${n}</span></button>`;
             const linha = (titulo, conteudo) => `<div class="flex flex-wrap items-center gap-1.5"><span class="w-[78px] shrink-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">${titulo}</span>${conteudo}</div>`;
 
-            const baseS = detailProdTodos.filter(r => passaBusca(r) && passaProdConstrutora(r));
+            const baseS = detailProdTodos.filter(r => passaBusca(r) && passaProdConstrutora(r) && passaProdFiltros(r));
             const contS = {}; baseS.forEach(r => { const k = statusProd(r); contS[k] = (contS[k] || 0) + 1; });
             const st = chip('filtrarDetailProdStatus', '', !detailProdStatus, 'Todos', baseS.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + Object.keys(STATUS_PROD).filter(k => contS[k]).map(k => chip('filtrarDetailProdStatus', k, detailProdStatus === k, `<i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}`, contS[k], STATUS_PROD[k].cor)).join('');
 
-            const baseC = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r));
+            const baseC = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdFiltros(r));
             const contC = {}, rotC = {};
             baseC.forEach(r => { const k = construtoraChave(r); contC[k] = (contC[k] || 0) + 1; if (!rotC[k]) rotC[k] = String(r.Construtora || '').trim() || 'Sem construtora'; });
             const cks = Object.keys(contC).sort((a, b) => (a === 'sem') - (b === 'sem') || contC[b] - contC[a]);
             const co = chip('filtrarDetailProdConstrutora', '', !detailProdConstrutora, 'Todas', baseC.length, 'bg-slate-800 text-slate-200 border-slate-700')
                 + cks.map(k => chip('filtrarDetailProdConstrutora', k.replace(/'/g, "\\'"), detailProdConstrutora === k, escDet(rotC[k]), contC[k], 'bg-violet-500/10 text-violet-300 border-violet-500/25')).join('');
 
-            const vis = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r));
+            const baseDim = d => detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r) && passaProdFiltros(r, d));
+            const CHIP_NEUTRO = 'bg-slate-800 text-slate-200 border-slate-700';
+
+            // Venda: Finalizadas × Informadas · Etapa: só quando há mais detalhe que isso
+            const baseV = baseDim('venda').filter(r => isGanho(r));
+            const nFin = baseV.filter(r => tipoVenda(r) === 'finalizadas').length, nInf = baseV.length - nFin;
+            const ven = baseV.length ? chip('filtrarDetailProdDim', "venda','", !detailProdFiltros.venda, 'Todas', baseV.length, CHIP_NEUTRO)
+                + chip('filtrarDetailProdDim', "venda','finalizadas", detailProdFiltros.venda === 'finalizadas', '<i class="fa-solid fa-circle-check mr-1"></i>Finalizadas', nFin, 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30')
+                + chip('filtrarDetailProdDim', "venda','informadas", detailProdFiltros.venda === 'informadas', '<i class="fa-solid fa-bullhorn mr-1"></i>Informadas', nInf, 'bg-amber-500/15 text-amber-300 border-amber-500/30') : '';
+            const baseE = baseDim('etapa').filter(r => isGanho(r));
+            const contE = {}, rotE = {};
+            baseE.forEach(r => { const k = DIMS_PROD.etapa(r) || 'sem etapa'; contE[k] = (contE[k] || 0) + 1; if (!rotE[k]) rotE[k] = etapaVenda(r) || 'Sem etapa'; });
+            const eks = Object.keys(contE).filter(k => k !== 'sem etapa').sort((a, b) => contE[b] - contE[a]);
+            const eta = chip('filtrarDetailProdDim', "etapa','", !detailProdFiltros.etapa, 'Todas', baseE.length, CHIP_NEUTRO)
+                + eks.map(k => chip('filtrarDetailProdDim', `etapa','${encodeURIComponent(k).replace(/'/g, '%27')}`, detailProdFiltros.etapa === k, escDet(rotE[k]), contE[k], 'bg-teal-500/10 text-teal-300 border-teal-500/25')).join('');
+
+            // Equipe, Corretor e Empreendimento em seletores: podem ter muitas opções
+            const seletor = (dim, titulo, campo) => {
+                const cont = {}, rot = {};
+                baseDim(dim).forEach(r => { const k = DIMS_PROD[dim](r); if (!k) return; cont[k] = (cont[k] || 0) + 1; if (!rot[k]) rot[k] = String(r[campo]).trim(); });
+                const ks = Object.keys(cont).sort((a, b) => rot[a].localeCompare(rot[b], 'pt-BR'));
+                if (ks.length < 2 && !detailProdFiltros[dim]) return '';
+                const ativo = !!detailProdFiltros[dim];
+                return `<label class="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">${titulo}
+                    <select onchange="filtrarDetailProdDim('${dim}', encodeURIComponent(this.value))" class="max-w-[190px] bg-slate-900 border ${ativo ? 'border-emerald-500/60 text-emerald-200' : 'border-slate-700 text-slate-300'} rounded-lg px-1.5 py-1 text-[11px] font-semibold normal-case tracking-normal outline-none">
+                        <option value="">Todos</option>
+                        ${ks.map(k => `<option value="${escDet(k)}" ${detailProdFiltros[dim] === k ? 'selected' : ''}>${escDet(rot[k])} (${cont[k]})</option>`).join('')}
+                    </select></label>`;
+            };
+            const seletores = [seletor('equipe', 'Equipe', 'Equipe'), seletor('corretor', 'Corretor', 'Corretor'), seletor('empreendimento', 'Empreend.', 'Empreendimento')].filter(Boolean).join('');
+            const limpar = haFiltroProd() ? `<button onclick="limparFiltrosDetailProd()" class="text-[10px] font-bold text-rose-300 hover:text-rose-200 px-2 py-1"><i class="fa-solid fa-xmark mr-1"></i>Limpar filtros</button>` : '';
+
+            const vis = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r) && passaProdFiltros(r));
             const vgv = vis.reduce((a, r) => a + vgvNum(r), 0);
             const resumo = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-1">
                 ${['venda', 'aprovado', 'pendente', 'reprovado'].map(k => { const n = vis.filter(r => statusProd(r) === k).length; return `<div class="rounded-lg border ${STATUS_PROD[k].cor} px-2.5 py-1"><div class="text-[9px] uppercase font-bold tracking-wider opacity-80"><i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}</div><div class="text-base font-black text-white leading-tight">${n}</div></div>`; }).join('')}
             </div>${vgv > 0 ? `<div class="text-[11px] text-slate-400 mb-1">VGV do recorte: <b class="text-indigo-300">${formatCurrency(vgv)}</b></div>` : ''}`;
 
-            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${resumo}${linha('Status', st)}${cks.length > 1 ? linha('Construtora', co) : ''}</div>`;
+            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${resumo}${linha('Status', st)}${ven ? linha('Venda', ven) : ''}${eks.length > 2 ? linha('Etapa', eta) : ''}${cks.length > 1 ? linha('Construtora', co) : ''}${seletores || limpar ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">${seletores}${limpar}</div>` : ''}</div>`;
         }
         function renderDetailProdRows() {
             const tableBody = document.getElementById('detailTableBody');
@@ -511,17 +560,26 @@ const CAL_METRICS = {
                     </tr>`;
             }).join('') + avisoMaisLinhas(rows.length);
             const total = document.getElementById('detailCorrTotal');
-            if (total && (detailBusca || detailProdStatus || detailProdConstrutora)) total.textContent = `${rows.length} de ${detailProdTodos.length}`;
+            if (total && (detailBusca || detailProdStatus || detailProdConstrutora || haFiltroProd())) total.textContent = `${rows.length} de ${detailProdTodos.length}`;
             else if (total && detailProdTotalLabel) total.textContent = detailProdTotalLabel;
         }
         let detailProdTotalLabel = '';
         function aplicarFiltrosDetailProd() {
-            currentDetailRows = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r));
+            currentDetailRows = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r) && passaProdFiltros(r));
             renderDetailProdChips();
             renderDetailProdRows();
         }
         function filtrarDetailProdStatus(k) { detailProdStatus = (k && detailProdStatus === k) ? '' : k; aplicarFiltrosDetailProd(); }
         function filtrarDetailProdConstrutora(k) { detailProdConstrutora = (k && detailProdConstrutora === k) ? '' : k; aplicarFiltrosDetailProd(); }
+        function filtrarDetailProdDim(dim, valor) {
+            const v = decodeURIComponent(valor || '');
+            detailProdFiltros[dim] = (v && detailProdFiltros[dim] === v && dim !== 'equipe' && dim !== 'corretor' && dim !== 'empreendimento') ? '' : v;
+            aplicarFiltrosDetailProd();
+        }
+        function limparFiltrosDetailProd() {
+            detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '' };
+            aplicarFiltrosDetailProd();
+        }
         const DETAIL_HEAD_LEADS = `
             <th class="p-2 pl-3">Cliente</th>
             <th class="p-2">Contato</th>
@@ -851,7 +909,7 @@ const CAL_METRICS = {
 
             const dtP = r => { const d = parseDate(r['Data Ganho'] || r['Data Aprovação'] || r['Data Cadastro']); return d ? d.getTime() : 0; };
             detailProdTodos = rows.slice().sort((a, b) => dtP(b) - dtP(a));
-            detailProdStatus = ''; detailProdConstrutora = ''; detailProdShowCorretor = showCorretor !== false;
+            detailProdStatus = ''; detailProdConstrutora = ''; detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '' }; detailProdShowCorretor = showCorretor !== false;
             detailProdTotalLabel = totalLabel;
             aplicarFiltrosDetailProd();
 
@@ -947,7 +1005,7 @@ const CAL_METRICS = {
                     @page { size: A4 landscape; margin: 10mm; } table { font-size: 9.5px; } th, td { padding: 4px 5px; }
                 </style></head><body>
                 <h1>${currentDetailTitle}</h1>
-                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsSistema && ('sistema: ' + SISTEMA_INFO[detailLeadsSistema].nome), detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro)].filter(Boolean).map(x => ' · ' + x).join('') : [detailProdStatus && ('status: ' + STATUS_PROD[detailProdStatus].nome), detailProdConstrutora && ('construtora: ' + detailProdConstrutora)].filter(Boolean).map(x => ' · ' + x).join('')} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
+                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsSistema && ('sistema: ' + SISTEMA_INFO[detailLeadsSistema].nome), detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro)].filter(Boolean).map(x => ' · ' + x).join('') : [detailProdStatus && ('status: ' + STATUS_PROD[detailProdStatus].nome), detailProdConstrutora && ('construtora: ' + detailProdConstrutora), detailProdFiltros.venda && ('venda: ' + detailProdFiltros.venda), detailProdFiltros.etapa && ('etapa: ' + detailProdFiltros.etapa), detailProdFiltros.equipe && ('equipe: ' + detailProdFiltros.equipe), detailProdFiltros.corretor && ('corretor: ' + detailProdFiltros.corretor), detailProdFiltros.empreendimento && ('empreendimento: ' + detailProdFiltros.empreendimento)].filter(Boolean).map(x => ' · ' + x).join('')} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
                 <table>
                     <thead><tr>${headHtml}</tr></thead>
                     <tbody>${rowsHtml}</tbody>
