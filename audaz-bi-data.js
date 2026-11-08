@@ -1839,7 +1839,9 @@
                         try {
                             const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
                             const ws = wb.Sheets[wb.SheetNames[0]];
-                            applyProspeccaoLeadsCrm(XLSX.utils.sheet_to_json(ws, { defval: '', raw: true }));
+                            const linhasXlsx = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+                            if (ehExcelC2S(linhasXlsx)) applyProspeccaoLeadsC2S(linhasXlsx);
+                            else applyProspeccaoLeadsCrm(linhasXlsx);
                         } catch (err) {
                             console.warn('Falha ao ler Excel da Prospecção:', err);
                             showToast('Não foi possível ler esse Excel.', true);
@@ -2284,6 +2286,73 @@
             return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'Salesforce (Excel)', semCorretor, semData, naoReconhecidos, extraHtml });
         }
 
+        // ===== LEADS DO C2S (Excel exportado do C2S, 08/11/2026) =====
+        // Reconhecido pelas colunas "Usuário responsável atual" + "Status do lead" + "Criado em".
+        // ID vira "C2S-96979992", Origem "C2S", Corretor = usuário responsável atual (ligado ao nome
+        // do BI), Situação = Status do lead (+ motivo quando Arquivado), Empreendimento = título do
+        // imóvel ("[MCMV] Fortaleza" → "MCMV Fortaleza"). Lead cujo telefone já está no Salesforce
+        // ou no DV On não entra de novo (mesma régua do DV On), pra não contar 2x.
+        const chaveColuna = c => stripDiacritics(String(c)).toLowerCase().replace(/\s+/g, ' ').trim();
+        function ehExcelC2S(linhas) {
+            const cols = new Set(Object.keys((linhas || [])[0] || {}).map(chaveColuna));
+            return cols.has('usuario responsavel atual') && cols.has('status do lead') && cols.has('criado em');
+        }
+        const fimTelefone = n => String(n || '').replace(/\D/g, '').slice(-8);
+        function telefonesJaImportados(prefixos) {
+            return new Set(Object.keys(contatosProspeccao)
+                .filter(id => prefixos.some(p => p.test(id)))
+                .map(id => fimTelefone(contatosProspeccao[id] && contatosProspeccao[id].tel))
+                .filter(x => x.length === 8));
+        }
+        function applyProspeccaoLeadsC2S(linhas) {
+            const col = (obj, nome) => { const k = Object.keys(obj).find(c => chaveColuna(c) === nome); return k === undefined ? '' : obj[k]; };
+            const telsOutros = telefonesJaImportados([/^OP-/i, /^DV-/i]);
+            const novas = [], contatosNovos = {}, naoReconhecidos = new Set(), duplicados = [];
+            let semData = 0, semCorretor = 0;
+            const contStatus = {};
+            (linhas || []).forEach(l => {
+                const idBruto = String(col(l, 'id') || '').trim();
+                const cliente = String(col(l, 'nome do cliente') || '').trim();
+                if (!idBruto && !cliente) return; // linha vazia/rodapé
+                const d = dataLeadCrm(col(l, 'criado em'));
+                if (!d) { semData++; return; }
+                const tel = String(col(l, 'telefone formatado') || '').trim() || formatarTelefoneBr(col(l, 'telefone do cliente'));
+                if (tel && telsOutros.has(fimTelefone(tel))) { duplicados.push(cliente); return; }
+                const bruto = String(col(l, 'usuario responsavel atual') || '').trim();
+                const map = mapearCorretorCrm(bruto);
+                if (!bruto) semCorretor++;
+                else if (!map.reconhecido) naoReconhecidos.add(map.nome);
+                const status = String(col(l, 'status do lead') || '').trim();
+                const motivo = String(col(l, 'motivo de arquivamento') || '').trim();
+                const situacao = motivo && /arquiv/i.test(status) ? `${status} · ${motivo}` : status;
+                contStatus[situacao || 'Sem status'] = (contStatus[situacao || 'Sem status'] || 0) + 1;
+                const id = 'C2S-' + (idBruto || cliente);
+                const email = String(col(l, 'email do cliente') || '').trim();
+                if (tel || email) contatosNovos[id] = { tel, email };
+                novas.push({
+                    'ID': id,
+                    'Cliente': cliente,
+                    'Corretor': map.nome,
+                    'Equipe': '',
+                    'Situação': situacao,
+                    'Cadastro': `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`,
+                    'Mês Comercial': mesComercialDaDataProspeccao(d),
+                    'Origem': 'C2S',
+                    'Ranking': '',
+                    'Empreendimento': String(col(l, 'titulo do imovel') || '').replace(/[\[\]]/g, '').replace(/\s+-\s+/g, ' ').replace(/\s+/g, ' ').trim(),
+                    'Gerente CRM': String(col(l, 'nome da hierarquia') || '').trim(),
+                    'Tag': String(col(l, 'fonte do lead') || '').trim()
+                });
+            });
+            if (!novas.length) {
+                showToast(duplicados.length ? `Todos os ${duplicados.length} leads do C2S já estão no Salesforce/DV On.` : 'Nenhum lead com "Criado em" válido nesse Excel do C2S.', !duplicados.length);
+                return false;
+            }
+            const extraHtml = `<p class="mt-1 text-slate-300"><b>Status:</b> ${Object.keys(contStatus).sort().map(f => `${escapeHtmlLite(f)} · ${contStatus[f]}`).join(' &nbsp;|&nbsp; ')}</p>`
+                + (duplicados.length ? `<p class="mt-1 text-sky-300"><i class="fa-solid fa-clone"></i> ${duplicados.length} lead(s) do C2S já estavam no Salesforce/DV On (mesmo telefone) e não foram contados de novo.</p>` : '');
+            return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'C2S (Excel)', semCorretor, semData, naoReconhecidos, extraHtml });
+        }
+
         // ===== LEADS DO DV ON (PDF "Print_leads - Lead Manager", 31/10/2026) =====
         // Tabela: ID do Lead (22.299) | Status (Em Atendimento/Concluído/Pendente) | Nome | Número |
         // Atendentes (já no nome do BI: "Linda Inez") | Filas ("Fila Viva Vida Maracanã - Fulano") |
@@ -2322,7 +2391,7 @@
             }
             // Telefones (últimos 8 dígitos) dos leads do CRM já guardados neste navegador.
             const fimTel = n => String(n || '').replace(/\D/g, '').slice(-8);
-            const telsCrm = new Set(Object.keys(contatosProspeccao).filter(id => /^OP-/i.test(id)).map(id => fimTel(contatosProspeccao[id].tel)).filter(x => x.length === 8));
+            const telsCrm = telefonesJaImportados([/^OP-/i, /^C2S-/i]);
             const novas = [], contatosNovos = {}, naoReconhecidos = new Set(), duplicadosCrm = [];
             let semCorretor = 0;
             leads.forEach(l => {
@@ -2354,7 +2423,7 @@
                 return false;
             }
             const extraHtml = duplicadosCrm.length
-                ? `<p class="mt-1 text-sky-300"><i class="fa-solid fa-clone"></i> ${duplicadosCrm.length} lead(s) do DV On já estavam no Salesforce (mesmo telefone) e não foram contados de novo.</p>`
+                ? `<p class="mt-1 text-sky-300"><i class="fa-solid fa-clone"></i> ${duplicadosCrm.length} lead(s) do DV On já estavam no Salesforce/C2S (mesmo telefone) e não foram contados de novo.</p>`
                 : '';
             return gravarLeadsProspeccao(novas, contatosNovos, { fonte: 'DV On (PDF)', semCorretor, naoReconhecidos, extraHtml });
         }
