@@ -1398,6 +1398,36 @@
             });
             return best; // { ano, idx, nome } ou null
         }
+        // Mês comercial pela DATA (08/11/2026): quando a data da linha cai dentro de um período
+        // cadastrado em "Meses Comerciais", o "Mês Cadastro"/"Mês Aprovação"/"Mês Ganho" passa a ser
+        // o desse período, mesmo que a planilha diga outro (ex.: cadastro de 05/11 marcado "novembro"
+        // com Outubro indo até 09/11). Data fora de qualquer período cadastrado → fica o texto da
+        // planilha. O valor original fica guardado (não enumerável) em _mesPlanilha, então mudar ou
+        // apagar um período e rodar de novo volta ao que a planilha dizia.
+        const MES_DATA_CAMPOS = [['Mês Cadastro', 'Data Cadastro'], ['Mês Aprovação', 'Data Aprovação'], ['Mês Ganho', 'Data Ganho']];
+        function alinharMesesComerciaisPorData(rows) {
+            if (!Array.isArray(rows) || !rows.length) return 0;
+            const periodos = (Array.isArray(mesesComerciais) ? mesesComerciais : []).map(m => ({
+                ini: new Date(m.inicio + 'T00:00:00'), fim: new Date(m.fim + 'T00:00:00'),
+                rotulo: `${String(m.nome).toLowerCase()}/${m.ano}`
+            })).filter(p => !isNaN(p.ini) && !isNaN(p.fim));
+            let alterados = 0;
+            rows.forEach(r => {
+                if (!r || typeof r !== 'object') return;
+                if (!r._mesPlanilha) Object.defineProperty(r, '_mesPlanilha', { value: {}, enumerable: false, writable: true });
+                MES_DATA_CAMPOS.forEach(([mesF, dataF]) => {
+                    if (!(mesF in r._mesPlanilha)) r._mesPlanilha[mesF] = r[mesF];
+                    const orig = r._mesPlanilha[mesF];
+                    const d = parseDate(r[dataF]);
+                    const p = d && periodos.find(x => d >= x.ini && d <= x.fim);
+                    const novo = p ? p.rotulo : orig;
+                    if (novo !== orig) alterados++;
+                    if (r[mesF] !== novo && !(novo === undefined && !(mesF in r))) r[mesF] = novo;
+                });
+            });
+            return alterados;
+        }
+
         // Data de referência do mês comercial corrente (dia 15 do mês, para os cálculos por mês).
         // O mês comercial CONFIGURADO que contém hoje manda (getMesComercialAtualPorData, o mesmo que
         // metas/ritmo já usam). Sem isso, 1 linha da planilha marcada com o mês seguinte antes do fim
@@ -4051,6 +4081,7 @@
         const NOMES_ALIAS = { 'CASAS MENAGER': 'CASAS MANAGER', 'AVULSON': 'AVULSO' };
         const semAcento = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         function padronizarNomesCadastro(rows) {
+            alinharMesesComerciaisPorData(rows);
             ['Construtora', 'Empreendimento'].forEach(campo => {
                 const limpo = v => {
                     let t = String(v).replace(/\s+/g, ' ').trim().toLocaleUpperCase('pt-BR');
@@ -4431,6 +4462,7 @@
         }
 
         function populateDynamicFilters() {
+            alinharMesesComerciaisPorData(dataset);
             const corretores = new Set();
             const construtoras = new Set();
             const empreendimentos = new Set();
