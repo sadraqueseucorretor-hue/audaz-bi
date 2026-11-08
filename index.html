@@ -810,6 +810,19 @@
                                 <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-800"><div id="rankingEquipeProductivityBar" class="h-full rounded-full bg-emerald-400 transition-all" style="width:0%"></div></div>
                             </div>
 
+                            <!-- Botões de ordenação do ranking de equipes -->
+                            <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+                                <span class="text-[10px] text-slate-500 font-bold uppercase mr-1">Ordenar por:</span>
+                                <button id="rankSortEq-leads" onclick="setRankSortEq('leads')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Leads</button>
+                                <button id="rankSortEq-agendamentos" onclick="setRankSortEq('agendamentos')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Agendamentos</button>
+                                <button id="rankSortEq-compareceu" onclick="setRankSortEq('compareceu')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Compareceu</button>
+                                <button id="rankSortEq-analises" onclick="setRankSortEq('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Análises</button>
+                                <button id="rankSortEq-aprovacoes" onclick="setRankSortEq('aprovacoes')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Aprovações</button>
+                                <button id="rankSortEq-vendas" onclick="setRankSortEq('vendas')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Vendas</button>
+                                <button id="rankSortEq-produtiva" onclick="setRankSortEq('produtiva')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Equipe produtiva</button>
+                                <button id="rankSortEq-vgv" onclick="setRankSortEq('vgv')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition">VGV</button>
+                            </div>
+
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left border-collapse">
                                     <thead>
@@ -1896,7 +1909,7 @@
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
     <script src="./audaz-bi-data.js?v=c2s-20261108"></script>
     <script src="./audaz-bi-filters.js?v=mes-por-data-20261108"></script>
-    <script src="./audaz-bi-analytics.js?v=agenda-detalhe-20261108b"></script>
+    <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
     <script src="./audaz-bi-calendar.js?v=agenda-detalhe-20261108b"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
     <script src="./audaz-bi-calc.js?v=calc-20261031"></script>
