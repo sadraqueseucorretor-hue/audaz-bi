@@ -530,7 +530,7 @@ const CAL_METRICS = {
             <th class="p-2">Criado em</th>
             <th class="p-2 pr-3">Fase</th>`;
 
-        const ehLeadCrm = r => /^(OP|DV)-\d+/i.test(String(r && r.ID || '')); // OP = Excel do Salesforce · DV = PDF do DV On
+        const ehLeadCrm = r => /^(OP|DV|C2S)-./i.test(String(r && r.ID || '')); // OP = Excel do Salesforce · DV = PDF do DV On · C2S = Excel do C2S
         const escDet = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         // "Ouro🥇" → { nome: 'Ouro', chave: 'ouro', emoji: '🥇' }
         function rankingLead(r) {
@@ -580,10 +580,11 @@ const CAL_METRICS = {
         let detailLeadsSistema = '';  // '' | 'salesforce' | 'dvon'
         let detailLeadsFase = '';     // Fase da oportunidade (coluna "FASES DA OPORTUNIDADE" do Salesforce)
         // Sistema de origem do lead: Excel = Salesforce (ID "OP-..."), PDF = DV On (ID "DV-...").
-        const sistemaLead = r => /^DV-/i.test(String(r && r.ID || '')) ? 'dvon' : 'salesforce';
+        const sistemaLead = r => { const id = String(r && r.ID || ''); return /^DV-/i.test(id) ? 'dvon' : /^C2S-/i.test(id) ? 'c2s' : 'salesforce'; };
         const SISTEMA_INFO = {
             salesforce: { nome: 'Salesforce', icone: 'fa-cloud', cor: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
-            dvon: { nome: 'DV On', icone: 'fa-comments', cor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' }
+            dvon: { nome: 'DV On', icone: 'fa-comments', cor: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
+            c2s: { nome: 'C2S', icone: 'fa-bullseye', cor: 'bg-orange-500/15 text-orange-300 border-orange-500/30' }
         };
         const passaSistema = r => !detailLeadsSistema || sistemaLead(r) === detailLeadsSistema;
         const ehBolsao = r => /bols/i.test(String(r && r.Tag || ''));
@@ -643,10 +644,10 @@ const CAL_METRICS = {
 
             // 0) Sistema (Salesforce = Excel · DV On = PDF)
             const baseS = leadsBuscados.filter(r => passaBolsao(r) && passaFonte(r) && passaRanking(r) && passaFase(r));
-            const nS = { salesforce: 0, dvon: 0 };
+            const nS = { salesforce: 0, c2s: 0, dvon: 0 };
             baseS.forEach(r => nS[sistemaLead(r)]++);
             const sis = chip('filtrarDetailLeadsSistema', '', !detailLeadsSistema, 'Todos', baseS.length, 'bg-slate-800 text-slate-200 border-slate-700')
-                + ['salesforce', 'dvon'].map(k => chip('filtrarDetailLeadsSistema', k, detailLeadsSistema === k, `<i class="fa-solid ${SISTEMA_INFO[k].icone} mr-1"></i>${SISTEMA_INFO[k].nome}`, nS[k], SISTEMA_INFO[k].cor)).join('');
+                + ['salesforce', 'c2s', 'dvon'].filter(k => nS[k] || detailLeadsSistema === k).map(k => chip('filtrarDetailLeadsSistema', k, detailLeadsSistema === k, `<i class="fa-solid ${SISTEMA_INFO[k].icone} mr-1"></i>${SISTEMA_INFO[k].nome}`, nS[k], SISTEMA_INFO[k].cor)).join('');
 
             // 4) Fase da oportunidade — em ordem do funil do CRM ("01 - ...", "02 - ...", "12 - ...")
             const baseFa = leadsBuscados.filter(r => passaSistema(r) && passaBolsao(r) && passaFonte(r) && passaRanking(r));
@@ -833,7 +834,9 @@ const CAL_METRICS = {
 
             // Busca global na base de leads: força o layout de leads mesmo com linhas antigas
             // (CSV de antes do Excel do CRM, ID só numérico).
-            const modoLeads = opts.forcarLeads || (rows.length > 0 && rows.every(ehLeadCrm));
+            // Linha de Prospecção (tem _MesComercialNorm) é sempre lead, venha de onde vier
+            // (Salesforce, C2S, DV On ou CSV antigo) — antes só OP-/DV- contavam e o C2S derrubava o modo.
+            const modoLeads = opts.forcarLeads || (rows.length > 0 && rows.every(r => ehLeadCrm(r) || (r && '_MesComercialNorm' in r)));
             setDetailLayout(modoLeads);
             detailModoLeads = modoLeads;
             if (modoLeads) {
@@ -929,7 +932,7 @@ const CAL_METRICS = {
             if (!currentDetailRows.length) { showToast('Nada para exportar.', true); return; }
             const win = window.open('', '_blank');
             if (!win) { showToast('O navegador bloqueou a janela — permita pop-ups para exportar em PDF.', true); return; }
-            const modoLeads = currentDetailRows.every(ehLeadCrm);
+            const modoLeads = detailModoLeads;
             const colsLeads = modoLeads ? colunasExportLeads() : colunasExportProd();
             const headHtml = colsLeads.map(c => `<th>${c[0]}</th>`).join('');
             const rowsHtml = currentDetailRows.map(r => `<tr>${colsLeads.map(c => `<td>${escDet(c[1](r) || '-')}</td>`).join('')}</tr>`).join('');
