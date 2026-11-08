@@ -342,6 +342,21 @@
             drawTables();
         }
 
+        // Ordenação do Ranking de Equipes: independente da do Ranking de Corretores.
+        let rankSortEq = 'vgv'; // leads | agendamentos | compareceu | analises | aprovacoes | vendas | produtiva | vgv
+        function rankSorterEq(a, b) {
+            return ((b[rankSortEq] || 0) - (a[rankSortEq] || 0)) || (b.vgv - a.vgv) || (b.vendas - a.vendas) || (b.analises - a.analises);
+        }
+        function setRankSortEq(campo) {
+            rankSortEq = campo;
+            document.querySelectorAll('[id^="rankSortEq-"]').forEach(b => {
+                b.className = b.id === 'rankSortEq-' + campo
+                    ? 'rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-brand-500 text-white transition'
+                    : 'rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition';
+            });
+            drawTables();
+        }
+
         // Cache das linhas (clientes) por trás de cada número dos Rankings Comerciais — usado pelo
         // clique nas colunas Análises/Aprovações/Vendas pra abrir o detalhamento (ver openRankingDetail).
         let rankingRowsCache = { corretor: {}, equipe: {} };
@@ -383,7 +398,7 @@
             const refDateTables = currentRefDate;
             rankingRowsCache = { corretor: {}, equipe: {} };
             const getCorrCache = nome => (rankingRowsCache.corretor[nome] = rankingRowsCache.corretor[nome] || { analises: [], aprovacoes: [], vendas: [], agendamentos: [], compareceu: [] });
-            const getEqCache = nome => (rankingRowsCache.equipe[nome] = rankingRowsCache.equipe[nome] || { analises: [], aprovacoes: [], vendas: [] });
+            const getEqCache = nome => (rankingRowsCache.equipe[nome] = rankingRowsCache.equipe[nome] || { analises: [], aprovacoes: [], vendas: [], agendamentos: [], compareceu: [] });
 
             let corretoresMap = {};
             // Pré-cadastra todos os corretores ATIVOS (assim os pré-cadastrados aparecem com 0)
@@ -580,8 +595,8 @@
                 const eq = row.Corretor ? getRankingTeamForBroker(row.Corretor) : '';
                 if (!eq || (selectedTeamFilter && rankingTeamKey(eq) !== rankingTeamKey(selectedTeamFilter))) return;
                 if (!equipesMap[eq]) equipesMap[eq] = { equipe: eq, agendamentos: 0, compareceu: 0, analises: 0, aprovacoes: 0, vendas: 0, vgv: 0 };
-                if (agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'agendamentos')) equipesMap[eq].agendamentos++;
-                if (isCompareceu(row) && agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'compareceu')) equipesMap[eq].compareceu++;
+                if (agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'agendamentos')) { equipesMap[eq].agendamentos++; getEqCache(eq).agendamentos.push(row); }
+                if (isCompareceu(row) && agendaMatchesRef(row, currentRefDateAgenda || refDateTables, 'compareceu')) { equipesMap[eq].compareceu++; getEqCache(eq).compareceu.push(row); }
             });
 
             // Leads (Prospecção: Salesforce + DV On) por equipe, pelo mesmo vínculo corretor → equipe
@@ -599,9 +614,14 @@
                 (leadsPorEquipeCache[chave] = leadsPorEquipeCache[chave] || []).push(row);
             });
 
+            Object.values(equipesMap).forEach(eq => {
+                const chaveEq = rankingTeamKey(eq.equipe);
+                const ativos = equipeMembrosAtivos.get(chaveEq)?.size || 0;
+                eq.produtiva = ativos ? (equipeMembrosProdutivos.get(chaveEq)?.size || 0) / ativos * 100 : 0;
+            });
             let rankingEquipes = Object.values(equipesMap)
                 .filter(eq => eq.equipe.toLowerCase().includes(searchEquipeTerm))
-                .sort(rankSorter);
+                .sort(rankSorterEq);
 
             const equipePessoas = new Set([...equipeMembrosAtivos.values()].flatMap(set => [...set]));
             const pessoasProdutivas = new Set([...equipeMembrosProdutivos.values()].flatMap(set => [...set]));
@@ -631,8 +651,8 @@
                 // barrinha proporcional ao maior valor da coluna, zeros apagados e linha de TOTAL no fim.
                 const COLS = [
                     { k: 'leads', cor: 'text-pink-400', barra: 'bg-pink-500', click: eqEsc => `abrirLeadsEquipe('${eqEsc}')`, tip: 'Ver leads da equipe' },
-                    { k: 'agendamentos', cor: 'text-violet-400', barra: 'bg-violet-500' },
-                    { k: 'compareceu', cor: 'text-cyan-400', barra: 'bg-cyan-500' },
+                    { k: 'agendamentos', cor: 'text-violet-400', barra: 'bg-violet-500', click: eqEsc => `openRankingDetail('equipe','${eqEsc}','agendamentos')`, tip: 'Ver agendamentos' },
+                    { k: 'compareceu', cor: 'text-cyan-400', barra: 'bg-cyan-500', click: eqEsc => `openRankingDetail('equipe','${eqEsc}','compareceu')`, tip: 'Ver visitas' },
                     { k: 'analises', cor: 'text-slate-200', barra: 'bg-slate-400', click: eqEsc => `openRankingDetail('equipe','${eqEsc}','analises')`, tip: 'Ver clientes' },
                     { k: 'aprovacoes', cor: 'text-amber-400', barra: 'bg-amber-500', click: eqEsc => `openRankingDetail('equipe','${eqEsc}','aprovacoes')`, tip: 'Ver clientes' },
                     { k: 'vendas', cor: 'text-brand-400', barra: 'bg-brand-500', click: eqEsc => `openRankingDetail('equipe','${eqEsc}','vendas')`, tip: 'Ver clientes' }
