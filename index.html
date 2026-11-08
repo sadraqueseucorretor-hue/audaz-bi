@@ -732,6 +732,7 @@
                             <!-- Botões de ordenação do ranking -->
                             <div class="flex items-center gap-1.5 mb-3 flex-wrap">
                                 <span class="text-[10px] text-slate-500 font-bold uppercase mr-1">Ordenar por:</span>
+                                <button id="rankSort-leads" onclick="setRankSort('leads')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Leads</button>
                                 <button id="rankSort-agendamentos" onclick="setRankSort('agendamentos')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Agendamentos</button>
                                 <button id="rankSort-compareceu" onclick="setRankSort('compareceu')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Visitas</button>
                                 <button id="rankSort-analises" onclick="setRankSort('analises')" class="rank-sort-btn px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 hover:text-slate-200 transition">Análises</button>
@@ -747,6 +748,7 @@
                                         <tr class="border-b border-slate-800/80 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                                             <th class="pb-3 pl-2">Pos</th>
                                             <th class="pb-3">Corretor</th>
+                                            <th data-col="leads" class="pb-3 text-center" title="Leads recebidos no mês (Salesforce + C2S + DV On)">Leads</th>
                                             <th data-col="agendamentos" class="pb-3 text-center" title="Data em que o atendimento foi agendado">Agend.</th>
                                             <th data-col="compareceu" class="pb-3 text-center" title="Data em que a visita ocorreu">Visitas</th>
                                             <th data-col="analises" class="pb-3 text-center" title="Data de cadastro">Análises</th>
@@ -1894,7 +1896,7 @@
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
     <script src="./audaz-bi-data.js?v=c2s-20261108"></script>
     <script src="./audaz-bi-filters.js?v=mes-por-data-20261108"></script>
-    <script src="./audaz-bi-analytics.js?v=ranking-colunas-20261105b"></script>
+    <script src="./audaz-bi-analytics.js?v=leads-corretor-20261108"></script>
     <script src="./audaz-bi-calendar.js?v=busca-20261103"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
     <script src="./audaz-bi-calc.js?v=calc-20261031"></script>
