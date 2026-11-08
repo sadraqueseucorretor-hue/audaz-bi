@@ -86,25 +86,36 @@ const CAL_METRICS = {
             // calendário), pra refletir a atividade recente de verdade do corretor.
             const hojeStatusCal = isMockDataActive ? new Date(2026, 5, 9) : new Date();
             hojeStatusCal.setHours(0, 0, 0, 0);
-            // "Última Atividade" e o status/sequência usam a MESMA base (só análises/Data Cadastro)
-            // pra nunca mostrar coisas contraditórias tipo "18/07" ao lado de "11 dias parado".
-            let ultimaAnaliseCorretor = {};
-            const activityDaySet = new Set(); // `${corretor}|${y}-${m}-${d}` com >=1 análise nesse dia — usado pra calcular a sequência
-            dataset.forEach(row => {
-                const c = row.Corretor;
+            // "Última Atividade", status e sequência seguem a ETAPA escolhida no Mapa de Calor, cada uma
+            // pela sua própria data e pela MESMA base — nunca mostra "18/07" ao lado de "11 dias parado".
+            const ETAPA_STATUS = {
+                analises:     { hoje: 'Subiu análise hoje', nunca: 'Nunca subiu análise', sem: 'sem subir análise',
+                                eventos: () => dataset.map(r => [r.Corretor, r['Data Cadastro']]) },
+                aprovados:    { hoje: 'Teve aprovação hoje', nunca: 'Nunca teve aprovação', sem: 'sem aprovação',
+                                eventos: () => dataset.filter(r => isAprovado(r['Situação - Analise'])).map(r => [r.Corretor, dataAprovacaoEfetiva(r)]) },
+                vendas:       { hoje: 'Vendeu hoje', nunca: 'Nunca vendeu', sem: 'sem vender',
+                                eventos: () => dataset.filter(isGanho).map(r => [r.Corretor, r['Data Ganho']]) },
+                agendamentos: { hoje: 'Agendou hoje', nunca: 'Nunca agendou', sem: 'sem agendar',
+                                eventos: () => (agendaDataset || []).map(r => [r.Corretor, agendaDateForMetric(r, 'agendamentos')]) },
+                visitas:      { hoje: 'Fez visita hoje', nunca: 'Nunca fez visita', sem: 'sem visita realizada',
+                                eventos: () => (agendaDataset || []).filter(isCompareceu).map(r => [r.Corretor, agendaDateForMetric(r, 'compareceu')]) }
+            };
+            const etapaStatus = ETAPA_STATUS[calendarMetric] || ETAPA_STATUS.analises;
+            const ultimaAtividadeCorretor = {};
+            const activityDaySet = new Set(); // `${corretor}|${y}-${m}-${d}` com >=1 evento da etapa nesse dia — usado pra calcular a sequência
+            etapaStatus.eventos().forEach(([c, data]) => {
                 if (!activeSet.has(c)) return;
-                const d = parseDate(row['Data Cadastro']);
-                if (d) {
-                    if (!ultimaAnaliseCorretor[c] || d > ultimaAnaliseCorretor[c]) ultimaAnaliseCorretor[c] = d;
-                    activityDaySet.add(`${c}|${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
-                }
+                const d = parseDate(data);
+                if (!d || d > hojeStatusCal) return; // agendamento/visita com data futura não é atividade feita
+                if (!ultimaAtividadeCorretor[c] || d > ultimaAtividadeCorretor[c]) ultimaAtividadeCorretor[c] = d;
+                activityDaySet.add(`${c}|${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
             });
-            const diasSemAnaliseCorretor = (c) => {
-                const ultima = ultimaAnaliseCorretor[c];
-                if (!ultima) return Infinity; // nunca lançou análise
+            const diasSemAtividadeCorretor = (c) => {
+                const ultima = ultimaAtividadeCorretor[c];
+                if (!ultima) return Infinity; // nunca teve evento nessa etapa
                 return Math.floor((hojeStatusCal - ultima) / 86400000);
             };
-            // Conta dias corridos consecutivos com >=1 análise, terminando em `fromDate` e voltando no tempo.
+            // Conta dias corridos consecutivos com >=1 evento, terminando em `fromDate` e voltando no tempo.
             const calcularSequencia = (c, fromDate) => {
                 let streak = 0;
                 const cursor = new Date(fromDate);
@@ -116,14 +127,14 @@ const CAL_METRICS = {
             };
             // Classificação usada tanto no badge abaixo do nome quanto na coluna Status.
             const statusInfo = (c) => {
-                const dias = diasSemAnaliseCorretor(c);
-                if (dias === Infinity) return { tag: 'gray', icon: 'fa-minus', label: 'Sem atividades', title: 'Nunca lançou análise', value: null };
+                const dias = diasSemAtividadeCorretor(c);
+                if (dias === Infinity) return { tag: 'gray', icon: 'fa-minus', label: 'Sem atividades', title: etapaStatus.nunca, value: null };
                 if (dias === 0) {
                     const seq = calcularSequencia(c, hojeStatusCal);
-                    return { tag: 'green', icon: 'fa-fire', label: `${seq} dia${seq === 1 ? '' : 's'}`, title: 'Lançou análise hoje', value: seq };
+                    return { tag: 'green', icon: 'fa-fire', label: `${seq} dia${seq === 1 ? '' : 's'}`, title: etapaStatus.hoje, value: seq };
                 }
-                if (dias <= 2) return { tag: 'yellow', icon: 'fa-triangle-exclamation', label: `${dias} dia${dias === 1 ? '' : 's'}`, title: `${dias} dia(s) sem subir análise`, value: dias };
-                return { tag: 'red', icon: 'fa-ban', label: `${dias} dias parado`, title: `${dias} dias sem subir análise`, value: dias };
+                if (dias <= 2) return { tag: 'yellow', icon: 'fa-triangle-exclamation', label: `${dias} dia${dias === 1 ? '' : 's'}`, title: `${dias} dia(s) ${etapaStatus.sem}`, value: dias };
+                return { tag: 'red', icon: 'fa-ban', label: `${dias} dias parado`, title: `${dias} dias ${etapaStatus.sem}`, value: dias };
             };
             const STATUS_COLOR = {
                 green:  { text: 'text-emerald-400', icon: 'text-emerald-400' },
@@ -307,7 +318,7 @@ const CAL_METRICS = {
                     }
 
                     const mediaDia = maxDia > 0 ? (totMetric / maxDia) : 0;
-                    const ultimaAt = calendarDimension === 'corretor' ? ultimaAnaliseCorretor[c] : null;
+                    const ultimaAt = calendarDimension === 'corretor' ? ultimaAtividadeCorretor[c] : null;
                     const ultimaAtLbl = ultimaAt ? `${String(ultimaAt.getDate()).padStart(2, '0')}/${String(ultimaAt.getMonth() + 1).padStart(2, '0')}` : '–';
 
                     const totalClick = totMetric > 0 ? `onclick="openCalendarCorretorDetail('${cEsc}', '${activeMonth}', ${yearNum})" class="p-3 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40 cursor-pointer hover:bg-slate-800/60 transition" title="Ver todos os clientes do mês"` : `class="p-3 text-right font-extrabold text-${cor}-400 border-l border-slate-800 bg-slate-950/40"`;
