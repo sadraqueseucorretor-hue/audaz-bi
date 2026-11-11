@@ -922,10 +922,29 @@ const CAL_METRICS = {
             }
         });
 
+        // Botão "Atualizar" do modal (aberto pelo funil): fecha o detalhe e abre o anexo da barra
+        // lateral — Prospecção (Excel do CRM/C2S/DV On) ou Agendamentos (Excel do Salesforce).
+        let detailAtualizar = '';
+        function abrirAtualizacaoDetail() {
+            if (!isDiretor) { showToast('Entre como diretor pra atualizar.', true); return; }
+            const alvo = detailAtualizar;
+            closeCalendarCellDetail();
+            if (alvo === 'agenda') toggleAgendaSfModal(); else if (alvo === 'prospeccao') toggleProspeccaoModal();
+        }
+
         // Renderizador genérico do modal de detalhamento de clientes — usado pelo calendário,
         // pelo funil de vendas e pelos rankings comerciais (corretor/equipe).
         function showDetailModal(opts) {
             const { label1, label2, nome, dataStr, rows, totalLabel, showCorretor } = opts;
+            detailAtualizar = opts.atualizar || '';
+            const btnAt = document.getElementById('detailAtualizarBtn');
+            if (btnAt) {
+                const mostra = !!detailAtualizar && typeof isDiretor !== 'undefined' && isDiretor;
+                btnAt.classList.toggle('hidden', !mostra);
+                btnAt.classList.toggle('flex', mostra);
+                const txt = document.getElementById('detailAtualizarTxt');
+                if (txt) txt.textContent = detailAtualizar === 'agenda' ? 'Atualizar agendamentos' : 'Atualizar prospecção';
+            }
             document.getElementById('detailCorrLabel1').textContent = label1;
             document.getElementById('detailCorrLabel2').textContent = label2;
             document.getElementById('detailCorrName').textContent = nome;
