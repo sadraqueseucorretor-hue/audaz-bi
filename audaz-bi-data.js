@@ -4494,10 +4494,13 @@
         const brDeData = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 
         function rebuildAgendaDataset() {
-            const planilha = (agendaPlanilhaRows || []).map(r => Object.assign({}, r));
+            const inicioSf = inicioAgendaSalesforce();
+            // A partir do início de Novembro/2026 a fonte é SÓ o Excel do Salesforce: agendamento da
+            // planilha marcado (Data de Cadastro) nesse período sai — se existir, vem pelo Excel.
+            const marcadoEm = r => { const d = parseDate(r['Data de Cadastro']) || parseDate(r.Data); return d ? isoDeData(d) : ''; };
+            const planilha = (agendaPlanilhaRows || []).filter(r => marcadoEm(r) < inicioSf).map(r => Object.assign({}, r));
             const usadas = new Set();
             const extras = [];
-            const inicioSf = inicioAgendaSalesforce();
             Object.values(agendaSalesforce || {}).forEach(sf => {
                 if (!sf || !sf.ID || String(sf.Data || '') < inicioSf) return;
                 const i = planilha.findIndex((r, idx) => !usadas.has(idx) && r.Corretor === sf.Corretor
