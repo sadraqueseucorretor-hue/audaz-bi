@@ -1647,6 +1647,16 @@
                     <p class="text-slate-500">Data de Cadastro = dia em que o agendamento foi feito; Data = dia marcado para a visita.</p>
                     <p>Status: <span class="font-mono text-slate-300">agendada</span> · <span class="font-mono text-slate-300">compareceu</span> · <span class="font-mono text-slate-300">nao_compareceu</span></p>
                 </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-violet-500/30 text-[11px] text-slate-400 space-y-2">
+                    <p class="font-bold text-slate-300"><i class="fa-solid fa-cloud text-sky-400 mr-1"></i>Agendamentos do Salesforce (Excel)</p>
+                    <p>Exporte o relatório <span class="text-slate-300">"Agendamentos Produtos"</span> e anexe aqui (ou na janela de Prospecção — o BI reconhece). <b class="text-slate-300">Soma</b> à agenda: o que já estava continua; o mesmo agendamento (código AG) anexado de novo só é atualizado. <span class="text-slate-300">Visita Realizada</span> = compareceu. Agendamento que já está na planilha (mesmo corretor, dia e cliente) não conta 2x.</p>
+                    <div id="agendaSfInfo" class="text-[11px]"></div>
+                    <input type="file" id="agendaSfFileInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" onchange="handleAgendaSfFileInput(event)">
+                    <button onclick="document.getElementById('agendaSfFileInput').click()" class="w-full py-2 px-4 bg-slate-800 hover:bg-slate-700 text-violet-200 text-xs font-bold rounded-lg border border-violet-500/40 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-excel"></i> Anexar Excel de agendamentos (Salesforce)
+                    </button>
+                    <div id="agendaSfResumo" class="hidden rounded-lg border border-slate-800 bg-slate-900/60 p-2"></div>
+                </div>
                 <button onclick="connectAgendaGoogleSheets()" class="w-full py-2.5 px-4 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-violet-500/20 transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Agenda
                 </button>
@@ -1907,7 +1917,7 @@
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
-    <script src="./audaz-bi-data.js?v=c2s-20261108"></script>
+    <script src="./audaz-bi-data.js?v=agenda-sf-20261111c"></script>
     <script src="./audaz-bi-filters.js?v=mes-por-data-20261108"></script>
     <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
     <script src="./audaz-bi-calendar.js?v=leads-seletores-20261108b"></script>
