@@ -95,6 +95,11 @@
                         Prospecção
                     </button>
 
+                    <button onclick="toggleAgendaSfModal()" id="btnAgendaSf" class="diretor-locked w-full mt-2 py-2 px-3 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border border-slate-700 transition duration-150" disabled>
+                        <i class="fa-solid fa-calendar-check text-violet-400"></i>
+                        Agendamentos
+                    </button>
+
                     <!-- Seletor de Intervalo de Auto-Atualização -->
                     <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                         <span class="flex items-center gap-1.5"><i class="fa-solid fa-rotate text-brand-500"></i> Atualizar a cada:</span>
@@ -1647,16 +1652,9 @@
                     <p class="text-slate-500">Data de Cadastro = dia em que o agendamento foi feito; Data = dia marcado para a visita.</p>
                     <p>Status: <span class="font-mono text-slate-300">agendada</span> · <span class="font-mono text-slate-300">compareceu</span> · <span class="font-mono text-slate-300">nao_compareceu</span></p>
                 </div>
-                <div class="bg-slate-950 p-3 rounded-lg border border-violet-500/30 text-[11px] text-slate-400 space-y-2">
-                    <p class="font-bold text-slate-300"><i class="fa-solid fa-cloud text-sky-400 mr-1"></i>Agendamentos do Salesforce (Excel)</p>
-                    <p>Exporte o relatório <span class="text-slate-300">"Agendamentos Produtos"</span> e anexe aqui (ou na janela de Prospecção — o BI reconhece). <b class="text-slate-300">Soma</b> à agenda: o que já estava continua; o mesmo agendamento (código AG) anexado de novo só é atualizado. <span class="text-slate-300">Visita Realizada</span> = compareceu. Agendamento que já está na planilha (mesmo corretor, dia e cliente) não conta 2x.</p>
-                    <div id="agendaSfInfo" class="text-[11px]"></div>
-                    <input type="file" id="agendaSfFileInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" onchange="handleAgendaSfFileInput(event)">
-                    <button onclick="document.getElementById('agendaSfFileInput').click()" class="w-full py-2 px-4 bg-slate-800 hover:bg-slate-700 text-violet-200 text-xs font-bold rounded-lg border border-violet-500/40 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-file-excel"></i> Anexar Excel de agendamentos (Salesforce)
-                    </button>
-                    <div id="agendaSfResumo" class="hidden rounded-lg border border-slate-800 bg-slate-900/60 p-2"></div>
-                </div>
+                <button onclick="toggleConnectionModal(); toggleAgendaSfModal()" class="w-full py-2 px-4 bg-slate-800 hover:bg-slate-700 text-violet-200 text-xs font-bold rounded-lg border border-violet-500/40 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-excel"></i> Agendamentos do Salesforce (Excel) — abrir janela
+                </button>
                 <button onclick="connectAgendaGoogleSheets()" class="w-full py-2.5 px-4 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-violet-500/20 transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-cloud-arrow-down"></i> Sincronizar Agenda
                 </button>
@@ -1832,6 +1830,36 @@
     </div>
 
     <!-- MODAL: PROSPECÇÃO (3ª planilha, upload manual de CSV — sem link ao vivo) -->
+    <!-- MODAL: AGENDAMENTOS DO SALESFORCE (Excel "Agendamentos Produtos") -->
+    <div id="agendaSfModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 relative shadow-2xl">
+            <button onclick="toggleAgendaSfModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="h-10 w-10 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-center justify-center text-violet-400">
+                    <i class="fa-solid fa-calendar-check text-lg"></i>
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-slate-200">Agendamentos e Visitas (Salesforce)</h4>
+                    <p class="text-xs text-slate-500">Excel do relatório "Agendamentos Produtos"</p>
+                </div>
+            </div>
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1 mb-4">
+                <p class="font-bold text-slate-300">Colunas usadas:</p>
+                <p class="font-mono text-violet-300">Corretor: Nome completo | Data Agendamento | Visita Realizada | Data da visita | Código do agendamento</p>
+                <p>O nome do corretor é ligado ao nome do BI. <b class="text-slate-300">Data Agendamento</b> conta em Agendamentos; com <b class="text-slate-300">Visita Realizada</b>, a <b class="text-slate-300">Data da visita</b> conta em Visitas (compareceu). Cada arquivo <b class="text-slate-300">soma</b> ao que já estava; o mesmo código AG anexado de novo só é atualizado; o que já está na planilha da Agenda não conta 2x.</p>
+            </div>
+            <input type="file" id="agendaSfFileInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" onchange="handleAgendaSfFileInput(event)">
+            <button onclick="document.getElementById('agendaSfFileInput').click()" class="w-full mb-3 py-2.5 px-4 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-violet-500/20 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-arrow-up"></i> Anexar Excel de agendamentos
+            </button>
+            <div id="agendaSfResumo" class="hidden mb-3 rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-[11px] text-slate-400"></div>
+            <div id="agendaSfInfo" class="text-[11px] mb-2"></div>
+            <div id="agendaSfTabela"></div>
+        </div>
+    </div>
+
     <div id="prospeccaoModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 relative shadow-2xl">
             <button onclick="toggleProspeccaoModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-200">
@@ -1917,7 +1945,7 @@
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
-    <script src="./audaz-bi-data.js?v=agenda-sf-20261111c"></script>
+    <script src="./audaz-bi-data.js?v=agenda-sf-20261111d"></script>
     <script src="./audaz-bi-filters.js?v=mes-por-data-20261108"></script>
     <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
     <script src="./audaz-bi-calendar.js?v=leads-seletores-20261108b"></script>
