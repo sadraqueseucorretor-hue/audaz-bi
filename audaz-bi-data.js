@@ -1839,6 +1839,8 @@
                         try {
                             const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
                             const ws = wb.Sheets[wb.SheetNames[0]];
+                            const matriz = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+                            if (ehExcelAgendamentosSf(matriz)) { applyAgendamentosSalesforce(matriz); return; }
                             const linhasXlsx = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
                             if (ehExcelC2S(linhasXlsx)) applyProspeccaoLeadsC2S(linhasXlsx);
                             else applyProspeccaoLeadsCrm(linhasXlsx);
@@ -3799,6 +3801,7 @@
             }
             // Lê as configurações compartilhadas do banco e abre o painel.
             startProspeccaoSync();
+            startAgendaSfSync();
             startCloudSync().then(function () {
                 if (!appBooted) { appBooted = true; bootApp(); }
             });
@@ -4088,6 +4091,7 @@
         function toggleConnectionModal() {
             const modal = document.getElementById('connectionModal');
             modal.classList.toggle('hidden');
+            renderAgendaSfInfo();
         }
 
         function connectGoogleSheets() {
@@ -4380,7 +4384,8 @@
         }
 
         function applyAgendaParsedRows(rows) {
-            agendaDataset = normalizeAgendaRows(rows);
+            agendaPlanilhaRows = normalizeAgendaRows(rows);
+            rebuildAgendaDataset();
             showToast("Agenda de Visitas sincronizada com sucesso!");
             applyFilters();
         }
@@ -4435,9 +4440,9 @@
         // Aplica um CSV recém-baixado da Agenda (auto-refresh silencioso): só re-renderiza se mudou.
         function applyAgendaRefreshedCSV(rows) {
             const normalizado = normalizeAgendaRows(rows);
-            const mudou = JSON.stringify(normalizado) !== JSON.stringify(agendaDataset);
-            agendaDataset = normalizado;
-            if (mudou) applyFilters();
+            const mudou = JSON.stringify(normalizado) !== JSON.stringify(agendaPlanilhaRows);
+            agendaPlanilhaRows = normalizado;
+            if (mudou) { rebuildAgendaDataset(); applyFilters(); }
         }
 
         function silentFetchAgendaFromGoogleSheets() {
@@ -4459,6 +4464,186 @@
             } catch (e) {
                 tryAgendaProxyFetch(agendaGsheetsUrl, true);
             }
+        }
+
+        // ===== AGENDAMENTOS DO SALESFORCE (Excel "Agendamentos Produtos", 11/11/2026) =====
+        // O relatório do Salesforce SOMA à Agenda de Visitas (planilha): nada do que já estava sai.
+        // Cada agendamento é guardado pelo código AG-... — anexar de novo só atualiza (ex.: a visita
+        // que passou a "realizada"). Vira linha no formato da Agenda: Data = Data Agendamento (dia
+        // marcado), Status compareceu quando "Visita Realizada" = verdadeiro (Data da visita = a do
+        // relatório), nao_compareceu quando o dia já passou sem visita, agendada quando ainda vai
+        // acontecer. Mesmo agendamento já lançado na planilha (mesmo corretor, mesmo dia, mesmo
+        // cliente) NÃO entra de novo — só promove a linha da planilha a "compareceu" se o Salesforce
+        // registrou a visita. Nuvem: prospeccao/agenda-salesforce (mesma regra da Prospecção:
+        // leitura pública, escrita com login), mapa { linhas: { 'AG-...': linha } }.
+        let agendaPlanilhaRows = [];
+        let agendaSalesforce = {};
+        try { const v = JSON.parse(localStorage.getItem(`${appId}-agenda-salesforce`) || '{}'); if (v && typeof v === 'object') agendaSalesforce = v; } catch (e) {}
+        let agendaSfUnsub = null;
+        const docAgendaSf = () => fbDb.collection('prospeccao').doc('agenda-salesforce');
+
+        const chaveClienteAgenda = n => stripDiacritics(String(n || '')).toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 2);
+        const mesmoClienteAgenda = (a, b) => { const x = chaveClienteAgenda(a), y = chaveClienteAgenda(b); return !!x[0] && x[0] === y[0] && (!x[1] || !y[1] || x[1] === y[1]); };
+        const isoDeData = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const brDeData = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+        function rebuildAgendaDataset() {
+            const planilha = (agendaPlanilhaRows || []).map(r => Object.assign({}, r));
+            const usadas = new Set();
+            const extras = [];
+            Object.values(agendaSalesforce || {}).forEach(sf => {
+                if (!sf || !sf.ID) return;
+                const i = planilha.findIndex((r, idx) => !usadas.has(idx) && r.Corretor === sf.Corretor
+                    && String(r.Data || '').slice(0, 10) === sf.Data && mesmoClienteAgenda(r.Cliente, sf.Cliente));
+                if (i < 0) { extras.push(Object.assign({}, sf)); return; }
+                usadas.add(i);
+                if (normalizeAgendaStatus(sf.Status) === 'compareceu' && !isCompareceu(planilha[i])) {
+                    planilha[i].Status = 'compareceu';
+                    if (sf['Data da visita']) planilha[i]['Data da visita'] = sf['Data da visita'];
+                    planilha[i]._visitaPeloSalesforce = sf.ID;
+                }
+            });
+            agendaDataset = planilha.concat(extras);
+        }
+
+        rebuildAgendaDataset(); // agendamentos do Salesforce já guardados aparecem mesmo sem a planilha da Agenda
+
+        function ehExcelAgendamentosSf(matriz) {
+            return (matriz || []).some(l => (l || []).some(c => String(c).trim() === 'Código do agendamento'));
+        }
+
+        function applyAgendamentosSalesforce(matriz) {
+            const iCab = matriz.findIndex(l => (l || []).some(c => String(c).trim() === 'Código do agendamento'));
+            if (iCab < 0) { showToast('Não achei a coluna "Código do agendamento" nesse Excel.', true); return false; }
+            const cab = matriz[iCab].map(c => stripDiacritics(String(c || '')).toLowerCase().replace(/\s+/g, ' ').trim());
+            const idx = nome => cab.indexOf(nome);
+            const pega = (l, nome) => { const i = idx(nome); return i < 0 ? '' : l[i]; };
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            const novas = {}, naoReconhecidos = new Set();
+            let semData = 0, visitas = 0;
+            matriz.slice(iCab + 1).forEach(l => {
+                const id = String(pega(l, 'codigo do agendamento') || '').trim();
+                if (!/^AG-/i.test(id)) return; // total, contagem, rodapé
+                const d = dataLeadCrm(pega(l, 'data agendamento'));
+                if (!d) { semData++; return; }
+                const bruto = String(pega(l, 'corretor: nome completo') || '').trim();
+                const map = mapearCorretorCrm(bruto);
+                if (bruto && !map.reconhecido) naoReconhecidos.add(map.nome);
+                const realizada = /^(true|verdadeiro|sim|1)$/i.test(String(pega(l, 'visita realizada')).trim());
+                const dv = realizada ? (dataLeadCrm(pega(l, 'data da visita')) || d) : null;
+                if (realizada) visitas++;
+                novas[id.toUpperCase()] = {
+                    'ID': id.toUpperCase(),
+                    'Corretor': map.nome,
+                    'Cliente': String(pega(l, 'conta: nome da conta') || '').trim(),
+                    'Data de Cadastro': brDeData(d),
+                    'Data': isoDeData(d),
+                    'Horário': '',
+                    'Empreendimento': String(pega(l, 'nome do empreendimento') || '').trim(),
+                    'Local': String(pega(l, 'pdv: nome do empreendimento') || '').trim(),
+                    'Situação': '',
+                    'Status': realizada ? 'compareceu' : (d < hoje ? 'nao_compareceu' : 'agendada'),
+                    'Data da visita': dv ? brDeData(dv) : '',
+                    'Observações': '',
+                    'Origem': 'Salesforce',
+                    'Origem da conta': String(pega(l, 'conta: origem da conta') || '').trim(),
+                    'Canal': String(pega(l, 'canal de vendas') || '').trim(),
+                    'Ranking': String(pega(l, 'conta: ranking') || '').trim()
+                };
+            });
+            const ids = Object.keys(novas);
+            if (!ids.length) { showToast('Nenhum agendamento (AG-...) com data nesse Excel.', true); return false; }
+            const jaTinha = ids.filter(id => agendaSalesforce[id]).length;
+            Object.assign(agendaSalesforce, novas);
+            saveLocalSetting(`${appId}-agenda-salesforce`, JSON.stringify(agendaSalesforce));
+            rebuildAgendaDataset();
+            const naPlanilha = ids.filter(id => !agendaDataset.some(r => r.ID === id)).length;
+            const promovidas = agendaDataset.filter(r => r._visitaPeloSalesforce && novas[r._visitaPeloSalesforce]).length;
+            applyFilters();
+            const salvou = enviarAgendaSfNuvem(novas);
+            const esc = t => String(t).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';');
+            const html = `<p><b class="text-slate-200">Agendamentos (Salesforce):</b> <b class="text-emerald-300">${ids.length - jaTinha}</b> novos`
+                + (jaTinha ? ` · <b class="text-sky-300">${jaTinha}</b> já existiam (atualizados)` : '')
+                + ` · <b class="text-cyan-300">${visitas}</b> com visita realizada`
+                + (naPlanilha ? ` · <b class="text-violet-300">${naPlanilha}</b> já estavam na Agenda (não contados de novo${promovidas ? `; ${promovidas} ${promovidas === 1 ? 'passou' : 'passaram'} a "compareceu" pelo Salesforce` : ''})` : '')
+                + (semData ? ` · <b class="text-rose-300">${semData}</b> sem data (ignorados)` : '') + '</p>'
+                + (naoReconhecidos.size
+                    ? `<p class="mt-1 text-amber-300"><i class="fa-solid fa-triangle-exclamation"></i> Corretores não encontrados no BI (entraram como estão): ${[...naoReconhecidos].map(esc).join(', ')}</p>`
+                    : '<p class="mt-1 text-emerald-400"><i class="fa-solid fa-check"></i> Todos os corretores foram reconhecidos.</p>')
+                + (salvou ? '' : '<p class="mt-1 text-amber-300"><i class="fa-solid fa-lock"></i> Sem login de diretor: ficou só neste navegador. Entre como diretor e anexe de novo pra valer em todos os aparelhos.</p>');
+            ['agendaSfResumo', 'prospeccaoImportResumo'].forEach(id => { const el = document.getElementById(id); if (el) { el.innerHTML = html; el.classList.remove('hidden'); } });
+            renderAgendaSfInfo();
+            showToast(`Agendamentos do Salesforce: ${ids.length} lidos (${visitas} com visita).`);
+            return true;
+        }
+
+        function enviarAgendaSfNuvem(parcial) {
+            if (!fbDb || !isDiretor) return false;
+            docAgendaSf().set({ tipo: 'agenda-salesforce', linhas: parcial, _updatedAt: Date.now() }, { merge: true })
+                .catch(err => { console.warn('Agenda Salesforce (nuvem):', err); showToast('Não foi possível salvar os agendamentos na nuvem — ficaram neste navegador.', true); });
+            return true;
+        }
+
+        function startAgendaSfSync() {
+            if (!fbDb || agendaSfUnsub) return;
+            agendaSfUnsub = docAgendaSf().onSnapshot(snap => {
+                if (snap.metadata && snap.metadata.fromCache && !snap.exists) return;
+                const linhas = (snap.exists && snap.data() && snap.data().linhas) || {};
+                // Nuvem prevalece; o que só existe aqui (anexado sem login) continua.
+                const juntas = Object.assign({}, agendaSalesforce, linhas);
+                if (JSON.stringify(juntas) === JSON.stringify(agendaSalesforce)) return;
+                agendaSalesforce = juntas;
+                saveLocalSetting(`${appId}-agenda-salesforce`, JSON.stringify(agendaSalesforce));
+                rebuildAgendaDataset();
+                renderAgendaSfInfo();
+                if (typeof applyFilters === 'function' && appBooted) applyFilters();
+            }, err => { agendaSfUnsub = null; console.warn('Agenda Salesforce (nuvem) leitura:', err); });
+        }
+
+        function apagarAgendaSalesforce() {
+            const n = Object.keys(agendaSalesforce).length;
+            if (!n || !confirm(`Apagar os ${n} agendamentos importados do Salesforce? A Agenda de Visitas (planilha) não é afetada.`)) return;
+            agendaSalesforce = {};
+            saveLocalSetting(`${appId}-agenda-salesforce`, '{}');
+            if (fbDb && isDiretor) docAgendaSf().set({ tipo: 'agenda-salesforce', linhas: {}, _updatedAt: Date.now() })
+                .catch(err => console.warn('Agenda Salesforce (apagar):', err));
+            rebuildAgendaDataset();
+            renderAgendaSfInfo();
+            applyFilters();
+            showToast('Agendamentos do Salesforce removidos.');
+        }
+
+        function renderAgendaSfInfo() {
+            const el = document.getElementById('agendaSfInfo');
+            if (!el) return;
+            const linhas = Object.values(agendaSalesforce);
+            if (!linhas.length) { el.innerHTML = '<span class="text-slate-500">Nenhum agendamento do Salesforce importado ainda.</span>'; return; }
+            const vis = linhas.filter(r => normalizeAgendaStatus(r.Status) === 'compareceu').length;
+            const datas = linhas.map(r => r.Data).filter(Boolean).sort();
+            const br = iso => iso ? iso.split('-').reverse().join('/') : '';
+            el.innerHTML = `<span class="text-slate-300"><b>${linhas.length}</b> agendamentos importados · <b>${vis}</b> com visita · ${br(datas[0])} a ${br(datas[datas.length - 1])}</span>
+                <button onclick="apagarAgendaSalesforce()" class="ml-2 text-[10px] font-bold text-rose-300 hover:text-rose-200"><i class="fa-solid fa-trash-can mr-1"></i>Apagar importados</button>`;
+        }
+
+        function handleAgendaSfFileInput(evt) {
+            const file = evt.target.files && evt.target.files[0];
+            if (!file) return;
+            evt.target.value = '';
+            lerExcelMatriz(file).then(m => { if (m) applyAgendamentosSalesforce(m); });
+        }
+
+        function lerExcelMatriz(file) {
+            return carregarSheetJs().then(() => new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    try {
+                        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+                        resolve(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: true }));
+                    } catch (err) { console.warn('Falha ao ler Excel:', err); showToast('Não foi possível ler esse Excel.', true); resolve(null); }
+                };
+                reader.onerror = () => { showToast('Não foi possível ler esse arquivo.', true); resolve(null); };
+                reader.readAsArrayBuffer(file);
+            })).catch(() => { showToast('Não deu pra carregar o leitor de Excel (sem internet?).', true); return null; });
         }
 
         function updateSyncStatusUI(status) {
