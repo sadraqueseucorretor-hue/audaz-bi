@@ -4477,6 +4477,13 @@
         // leitura pública, escrita com login), mapa { linhas: { 'AG-...': linha } }.
         let agendaPlanilhaRows = [];
         let agendaSalesforce = {};
+        // Decisão do usuário (11/11/2026): os agendamentos do Salesforce valem A PARTIR do mês
+        // comercial de Novembro/2026 (início configurado em "Meses Comerciais"; 10/11 se não houver).
+        // Antes disso continua só a planilha da Agenda — linhas anteriores do Excel são ignoradas.
+        function inicioAgendaSalesforce() {
+            const cfg = typeof getMesComercialConfig === 'function' ? getMesComercialConfig('Novembro', 2026) : null;
+            return (cfg && cfg.inicio) || '2026-11-10';
+        }
         try { const v = JSON.parse(localStorage.getItem(`${appId}-agenda-salesforce`) || '{}'); if (v && typeof v === 'object') agendaSalesforce = v; } catch (e) {}
         let agendaSfUnsub = null;
         const docAgendaSf = () => fbDb.collection('prospeccao').doc('agenda-salesforce');
@@ -4490,8 +4497,9 @@
             const planilha = (agendaPlanilhaRows || []).map(r => Object.assign({}, r));
             const usadas = new Set();
             const extras = [];
+            const inicioSf = inicioAgendaSalesforce();
             Object.values(agendaSalesforce || {}).forEach(sf => {
-                if (!sf || !sf.ID) return;
+                if (!sf || !sf.ID || String(sf.Data || '') < inicioSf) return;
                 const i = planilha.findIndex((r, idx) => !usadas.has(idx) && r.Corretor === sf.Corretor
                     && String(r.Data || '').slice(0, 10) === sf.Data && mesmoClienteAgenda(r.Cliente, sf.Cliente));
                 if (i < 0) { extras.push(Object.assign({}, sf)); return; }
@@ -4519,12 +4527,14 @@
             const pega = (l, nome) => { const i = idx(nome); return i < 0 ? '' : l[i]; };
             const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
             const novas = {}, naoReconhecidos = new Set();
-            let semData = 0, visitas = 0;
+            let semData = 0, visitas = 0, antesDoInicio = 0;
+            const inicioSf = inicioAgendaSalesforce();
             matriz.slice(iCab + 1).forEach(l => {
                 const id = String(pega(l, 'codigo do agendamento') || '').trim();
                 if (!/^AG-/i.test(id)) return; // total, contagem, rodapé
                 const d = dataLeadCrm(pega(l, 'data agendamento'));
                 if (!d) { semData++; return; }
+                if (isoDeData(d) < inicioSf) { antesDoInicio++; return; }
                 const bruto = String(pega(l, 'corretor: nome completo') || '').trim();
                 const map = mapearCorretorCrm(bruto);
                 if (bruto && !map.reconhecido) naoReconhecidos.add(map.nome);
@@ -4551,7 +4561,11 @@
                 };
             });
             const ids = Object.keys(novas);
-            if (!ids.length) { showToast('Nenhum agendamento (AG-...) com data nesse Excel.', true); return false; }
+            const brInicio = inicioSf.split('-').reverse().join('/');
+            if (!ids.length) {
+                showToast(antesDoInicio ? `Nenhum agendamento a partir de ${brInicio} (início de Novembro) — os ${antesDoInicio} desse Excel são anteriores e continuam pela planilha da Agenda.` : 'Nenhum agendamento (AG-...) com data nesse Excel.', true);
+                return false;
+            }
             const jaTinha = ids.filter(id => agendaSalesforce[id]).length;
             Object.assign(agendaSalesforce, novas);
             saveLocalSetting(`${appId}-agenda-salesforce`, JSON.stringify(agendaSalesforce));
@@ -4565,7 +4579,8 @@
                 + (jaTinha ? ` · <b class="text-sky-300">${jaTinha}</b> já existiam (atualizados)` : '')
                 + ` · <b class="text-cyan-300">${visitas}</b> com visita realizada`
                 + (naPlanilha ? ` · <b class="text-violet-300">${naPlanilha}</b> já estavam na Agenda (não contados de novo${promovidas ? `; ${promovidas} ${promovidas === 1 ? 'passou' : 'passaram'} a "compareceu" pelo Salesforce` : ''})` : '')
-                + (semData ? ` · <b class="text-rose-300">${semData}</b> sem data (ignorados)` : '') + '</p>'
+                + (semData ? ` · <b class="text-rose-300">${semData}</b> sem data (ignorados)` : '')
+                + (antesDoInicio ? ` · <b class="text-slate-300">${antesDoInicio}</b> antes de ${brInicio} (ignorados: até lá vale a planilha da Agenda)` : '') + '</p>'
                 + (naoReconhecidos.size
                     ? `<p class="mt-1 text-amber-300"><i class="fa-solid fa-triangle-exclamation"></i> Corretores não encontrados no BI (entraram como estão): ${[...naoReconhecidos].map(esc).join(', ')}</p>`
                     : '<p class="mt-1 text-emerald-400"><i class="fa-solid fa-check"></i> Todos os corretores foram reconhecidos.</p>')
@@ -4624,7 +4639,7 @@
         function renderAgendaSfTabela() {
             const el = document.getElementById('agendaSfTabela');
             if (!el) return;
-            const linhas = Object.values(agendaSalesforce);
+            const linhas = Object.values(agendaSalesforce).filter(r => r && String(r.Data || '') >= inicioAgendaSalesforce());
             if (!linhas.length) { el.innerHTML = ''; return; }
             const mesDe = v => { const d = parseDate(v); if (!d) return ''; const m = mesComercialDaDataProspeccao(d); return m; };
             const nomeMes = k => { const [a, m] = k.split('/'); return `${getMesName(+m)}/${a}`; };
@@ -4654,7 +4669,7 @@
             renderAgendaSfTabela();
             const el = document.getElementById('agendaSfInfo');
             if (!el) return;
-            const linhas = Object.values(agendaSalesforce);
+            const linhas = Object.values(agendaSalesforce).filter(r => r && String(r.Data || '') >= inicioAgendaSalesforce());
             if (!linhas.length) { el.innerHTML = '<span class="text-slate-500">Nenhum agendamento do Salesforce importado ainda.</span>'; return; }
             const vis = linhas.filter(r => normalizeAgendaStatus(r.Status) === 'compareceu').length;
             const datas = linhas.map(r => r.Data).filter(Boolean).sort();
