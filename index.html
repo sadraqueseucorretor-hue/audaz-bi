@@ -1848,7 +1848,7 @@
             <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400 space-y-1 mb-4">
                 <p class="font-bold text-slate-300">Colunas usadas:</p>
                 <p class="font-mono text-violet-300">Corretor: Nome completo | Data Agendamento | Visita Realizada | Data da visita | Código do agendamento</p>
-                <p>O nome do corretor é ligado ao nome do BI. <b class="text-slate-300">Data Agendamento</b> conta em Agendamentos; com <b class="text-slate-300">Visita Realizada</b>, a <b class="text-slate-300">Data da visita</b> conta em Visitas (compareceu). Vale <b class="text-slate-300">a partir do mês comercial de Novembro/2026</b> (antes disso continua a planilha da Agenda). Cada arquivo <b class="text-slate-300">soma</b> ao que já estava; o mesmo código AG anexado de novo só é atualizado; o que já está na planilha da Agenda não conta 2x.</p>
+                <p>O nome do corretor é ligado ao nome do BI. <b class="text-slate-300">Data Agendamento</b> conta em Agendamentos; com <b class="text-slate-300">Visita Realizada</b>, a <b class="text-slate-300">Data da visita</b> conta em Visitas (compareceu). Vale <b class="text-slate-300">a partir do mês comercial de Novembro/2026</b> (antes disso continua a planilha da Agenda; de Novembro em diante só o que estiver no Excel conta). Cada arquivo <b class="text-slate-300">soma</b> ao que já estava; o mesmo código AG anexado de novo só é atualizado; o que já está na planilha da Agenda não conta 2x.</p>
             </div>
             <input type="file" id="agendaSfFileInput" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="hidden" onchange="handleAgendaSfFileInput(event)">
             <button onclick="document.getElementById('agendaSfFileInput').click()" class="w-full mb-3 py-2.5 px-4 bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-xs font-bold rounded-lg shadow-lg shadow-violet-500/20 transition flex items-center justify-center gap-2">
@@ -1945,7 +1945,7 @@
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
-    <script src="./audaz-bi-data.js?v=agenda-sf-20261111f"></script>
+    <script src="./audaz-bi-data.js?v=agenda-sf-20261111g"></script>
     <script src="./audaz-bi-filters.js?v=mes-por-data-20261108"></script>
     <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
     <script src="./audaz-bi-calendar.js?v=leads-seletores-20261108b"></script>
