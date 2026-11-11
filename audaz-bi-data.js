@@ -4091,7 +4091,6 @@
         function toggleConnectionModal() {
             const modal = document.getElementById('connectionModal');
             modal.classList.toggle('hidden');
-            renderAgendaSfInfo();
         }
 
         function connectGoogleSheets() {
@@ -4613,7 +4612,46 @@
             showToast('Agendamentos do Salesforce removidos.');
         }
 
+        function toggleAgendaSfModal() {
+            const m = document.getElementById('agendaSfModal');
+            if (!m) return;
+            m.classList.toggle('hidden');
+            if (!m.classList.contains('hidden')) renderAgendaSfInfo();
+        }
+
+        // Resumo por corretor do que está importado (por mês comercial da data): Agendamentos pela
+        // Data Agendamento, Visitas pela Data da visita — aparece logo depois de anexar.
+        function renderAgendaSfTabela() {
+            const el = document.getElementById('agendaSfTabela');
+            if (!el) return;
+            const linhas = Object.values(agendaSalesforce);
+            if (!linhas.length) { el.innerHTML = ''; return; }
+            const mesDe = v => { const d = parseDate(v); if (!d) return ''; const m = mesComercialDaDataProspeccao(d); return m; };
+            const nomeMes = k => { const [a, m] = k.split('/'); return `${getMesName(+m)}/${a}`; };
+            const porMes = {};
+            linhas.forEach(r => {
+                const mA = mesDe(r['Data de Cadastro']);
+                if (mA) { const t = ((porMes[mA] = porMes[mA] || {})[r.Corretor || 'Sem corretor'] = (porMes[mA] || {})[r.Corretor || 'Sem corretor'] || { ag: 0, vi: 0 }); t.ag++; }
+                if (normalizeAgendaStatus(r.Status) === 'compareceu') {
+                    const mV = mesDe(r['Data da visita'] || r['Data de Cadastro']);
+                    if (mV) { const t = ((porMes[mV] = porMes[mV] || {})[r.Corretor || 'Sem corretor'] = (porMes[mV] || {})[r.Corretor || 'Sem corretor'] || { ag: 0, vi: 0 }); t.vi++; }
+                }
+            });
+            const esc = t => String(t).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';');
+            el.innerHTML = Object.keys(porMes).sort().reverse().map(mes => {
+                const corr = porMes[mes];
+                const nomes = Object.keys(corr).sort((a, b) => corr[b].ag - corr[a].ag || a.localeCompare(b, 'pt-BR'));
+                const tot = nomes.reduce((t, n) => ({ ag: t.ag + corr[n].ag, vi: t.vi + corr[n].vi }), { ag: 0, vi: 0 });
+                return `<div class="mb-3 rounded-lg border border-slate-800 overflow-hidden">
+                    <div class="px-3 py-1.5 bg-slate-950 text-[11px] font-bold text-slate-300 flex justify-between"><span>${esc(nomeMes(mes))}</span><span class="text-slate-500">importados do Salesforce</span></div>
+                    <table class="w-full text-[11px]"><thead><tr class="text-[10px] uppercase tracking-wider text-slate-500"><th class="text-left px-3 py-1">Corretor</th><th class="px-2 py-1 text-center">Agendamentos</th><th class="px-2 py-1 text-center">Visitas</th></tr></thead>
+                    <tbody>${nomes.map(n => `<tr class="border-t border-slate-800/60"><td class="px-3 py-1 text-slate-200">${esc(n)}</td><td class="px-2 py-1 text-center font-bold text-violet-300">${corr[n].ag}</td><td class="px-2 py-1 text-center font-bold text-cyan-300">${corr[n].vi}</td></tr>`).join('')}
+                    <tr class="border-t border-slate-700 bg-slate-950/60 font-black"><td class="px-3 py-1 text-slate-300">Total</td><td class="px-2 py-1 text-center text-violet-200">${tot.ag}</td><td class="px-2 py-1 text-center text-cyan-200">${tot.vi}</td></tr></tbody></table></div>`;
+            }).join('');
+        }
+
         function renderAgendaSfInfo() {
+            renderAgendaSfTabela();
             const el = document.getElementById('agendaSfInfo');
             if (!el) return;
             const linhas = Object.values(agendaSalesforce);
