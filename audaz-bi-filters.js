@@ -1017,6 +1017,7 @@
                 nome: `Funil — ${label}`,
                 dataStr: `${getMesName(refDate.getMonth() + 1)}/${refDate.getFullYear()}`,
                 rows, showCorretor: true,
+                atualizar: metrica === 'prospeccao' ? 'prospeccao' : (isAgendaMetrica ? 'agenda' : ''),
                 totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
             });
         }
@@ -1150,6 +1151,7 @@
                 nome: `Hoje — ${labels[etapaKey] || etapaKey}`,
                 dataStr: hojeReal.toLocaleDateString('pt-BR'),
                 rows, showCorretor: true,
+                atualizar: etapaKey === 'prospeccao' ? 'prospeccao' : ((etapaKey === 'agendamentos' || etapaKey === 'compareceu') ? 'agenda' : ''),
                 totalLabel: `${rows.length} ${rows.length === 1 ? 'cliente' : 'clientes'}`
             });
         }
