@@ -1485,6 +1485,10 @@
                     <h4 class="text-base font-bold text-slate-200" id="detailModalTitle">Detalhamento de Produção</h4>
                     <p class="text-xs text-slate-400" id="detailModalSubtitle">Corretor e Data selecionados</p>
                 </div>
+                <!-- Atalho pro anexo (mesmo da barra lateral) — só diretor, só Prospecção/Agendamentos do funil -->
+                <button id="detailAtualizarBtn" type="button" onclick="abrirAtualizacaoDetail()" class="hidden ml-auto mr-8 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-bold border border-slate-700 transition items-center gap-1.5">
+                    <i class="fa-solid fa-file-arrow-up text-emerald-400"></i> <span id="detailAtualizarTxt">Atualizar</span>
+                </button>
             </div>
 
             <!-- Corpo de Informações -->
@@ -1946,9 +1950,9 @@
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
     <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
     <script src="./audaz-bi-data.js?v=agenda-sf-20261111g"></script>
-    <script src="./audaz-bi-filters.js?v=mes-por-data-20261108"></script>
+    <script src="./audaz-bi-filters.js?v=funil-atualizar-20261111"></script>
     <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
-    <script src="./audaz-bi-calendar.js?v=leads-seletores-20261108b"></script>
+    <script src="./audaz-bi-calendar.js?v=funil-atualizar-20261111"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
     <script src="./audaz-bi-calc.js?v=calc-20261031"></script>
     <script src="./audaz-bi-lousa.js?v=lousa-20261104e"></script>
