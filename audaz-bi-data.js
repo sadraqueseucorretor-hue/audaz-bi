@@ -3802,6 +3802,7 @@
             // Lê as configurações compartilhadas do banco e abre o painel.
             startProspeccaoSync();
             startAgendaSfSync();
+            startAgendaConfereSync();
             startCloudSync().then(function () {
                 if (!appBooted) { appBooted = true; bootApp(); }
             });
@@ -4488,6 +4489,53 @@
         let agendaSfUnsub = null;
         const docAgendaSf = () => fbDb.collection('prospeccao').doc('agenda-salesforce');
 
+        // Confere manual da visita (diretor marca "Veio" / "Não veio" no detalhe da Agenda).
+        // Fica em prospeccao/agenda-confere = { marcas: { chave: { st, em } } }. Se a planilha ou o
+        // Excel do Salesforce já dizem "compareceu", vale a fonte — o confere só decide o resto.
+        let agendaConfere = {};
+        let agendaConfereUnsub = null;
+        try { const v = JSON.parse(localStorage.getItem(`${appId}-agenda-confere`) || '{}'); if (v && typeof v === 'object') agendaConfere = v; } catch (e) {}
+        const docAgendaConfere = () => fbDb.collection('prospeccao').doc('agenda-confere');
+        function chaveConfereAgenda(r) {
+            const id = String(r.ID || '').trim();
+            if (/^AG-/i.test(id)) return id;
+            if (id) return 'PL-' + id;
+            return 'X-' + stripDiacritics([r.Corretor, String(r.Data || '').slice(0, 10), r.Cliente].join('|')).toLowerCase().replace(/[^a-z0-9|-]+/g, '');
+        }
+        function aplicarConfereAgenda(rows) {
+            rows.forEach(r => {
+                const chave = chaveConfereAgenda(r);
+                Object.defineProperty(r, '_chaveConfere', { value: chave, enumerable: false, configurable: true, writable: true });
+                const m = agendaConfere[chave];
+                if (!m || !m.st || normalizeAgendaStatus(r.Status) === 'compareceu') return;
+                Object.defineProperty(r, '_statusFonte', { value: r.Status, enumerable: false, configurable: true, writable: true });
+                Object.defineProperty(r, '_confereManual', { value: m.st, enumerable: false, configurable: true, writable: true });
+                r.Status = m.st;
+            });
+        }
+        function marcarConfereAgenda(chave, st) {
+            if (!isDiretor) { showToast('Entre como diretor pra conferir a visita.', true); return false; }
+            if (st) agendaConfere[chave] = { st, em: new Date().toISOString() }; else delete agendaConfere[chave];
+            saveLocalSetting(`${appId}-agenda-confere`, JSON.stringify(agendaConfere));
+            if (fbDb) docAgendaConfere().set({ tipo: 'agenda-confere', marcas: { [chave]: st ? agendaConfere[chave] : firebase.firestore.FieldValue.delete() }, _updatedAt: Date.now() }, { merge: true })
+                .catch(err => { console.warn('Confere da agenda (nuvem):', err); showToast('Não foi possível salvar o confere na nuvem — ficou neste navegador.', true); });
+            rebuildAgendaDataset();
+            if (typeof applyFilters === 'function' && appBooted) applyFilters();
+            return true;
+        }
+        function startAgendaConfereSync() {
+            if (!fbDb || agendaConfereUnsub) return;
+            agendaConfereUnsub = docAgendaConfere().onSnapshot(snap => {
+                if (snap.metadata && snap.metadata.fromCache && !snap.exists) return;
+                const marcas = (snap.exists && snap.data() && snap.data().marcas) || {};
+                if (JSON.stringify(marcas) === JSON.stringify(agendaConfere)) return;
+                agendaConfere = marcas;
+                saveLocalSetting(`${appId}-agenda-confere`, JSON.stringify(agendaConfere));
+                rebuildAgendaDataset();
+                if (typeof applyFilters === 'function' && appBooted) applyFilters();
+            }, err => { agendaConfereUnsub = null; console.warn('Confere da agenda (nuvem) leitura:', err); });
+        }
+
         const chaveClienteAgenda = n => stripDiacritics(String(n || '')).toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 2);
         const mesmoClienteAgenda = (a, b) => { const x = chaveClienteAgenda(a), y = chaveClienteAgenda(b); return !!x[0] && x[0] === y[0] && (!x[1] || !y[1] || x[1] === y[1]); };
         const isoDeData = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -4514,6 +4562,7 @@
                 }
             });
             agendaDataset = planilha.concat(extras);
+            aplicarConfereAgenda(agendaDataset);
         }
 
         rebuildAgendaDataset(); // agendamentos do Salesforce já guardados aparecem mesmo sem a planilha da Agenda
