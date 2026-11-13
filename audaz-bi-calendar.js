@@ -478,11 +478,48 @@ const CAL_METRICS = {
         // Filtros da venda (combinam com Status/Construtora/busca): Venda (Finalizadas × Informadas,
         // mesma regra do toggle do painel), Etapa ("Situação - Ganho" sem o "Ganho - ") e os seletores
         // de Equipe, Corretor e Empreendimento. Cada opção conta o que passa nos OUTROS filtros.
-        let detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '' };
+        let detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '', visita: '' };
         const chaveProd = v => stripDiacritics(String(v || '').trim()).toLowerCase().replace(/\s+/g, ' ');
         const etapaVenda = r => isGanho(r) ? String(r['Situação - Ganho'] || '').replace(/^\s*Ganho\s*-\s*/i, '').trim() : '';
         const tipoVenda = r => !isGanho(r) ? '' : (/venda informada/i.test(r['Situação - Ganho'] || '') ? 'informadas' : 'finalizadas');
+        // Situação da VISITA do cliente de uma análise/venda: cruza o nome do cliente com a Agenda
+        // (planilha + Salesforce + confere manual). Vários agendamentos do mesmo nome → vale o melhor
+        // (Visitou > Agendado > Não compareceu), e no empate o mais recente.
+        const nomeClienteChave = v => stripDiacritics(String(v || '')).toLowerCase().replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim();
+        const VISITA_INFO = {
+            visitou: { nome: 'Visitou', icone: 'fa-user-check', cor: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' },
+            agendado: { nome: 'Agendado', icone: 'fa-calendar-check', cor: 'bg-violet-500/15 text-violet-300 border-violet-500/30' },
+            nao_compareceu: { nome: 'Não compareceu', icone: 'fa-user-xmark', cor: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
+            sem: { nome: 'Sem agendamento', icone: 'fa-minus', cor: 'bg-slate-800 text-slate-400 border-slate-700' }
+        };
+        let visitaIdx = null, visitaIdxBase = null, visitaIdxConfere = '';
+        function indiceVisitas() {
+            const base = typeof agendaDataset !== 'undefined' ? agendaDataset : [];
+            const conf = typeof agendaConfere !== 'undefined' ? JSON.stringify(agendaConfere) : '';
+            if (visitaIdx && visitaIdxBase === base && visitaIdxConfere === conf) return visitaIdx;
+            const peso = { visitou: 3, agendado: 2, nao_compareceu: 1 };
+            const kDe = row => ({ compareceu: 'visitou', agendada: 'agendado', nao_compareceu: 'nao_compareceu' })[statusProd(row)];
+            visitaIdx = new Map();
+            base.forEach(row => {
+                const nome = nomeClienteChave(row.Cliente); if (!nome) return;
+                const k = kDe(row), atual = visitaIdx.get(nome);
+                if (!atual || peso[k] > peso[atual.k] || (peso[k] === peso[atual.k] && String(row.Data || '') > String(atual.row.Data || ''))) visitaIdx.set(nome, { k, row });
+            });
+            visitaIdxBase = base; visitaIdxConfere = conf;
+            return visitaIdx;
+        }
+        function visitaCliente(r) {
+            if (ehAgendaProd(r)) return { k: '' };
+            return indiceVisitas().get(nomeClienteChave(r.Cliente)) || { k: 'sem' };
+        }
+        function seloVisita(r) {
+            const v = visitaCliente(r); if (!v.k || v.k === 'sem') return '';
+            const dt = v.k === 'visitou' ? (String(v.row['Data da visita'] || '').split(' ')[0] || dataAgendaBr(v.row.Data)) : dataAgendaBr(v.row.Data);
+            const info = VISITA_INFO[v.k];
+            return `<div class="mt-1"><span title="Agenda: ${escDet(v.row.Corretor || '')}${v.row.Empreendimento ? ' · ' + escDet(v.row.Empreendimento) : ''}" class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide rounded border px-1.5 py-0.5 ${info.cor}"><i class="fa-solid ${info.icone}"></i>${info.nome}${dt ? ' ' + escDet(dt.slice(0, 5)) : ''}</span></div>`;
+        }
         const DIMS_PROD = {
+            visita: r => visitaCliente(r).k,
             venda: tipoVenda,
             etapa: r => chaveProd(etapaVenda(r)),
             equipe: r => chaveProd(equipeProd(r)),
@@ -538,6 +575,12 @@ const CAL_METRICS = {
                         ${ks.map(k => `<option value="${escDet(k)}" ${detailProdFiltros[dim] === k ? 'selected' : ''}>${escDet(rot[k])} (${cont[k]})</option>`).join('')}
                     </select></label>`;
             };
+            // Visita (só análises/vendas): Agendado / Visitou / Não compareceu / Sem agendamento
+            const baseVi = baseDim('visita').filter(r => !ehAgendaProd(r));
+            const contVi = {}; baseVi.forEach(r => { const k = visitaCliente(r).k; contVi[k] = (contVi[k] || 0) + 1; });
+            const vit = baseVi.length ? chip('filtrarDetailProdDim', "visita','", !detailProdFiltros.visita, 'Todos', baseVi.length, CHIP_NEUTRO)
+                + ['agendado', 'visitou', 'nao_compareceu', 'sem'].filter(k => contVi[k] || detailProdFiltros.visita === k).map(k => chip('filtrarDetailProdDim', `visita','${k}`, detailProdFiltros.visita === k, `<i class="fa-solid ${VISITA_INFO[k].icone} mr-1"></i>${VISITA_INFO[k].nome}`, contVi[k] || 0, VISITA_INFO[k].cor)).join('') : '';
+
             const seletores = [seletor('equipe', 'Equipe', 'Equipe'), seletor('corretor', 'Corretor', 'Corretor'), seletor('empreendimento', 'Empreend.', 'Empreendimento')].filter(Boolean).join('');
             const limpar = haFiltroProd() ? `<button onclick="limparFiltrosDetailProd()" class="text-[10px] font-bold text-rose-300 hover:text-rose-200 px-2 py-1"><i class="fa-solid fa-xmark mr-1"></i>Limpar filtros</button>` : '';
 
@@ -547,7 +590,7 @@ const CAL_METRICS = {
                 ${(vis.length && vis.every(ehAgendaProd) ? ['agendada', 'compareceu', 'nao_compareceu'] : ['venda', 'aprovado', 'pendente', 'reprovado']).map(k => { const n = vis.filter(r => statusProd(r) === k).length; return `<div class="rounded-lg border ${STATUS_PROD[k].cor} px-2.5 py-1"><div class="text-[9px] uppercase font-bold tracking-wider opacity-80"><i class="fa-solid ${STATUS_PROD[k].icone} mr-1"></i>${STATUS_PROD[k].nome}</div><div class="text-base font-black text-white leading-tight">${n}</div></div>`; }).join('')}
             </div>${vgv > 0 ? `<div class="text-[11px] text-slate-400 mb-1">VGV do recorte: <b class="text-indigo-300">${formatCurrency(vgv)}</b></div>` : ''}`;
 
-            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${resumo}${linha('Status', st)}${ven ? linha('Venda', ven) : ''}${eks.length > 2 ? linha('Etapa', eta) : ''}${cks.length > 1 ? linha('Construtora', co) : ''}${seletores || limpar ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">${seletores}${limpar}</div>` : ''}</div>`;
+            el.innerHTML = `<div class="w-full space-y-1.5 bg-slate-950/50 border border-slate-800 rounded-lg p-2">${resumo}${linha('Status', st)}${vit ? linha('Visita', vit) : ''}${ven ? linha('Venda', ven) : ''}${eks.length > 2 ? linha('Etapa', eta) : ''}${cks.length > 1 ? linha('Construtora', co) : ''}${seletores || limpar ? `<div class="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-0.5">${seletores}${limpar}</div>` : ''}</div>`;
         }
         function renderDetailProdRows() {
             const tableBody = document.getElementById('detailTableBody');
@@ -581,6 +624,7 @@ const CAL_METRICS = {
                             <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide rounded border px-1.5 py-0.5 ${STATUS_PROD[k].cor}"><i class="fa-solid ${STATUS_PROD[k].icone}"></i>${k === 'venda' ? 'Venda' : agenda ? { agendada: 'Agendada', compareceu: 'Compareceu', nao_compareceu: 'Não compareceu' }[k] : escDet(sit)}</span>
                             ${agenda && sit && sit !== '-' ? `<div class="text-[9px] text-slate-500 mt-1">${escDet(sit)}</div>` : ''}
                             ${agenda && r['Observações'] ? `<div class="text-[9px] text-slate-500 mt-0.5 max-w-[180px]">${escDet(r['Observações'])}</div>` : ''}
+                            ${agenda ? confereHtml(r, k) : seloVisita(r)}
                             ${k === 'venda' && sit && sit !== '-' ? `<div class="text-[9px] text-slate-500 mt-1">${escDet(sit)}</div>` : ''}
                             ${k === 'venda' && r['Situação - Ganho'] ? `<div class="text-[9px] text-emerald-400/70 mt-0.5">${escDet(r['Situação - Ganho'])}</div>` : ''}
                         </td>
@@ -592,6 +636,26 @@ const CAL_METRICS = {
             else if (total && detailProdTotalLabel) total.textContent = detailProdTotalLabel;
         }
         let detailProdTotalLabel = '';
+        // Confere manual da visita na linha da Agenda: diretor marca Veio / Não veio. Se a fonte
+        // (planilha ou Excel do Salesforce) já diz "compareceu", mostra a origem e não deixa mudar.
+        function confereHtml(r, k) {
+            const chave = r._chaveConfere; if (!chave) return '';
+            const pode = typeof isDiretor !== 'undefined' && isDiretor;
+            const btn = (st, rot, cor) => `<button onclick="conferirVisita('${encodeURIComponent(chave)}','${st}')" class="text-[9px] font-bold px-1.5 py-0.5 rounded border ${cor} hover:opacity-100 opacity-80">${rot}</button>`;
+            if (r._confereManual) return `<div class="mt-1 text-[9px] text-amber-300/80"><i class="fa-solid fa-pen mr-1"></i>Conferido no BI</div>`
+                + (pode ? `<div class="flex gap-1 mt-0.5">${r._confereManual === 'compareceu' ? btn('nao_compareceu', 'Não veio', 'border-rose-500/40 text-rose-300') : btn('compareceu', 'Veio', 'border-cyan-500/40 text-cyan-300')}${btn('', 'Desfazer', 'border-slate-600 text-slate-300')}</div>` : '');
+            if (k === 'compareceu') return `<div class="mt-1 text-[9px] text-slate-500"><i class="fa-solid fa-file-lines mr-1"></i>${/^AG-/i.test(r.ID || '') || r._visitaPeloSalesforce ? 'Pelo Salesforce' : 'Pela planilha'}</div>`;
+            return pode ? `<div class="flex gap-1 mt-1">${btn('compareceu', '<i class="fa-solid fa-check mr-0.5"></i>Veio', 'border-cyan-500/40 text-cyan-300')}${k !== 'nao_compareceu' ? btn('nao_compareceu', '<i class="fa-solid fa-xmark mr-0.5"></i>Não veio', 'border-rose-500/40 text-rose-300') : ''}</div>` : '';
+        }
+        function conferirVisita(chaveEnc, st) {
+            const chave = decodeURIComponent(chaveEnc);
+            if (!marcarConfereAgenda(chave, st)) return;
+            // O modal guarda as linhas antigas: troca pelas novas (com o status conferido).
+            const nova = (agendaDataset || []).find(x => x._chaveConfere === chave);
+            if (nova) detailProdTodos = detailProdTodos.map(x => (ehAgendaProd(x) && x._chaveConfere === chave) ? nova : x);
+            aplicarFiltrosDetailProd();
+            showToast(st ? (st === 'compareceu' ? 'Marcado: compareceu.' : 'Marcado: não compareceu.') : 'Confere desfeito — voltou pro status da planilha/Salesforce.');
+        }
         function aplicarFiltrosDetailProd() {
             currentDetailRows = detailProdTodos.filter(r => passaBusca(r) && passaProdStatus(r) && passaProdConstrutora(r) && passaProdFiltros(r));
             renderDetailProdChips();
@@ -605,7 +669,7 @@ const CAL_METRICS = {
             aplicarFiltrosDetailProd();
         }
         function limparFiltrosDetailProd() {
-            detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '' };
+            detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '', visita: '' };
             aplicarFiltrosDetailProd();
         }
         const DETAIL_HEAD_LEADS = `
@@ -983,7 +1047,7 @@ const CAL_METRICS = {
 
             const dtP = r => { const d = parseDate(r['Data Ganho'] || r['Data Aprovação'] || r['Data Cadastro'] || r.Data); return d ? d.getTime() : 0; };
             detailProdTodos = rows.slice().sort((a, b) => dtP(b) - dtP(a));
-            detailProdStatus = ''; detailProdConstrutora = ''; detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '' }; detailProdShowCorretor = showCorretor !== false;
+            detailProdStatus = ''; detailProdConstrutora = ''; detailProdFiltros = { venda: '', etapa: '', equipe: '', corretor: '', empreendimento: '', visita: '' }; detailProdShowCorretor = showCorretor !== false;
             detailProdTotalLabel = totalLabel;
             aplicarFiltrosDetailProd();
 
@@ -1015,13 +1079,14 @@ const CAL_METRICS = {
                 ['Empreendimento', r => r.Empreendimento], ['Local', r => r.Local],
                 ['Status', r => STATUS_PROD[statusProd(r)].nome], ['Situação', r => sitProd(r)],
                 ['Agendado em', r => String(r['Data de Cadastro'] || '').split(' ')[0]], ['Data da visita', r => dataAgendaBr(r.Data)], ['Horário', r => r['Horário']],
-                ['Observações', r => r['Observações']]
+                ['Observações', r => r['Observações']], ['Conferido no BI', r => r._confereManual ? 'sim' : '']
             ];
             return [
                 ['ID', r => r.ID], ['Cliente', r => r.Cliente], ['Corretor', r => r.Corretor], ['Equipe', r => r.Equipe],
                 ['Construtora', r => r.Construtora], ['Empreendimento', r => r.Empreendimento],
                 ['Status', r => STATUS_PROD[statusProd(r)].nome.replace(/s$/, '')],
                 ['Situação (análise)', r => sitProd(r)], ['Situação (venda)', r => r['Situação - Ganho']],
+                ['Visita', r => { const v = visitaCliente(r); return v.k ? VISITA_INFO[v.k].nome : ''; }],
                 ['Data análise', r => r['Data Cadastro']], ['Data aprovação', r => r['Data Aprovação']], ['Data venda', r => r['Data Ganho']],
                 ['VGV', r => vgvNum(r) ? formatCurrency(vgvNum(r)) : '']
             ];
@@ -1086,7 +1151,7 @@ const CAL_METRICS = {
                     @page { size: A4 landscape; margin: 10mm; } table { font-size: 9.5px; } th, td { padding: 4px 5px; }
                 </style></head><body>
                 <h1>${currentDetailTitle}</h1>
-                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsSistema && ('sistema: ' + SISTEMA_INFO[detailLeadsSistema].nome), detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro), detailLeadsSel.equipe && ('equipe: ' + detailLeadsSel.equipe), detailLeadsSel.corretor && ('corretor: ' + detailLeadsSel.corretor), detailLeadsSel.empreendimento && ('empreendimento: ' + detailLeadsSel.empreendimento)].filter(Boolean).map(x => ' · ' + x).join('') : [detailProdStatus && ('status: ' + STATUS_PROD[detailProdStatus].nome), detailProdConstrutora && ('construtora: ' + detailProdConstrutora), detailProdFiltros.venda && ('venda: ' + detailProdFiltros.venda), detailProdFiltros.etapa && ('etapa: ' + detailProdFiltros.etapa), detailProdFiltros.equipe && ('equipe: ' + detailProdFiltros.equipe), detailProdFiltros.corretor && ('corretor: ' + detailProdFiltros.corretor), detailProdFiltros.empreendimento && ('empreendimento: ' + detailProdFiltros.empreendimento)].filter(Boolean).map(x => ' · ' + x).join('')} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
+                <p>${currentDetailRows.length} registro(s)${modoLeads ? [detailLeadsSistema && ('sistema: ' + SISTEMA_INFO[detailLeadsSistema].nome), detailLeadsBolsao && ('separação: ' + (detailLeadsBolsao === 'bolsao' ? 'Bolsão' : 'fora do bolsão')), detailLeadsFonte && ('fonte: ' + detailLeadsFonte), detailLeadsFiltro && ('ranking: ' + detailLeadsFiltro), detailLeadsSel.equipe && ('equipe: ' + detailLeadsSel.equipe), detailLeadsSel.corretor && ('corretor: ' + detailLeadsSel.corretor), detailLeadsSel.empreendimento && ('empreendimento: ' + detailLeadsSel.empreendimento)].filter(Boolean).map(x => ' · ' + x).join('') : [detailProdStatus && ('status: ' + STATUS_PROD[detailProdStatus].nome), detailProdConstrutora && ('construtora: ' + detailProdConstrutora), detailProdFiltros.venda && ('venda: ' + detailProdFiltros.venda), detailProdFiltros.etapa && ('etapa: ' + detailProdFiltros.etapa), detailProdFiltros.visita && ('visita: ' + VISITA_INFO[detailProdFiltros.visita].nome), detailProdFiltros.equipe && ('equipe: ' + detailProdFiltros.equipe), detailProdFiltros.corretor && ('corretor: ' + detailProdFiltros.corretor), detailProdFiltros.empreendimento && ('empreendimento: ' + detailProdFiltros.empreendimento)].filter(Boolean).map(x => ' · ' + x).join('')} — gerado em ${new Date().toLocaleString('pt-BR')}</p>
                 <table>
                     <thead><tr>${headHtml}</tr></thead>
                     <tbody>${rowsHtml}</tbody>
