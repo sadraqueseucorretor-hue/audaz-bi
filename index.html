@@ -41,7 +41,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 
-        <link rel="stylesheet" href="./audaz-bi.css?v=visao-20261126">
+        <link rel="stylesheet" href="./audaz-bi.css?v=org-neon-20261126b">
 </head>
 <body class="text-slate-100 min-h-screen overflow-x-hidden">
 
@@ -1164,11 +1164,12 @@
                     <div class="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 lg:p-5 shadow-xl shadow-black/20">
                         <div class="org-chart-scroll">
                             <div class="org-overview">
-                                <div class="text-center sm:text-left"><div class="org-brand"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> AUDAZ <strong>SQUAD</strong></div><div class="org-brand-sub">RESULTADOS · PESSOAS · EVOLUÇÃO</div></div>
-                                <div data-org-scope="regional" role="button" tabindex="0" title="Ver os indicadores gerais da regional" class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/40 rounded-2xl"><div id="orgRegionalAvatar" class="flex justify-center shrink-0"></div><div><div class="text-[10px] uppercase tracking-[.18em] font-extrabold text-amber-300">Regional</div><div class="text-lg font-extrabold text-white mt-1">Sadraque Ribeiro</div><div class="text-xs text-slate-300 mt-1">Gerente Regional</div><div class="text-[10px] text-slate-500 mt-1"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> Audaz Squad</div></div></div>
-                                <div class="org-stats"><div class="org-stat"><div id="orgStatManagers" class="org-stat-value">0</div><div class="org-stat-label">Gerentes</div></div><div class="org-stat"><div id="orgStatBrokers" class="org-stat-value">0</div><div class="org-stat-label">Integrantes</div></div><div class="org-stat"><div id="orgStatTotal" class="org-stat-value">0</div><div class="org-stat-label">Pessoas na equipe</div></div></div>
+                                <div class="text-center sm:text-left"><div class="org-brand"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> AUDAZ <strong>SQUAD</strong></div><div class="org-brand-sub">ORGANOGRAMA REGIONAL</div></div>
+                                <div data-org-scope="regional" role="button" tabindex="0" title="Ver os indicadores gerais da regional" class="org-chart-root bg-gradient-to-br from-amber-500/15 to-amber-500/5 border border-amber-500/40 rounded-2xl"><div id="orgRegionalAvatar" class="flex justify-center shrink-0"></div><div><div><span class="og-regional-tag"><i class="fa-solid fa-crown mr-1"></i>Regional</span></div><div class="text-2xl font-black text-white mt-1.5 leading-tight">Sadraque Ribeiro</div><div class="text-sm text-slate-300 mt-0.5">Gerente Regional</div><div class="text-[10px] text-slate-500 mt-1"><i class="fa-solid fa-people-group text-sky-400 mr-1"></i> Audaz Squad</div></div></div>
+                                <div class="min-w-0"><div class="og-direcional">DIRECIONAL <span>Engenharia</span></div><div class="org-stats og-stats5"><div class="org-stat"><i class="fa-solid fa-user-tie og-stat-ico"></i><div id="orgStatManagers" class="org-stat-value">0</div><div class="org-stat-label">Gerentes</div></div><div class="org-stat"><i class="fa-solid fa-users og-stat-ico"></i><div id="orgStatBrokers" class="org-stat-value">0</div><div class="org-stat-label">Corretores</div></div><div class="org-stat"><i class="fa-solid fa-people-group og-stat-ico"></i><div id="orgStatTotal" class="org-stat-value">0</div><div class="org-stat-label">Pessoas</div></div><div class="org-stat"><i class="fa-solid fa-chart-simple og-stat-ico"></i><div id="orgStatEquipes" class="org-stat-value">0</div><div class="org-stat-label">Equipes</div></div><div class="org-stat"><i class="fa-solid fa-bullseye og-stat-ico"></i><div class="org-stat-value">1</div><div class="org-stat-label">Regional</div></div></div></div>
                             </div>
                             <div class="org-chart-root-connector"></div><div class="org-chart-columns"><div id="organogramaTree" class="org-chart-level"></div></div>
+                            <div id="organogramaResumo" class="mt-5"></div>
                             <div id="organogramaInativos" class="hidden"></div>
                         </div>
                     </div>
@@ -1973,7 +1974,7 @@
     </div>
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
-    <script src="./audaz-bi-core.js?v=visao-20261126"></script>
+    <script src="./audaz-bi-core.js?v=org-neon-20261126"></script>
     <script src="./audaz-bi-data.js?v=visao-20261126"></script>
     <script src="./audaz-bi-filters.js?v=visao-20261126"></script>
     <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
