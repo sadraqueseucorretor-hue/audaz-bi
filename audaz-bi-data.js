@@ -83,7 +83,8 @@
         function rankingTeamKey(team) { return stripDiacritics(String(team || '').trim()).replace(/^equipe\s+/i, '').replace(/\s+/g, ' ').toLocaleLowerCase(); }
         function getConfiguredRankingTeams() {
             const teams = new Map();
-            organograma.filter(n => n.role === 'Gerente' && n.parentId === 'regional').forEach(manager => {
+            const ordem = n => Number.isFinite(n.ordem) ? n.ordem : 1000 + organograma.indexOf(n);
+            organograma.filter(n => n.role === 'Gerente' && n.parentId === 'regional').sort((a, b) => ordem(a) - ordem(b)).forEach(manager => {
                 const label = String(manager.equipe || manager.name || '').trim().replace(/^equipe\s+/i, '');
                 const key = rankingTeamKey(label);
                 if (key && !teams.has(key)) teams.set(key, label);
@@ -94,7 +95,28 @@
             const label = String(team || '').trim();
             if (!label) return null;
             const key = rankingTeamKey(label);
-            return getConfiguredRankingTeams().find(configured => rankingTeamKey(configured) === key) || null;
+            const direto = getConfiguredRankingTeams().find(configured => rankingTeamKey(configured) === key);
+            if (direto) return direto;
+            // Equipe renomeada no organograma: o nome antigo (da planilha) aponta pro nome novo.
+            const renomeada = organograma.find(n => n.role === 'Gerente' && n.equipePlanilha && n.equipe && rankingTeamKey(n.equipePlanilha) === key);
+            return renomeada ? canonicalRankingTeamName(renomeada.equipe) : null;
+        }
+        // Linhas da planilha com o nome antigo de uma equipe renomeada no organograma passam a
+        // mostrar o nome novo (filtros, gráficos, detalhes). O original fica em _equipePlanilha.
+        function aplicarNomesEquipesOrganograma(rows) {
+            const mapa = new Map();
+            organograma.filter(n => n.role === 'Gerente' && n.equipePlanilha && n.equipe).forEach(n => mapa.set(rankingTeamKey(n.equipePlanilha), n.equipe));
+            (rows || []).forEach(r => {
+                if (!r) return;
+                const original = r._equipePlanilha !== undefined ? r._equipePlanilha : r.Equipe;
+                if (!original) return;
+                const novo = mapa.get(rankingTeamKey(original));
+                if (novo && novo !== original) {
+                    if (r._equipePlanilha === undefined) Object.defineProperty(r, '_equipePlanilha', { value: original, enumerable: false, configurable: true, writable: true });
+                    r.Equipe = novo;
+                } else if (r._equipePlanilha !== undefined) r.Equipe = r._equipePlanilha;
+            });
+            return rows;
         }
         function getRankingTeamForBroker(name) {
             const managerNode = organograma.find(n => n.role === 'Gerente' && orgPersonKey(n.name) === orgPersonKey(name));
@@ -3934,7 +3956,7 @@
             if (!data) return;
             applyingCloud = true;
             try {
-                if (Array.isArray(data.orgChart)) { organograma = data.orgChart; saveLocalSetting(`${appId}-organograma`, JSON.stringify(organograma)); }
+                if (Array.isArray(data.orgChart)) { organograma = data.orgChart; saveLocalSetting(`${appId}-organograma`, JSON.stringify(organograma)); if (typeof dataset !== 'undefined') aplicarNomesEquipesOrganograma(dataset); }
                 if (Array.isArray(data.corretoresAdded)) { addedCorretores = data.corretoresAdded; saveLocalSetting(`${appId}-corretores-added`, JSON.stringify(addedCorretores)); }
                 if (Array.isArray(data.corretoresInactive)) { inactiveCorretores = data.corretoresInactive; saveLocalSetting(`${appId}-corretores-inactive`, JSON.stringify(inactiveCorretores)); }
                 if (data.corretorFotos && typeof data.corretorFotos === 'object') { corretorFotos = data.corretorFotos; saveLocalSetting(`${appId}-corretor-fotos`, JSON.stringify(corretorFotos)); preloadAllCorretorFotos(); }
@@ -4155,6 +4177,7 @@
         const semAcento = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         function padronizarNomesCadastro(rows) {
             alinharMesesComerciaisPorData(rows);
+            aplicarNomesEquipesOrganograma(rows);
             ['Construtora', 'Empreendimento'].forEach(campo => {
                 const limpo = v => {
                     let t = String(v).replace(/\s+/g, ' ').trim().toLocaleUpperCase('pt-BR');
