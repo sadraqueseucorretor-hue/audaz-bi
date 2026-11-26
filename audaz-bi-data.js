@@ -3142,6 +3142,8 @@
             const linkOrganograma = document.getElementById('navLinkOrganograma');
             const linkPlantoes = document.getElementById('navLinkPlantoes');
             const linkTela = document.getElementById('navLinkTela');
+            const linkVisao = document.getElementById('navLinkVisao');
+            if (linkVisao) linkVisao.className = viewName === 'visao' ? onCls : offCls;
             if (linkDashboard) linkDashboard.className = viewName === 'dashboard' ? onCls : offCls;
             if (linkCalendar) linkCalendar.className = viewName === 'calendar' ? onCls : offCls;
             if (linkRankings) linkRankings.className = viewName === 'rankings' ? onCls : offCls;
@@ -3158,15 +3160,17 @@
             const quickSection = document.getElementById('quickRankingsSection');
             const corretorSection = document.getElementById('corretorSection');
             const organogramaSection = document.getElementById('organogramaSection');
+            const visaoSection = document.getElementById('visaoSection');
             const plantoesSection = document.getElementById('plantoesSection');
             const telaSection = document.getElementById('telaSection');
             const calSection = document.getElementById('calendarView');
-            const secoesDedicadas = ['rankings', 'corretor', 'organograma', 'plantoes', 'tela', 'calendar'];
+            const secoesDedicadas = ['visao', 'rankings', 'corretor', 'organograma', 'plantoes', 'tela', 'calendar'];
             if (dashboardViewEl) {
                 Array.from(dashboardViewEl.children).forEach(child => {
                     if (child === quickSection) { child.classList.toggle('hidden', viewName !== 'rankings'); return; }
                     if (child === corretorSection) { child.classList.toggle('hidden', viewName !== 'corretor'); return; }
                     if (child === organogramaSection) { child.classList.toggle('hidden', viewName !== 'organograma'); return; }
+                    if (child === visaoSection) { child.classList.toggle('hidden', viewName !== 'visao'); return; }
                     if (child === plantoesSection) { child.classList.toggle('hidden', viewName !== 'plantoes'); return; }
                     if (child === telaSection) { child.classList.toggle('hidden', viewName !== 'tela'); return; }
                     if (child === calSection) { child.classList.toggle('hidden', viewName !== 'calendar'); return; }
@@ -3175,9 +3179,10 @@
             }
             // Filtros somem nas telas de exibição (Rankings e Tela/TV) — são telas pra olhar, não pra operar.
             const filtersBar = document.getElementById('filtersBar');
-            if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings' || viewName === 'tela' || viewName === 'organograma');
+            if (filtersBar) filtersBar.classList.toggle('hidden', viewName === 'rankings' || viewName === 'tela' || viewName === 'organograma' || viewName === 'visao');
             if (viewName === 'corretor') renderCorretorCards();
             if (viewName === 'organograma') renderOrganograma();
+            if (viewName === 'visao') renderVisaoGeral();
             if (viewName === 'plantoes') renderPlantoes();
             if (viewName === 'tela') renderTela();
             // Entrando nos Rankings: redesenha se algo mudou enquanto a aba estava fechada
@@ -3742,7 +3747,7 @@
             try {
                 const qs = new URLSearchParams(location.search);
                 if (qs.get('tela') === '1' || location.hash === '#tela') setTimeout(() => switchView('tela'), 0);
-                else switchView('organograma');
+                else switchView('visao');
             } catch (e) {}
             // Celular/tablet (12/10/2026): a barra lateral ocupava a 1ª tela inteira e empurrava o
             // "estou batendo?" pra baixo — agora começa escondida em telas < 1024px (abre no ☰),
