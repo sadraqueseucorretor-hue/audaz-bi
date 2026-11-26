@@ -41,7 +41,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 
-        <link rel="stylesheet" href="./audaz-bi.css?v=ficha-20261104">
+        <link rel="stylesheet" href="./audaz-bi.css?v=org-dinamico-20261126">
 </head>
 <body class="text-slate-100 min-h-screen overflow-x-hidden">
 
@@ -1164,11 +1164,20 @@
                                 <div class="org-stats"><div class="org-stat"><div id="orgStatManagers" class="org-stat-value">0</div><div class="org-stat-label">Gerentes</div></div><div class="org-stat"><div id="orgStatBrokers" class="org-stat-value">0</div><div class="org-stat-label">Integrantes</div></div><div class="org-stat"><div id="orgStatTotal" class="org-stat-value">0</div><div class="org-stat-label">Pessoas na equipe</div></div></div>
                             </div>
                             <div class="org-chart-root-connector"></div><div class="org-chart-columns"><div id="organogramaTree" class="org-chart-level"></div></div>
+                            <div id="organogramaInativos" class="hidden"></div>
                         </div>
                     </div>
                     <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-4 lg:p-5">
-                        <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase mb-3"><i class="fa-solid fa-user-plus text-brand-400 mr-1"></i> Adicionar pessoa à estrutura</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <h3 class="text-xs font-bold tracking-wider text-slate-300 uppercase"><i class="fa-solid fa-sitemap text-amber-400 mr-1"></i> Administrar estrutura regional</h3>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button onclick="orgAcaoRapida('gerente')" class="diretor-locked px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 text-[11px] font-bold hover:bg-amber-500/20 transition"><i class="fa-solid fa-user-tie mr-1"></i>Novo gerente / equipe</button>
+                                <button onclick="orgAcaoRapida('corretor')" class="diretor-locked px-2.5 py-1.5 rounded-lg border border-brand-500/40 bg-brand-600/15 text-brand-300 text-[11px] font-bold hover:bg-brand-600/25 transition"><i class="fa-solid fa-user-plus mr-1"></i>Adicionar corretor</button>
+                                <button onclick="orgAcaoRapida('transferir')" class="diretor-locked px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 text-[11px] font-bold hover:border-slate-500 transition"><i class="fa-solid fa-right-left mr-1"></i>Transferir corretor</button>
+                                <button onclick="toggleOrgInativos()" id="orgInativosBtn" class="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-300 text-[11px] font-bold hover:border-slate-500 transition"><i class="fa-solid fa-user-slash mr-1"></i>Ver inativos</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
                             <div class="relative">
                                 <input id="orgNewName" type="hidden" value="">
                                 <button id="orgMemberPickerButton" type="button" onclick="toggleOrgMemberPicker()" class="diretor-locked w-full min-h-[38px] flex items-center justify-between gap-2 bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500 text-left">
@@ -1176,11 +1185,22 @@
                                 </button>
                                 <div id="orgMemberPickerMenu" class="hidden absolute z-30 top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700 rounded-xl shadow-2xl overflow-hidden"><div id="orgMemberPickerOptions" class="max-h-64 overflow-y-auto p-1.5"></div></div>
                             </div>
+                            <input id="orgNewNameFree" type="text" placeholder="…ou digite um nome novo" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500">
                             <select id="orgNewRole" onchange="updateOrgParentOptions(this.value)" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"><option value="Gerente">Gerente</option><option value="Corretor">Corretor</option><option value="Captador">Captador</option><option value="Estagiário">Estagiário</option></select>
-                            <select id="orgNewParent" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"></select>
+                            <select id="orgNewParent" class="diretor-locked hidden bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"></select>
+                            <input id="orgNewTeam" type="text" list="orgTeamSugestoes" placeholder="Nome da equipe (ex.: BARUC)" class="diretor-locked uppercase bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500">
+                            <datalist id="orgTeamSugestoes"></datalist>
                             <button onclick="addOrgMember()" class="diretor-locked bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-lg px-3 py-2 transition"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
                         </div>
-                        <p class="text-[10px] text-slate-600 mt-2">Os gerentes ficam alinhados na mesma faixa. Vincule cada gerente a uma equipe do BI; os integrantes ativos aparecem agrupados logo abaixo. No cadastro, escolha se a pessoa é corretor, captador ou estagiário.</p>
+                        <div id="orgTransferirBox" class="hidden mt-3 p-3 rounded-xl border border-slate-700 bg-slate-950/60">
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2"><i class="fa-solid fa-right-left mr-1"></i>Transferir integrante de equipe</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <select id="orgTransfCorretor" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"></select>
+                                <select id="orgTransfGerente" class="diretor-locked bg-slate-950 border border-slate-800 text-xs rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-brand-500"></select>
+                                <button onclick="transferirOrgCorretor()" class="diretor-locked bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white text-xs font-bold rounded-lg px-3 py-2 transition"><i class="fa-solid fa-check mr-1"></i> Transferir</button>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-600 mt-2">Escolha uma pessoa que já está no BI ou digite um nome novo. Gerente: digite o nome da equipe (pode ser uma equipe nova). Corretor, captador ou estagiário: escolha a equipe. Para editar nome, foto, equipe, cor, ordem ou desativar, abra "Editar cadastro" no card da pessoa.</p>
                         <p id="organogramaEditHint" class="text-[10px] text-amber-400 mt-2 hidden">Entre como diretor para editar e sincronizar esta estrutura.</p>
                     </div>
                 </section>
@@ -1948,8 +1968,8 @@
     </div>
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
-    <script src="./audaz-bi-core.js?v=ficha-20261104"></script>
-    <script src="./audaz-bi-data.js?v=visita-confere-20261113"></script>
+    <script src="./audaz-bi-core.js?v=org-dinamico-20261126"></script>
+    <script src="./audaz-bi-data.js?v=org-dinamico-20261126"></script>
     <script src="./audaz-bi-filters.js?v=funil-atualizar-20261111"></script>
     <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
     <script src="./audaz-bi-calendar.js?v=visita-confere-20261113"></script>
