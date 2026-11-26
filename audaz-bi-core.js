@@ -458,17 +458,62 @@
                         <label class="block text-[9px] text-slate-500 mt-1">Informações adicionais<textarea id="orgObs-${orgEsc(node.id)}" rows="2" placeholder="CRECI, endereço, observações…" class="${inp} resize-y">${orgEsc(dd.obs)}</textarea></label></div>`;
                 return `<details class="org-node-edit" ${orgEditAberto === node.id ? 'open' : ''} ontoggle="if (this.open) orgEditAberto = '${eid}'; else if (orgEditAberto === '${eid}') orgEditAberto = null;"><summary>Editar cadastro</summary>${nomeControl}${fotoControl}${parentControl}${systemControl}<div class="flex flex-wrap justify-end gap-1.5 mt-2"><button onclick="saveOrgMember('${eid}')" class="diretor-locked px-3 py-1.5 bg-brand-600/20 text-brand-300 border border-brand-500/30 rounded-lg text-[10px] font-bold">Salvar</button><button onclick="desativarOrgMember('${eid}')" class="diretor-locked px-3 py-1.5 text-amber-300 border border-amber-500/25 rounded-lg text-[10px] font-bold">Desativar</button><button onclick="removeOrgMember('${eid}')" class="diretor-locked px-3 py-1.5 text-rose-300 border border-rose-500/20 rounded-lg text-[10px] font-bold">Remover</button></div></details>`;
             };
-            const renderBroker = (broker, color) => `<div class="org-broker-entry"><article data-org-scope="broker" data-org-name="${orgEsc(broker.name)}" role="button" tabindex="0" title="Ver indicadores de ${orgEsc(broker.name)}" class="org-broker-row${orgDashboardScope?.kind === 'broker' && orgPersonKey(orgDashboardScope.name) === orgPersonKey(broker.name) ? ' org-selected' : ''}" style="--team-color:${color}">${orgFichaBotao(broker)}<div class="org-broker-avatar shrink-0">${corretorAvatarInner(broker.name,'h-12 w-12','text-[10px]')}</div><div class="min-w-0"><div class="org-broker-name">${orgEsc(broker.name)}</div><div class="org-broker-role">${orgEsc(broker.role || "Corretor")}</div><div class="flex flex-wrap items-center gap-1.5 mt-1"><span class="org-broker-active">Ativo</span>${orgSistemasBadges(broker)}</div></div></article>${renderEdit(broker, color)}</div>`;
-            tree.innerHTML = managers.length ? `<div class="org-chart-level-label">Gerentes</div><div class="org-chart-manager-grid">${teams.map(({manager,brokers},i) => {
+            // Visual (26/11/2026, modelo do usuário): cards "neon" na cor da equipe, faixas douradas,
+            // composição compacta com "Adicionar corretor" por equipe e barra-resumo da regional.
+            const vendedores = (typeof visaoMetricas === 'function' && typeof visaoMesAtual === 'function') ? visaoMetricas(visaoMesAtual()).vendedores : new Set();
+            const prodEquipe = (manager, brokers) => { const p = [manager, ...brokers]; const n = p.filter(x => vendedores.has(orgPersonKey(x.name))).length; return { n, total: p.length, pct: p.length ? Math.round(n / p.length * 100) : 0 }; };
+            const renderBroker = (broker, color) => `<div class="og-membro-wrap"><article data-org-scope="broker" data-org-name="${orgEsc(broker.name)}" role="button" tabindex="0" title="Ver indicadores de ${orgEsc(broker.name)}" class="og-membro${orgDashboardScope?.kind === 'broker' && orgPersonKey(orgDashboardScope.name) === orgPersonKey(broker.name) ? ' org-selected' : ''}" style="--team-color:${color}"><span class="og-membro-foto shrink-0">${corretorAvatarInner(broker.name,'h-9 w-9','text-[9px]')}</span><span class="min-w-0 flex-1"><span class="og-membro-nome">${orgEsc(broker.name)}</span><span class="og-membro-papel">${orgEsc(broker.role || 'Corretor')}</span></span><span class="og-ativo">Ativo</span>${orgFichaBotao(broker)}</article>${renderEdit(broker, color)}</div>`;
+            const faixa = (ico, txt) => `<div class="og-faixa"><span><i class="fa-solid ${ico}"></i>${txt}</span></div>`;
+            tree.innerHTML = managers.length ? `${faixa('fa-people-group', 'Gestores (gerentes de equipe)')}<div class="org-chart-manager-grid">${teams.map(({manager,brokers},i) => {
                 const color = orgCorGerente(manager, i);
-                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-manager-card"><div data-org-scope="team" data-org-name="${orgEsc(manager.name)}" data-org-manager-id="${orgEsc(manager.id)}" role="button" tabindex="0" title="Ver os indicadores da equipe de ${orgEsc(manager.name)}" class="org-manager-person${orgDashboardScope?.kind === 'team' && orgDashboardScope.managerId === manager.id ? ' org-selected' : ''}">${orgFichaBotao(manager)}<div class="org-manager-avatar shrink-0">${corretorAvatarInner(manager.name,'h-14 w-14','text-[10px]')}</div><div class="min-w-0"><div class="org-manager-name">${orgEsc(manager.name)}</div><div class="org-manager-role">Gerente de Equipe</div>${manager.equipe ? `<div class="org-manager-team">${orgEsc(manager.equipe)}</div>` : ''}<div class="flex flex-wrap gap-1 mt-1">${orgSistemasBadges(manager)}</div><div class="org-manager-count"><i class="fa-solid fa-user"></i> ${brokers.length} ${brokers.length === 1 ? 'integrante' : 'integrantes'}</div></div></div>${renderEdit(manager, color)}</article></section>`;
-            }).join('')}</div><div class="org-chart-level-label mt-5">Equipes do BI</div><div class="org-chart-team-grid">${teams.map(({manager,brokers},i) => {
+                const pr = prodEquipe(manager, brokers);
+                const barra = pr.pct >= 70 ? '#22c55e' : pr.pct > 0 ? '#facc15' : '#475569';
+                return `<section class="org-team-group" style="--team-color:${color}"><article class="og-ger"><div data-org-scope="team" data-org-name="${orgEsc(manager.name)}" data-org-manager-id="${orgEsc(manager.id)}" role="button" tabindex="0" title="Ver os indicadores da equipe de ${orgEsc(manager.name)}" class="og-ger-pessoa${orgDashboardScope?.kind === 'team' && orgDashboardScope.managerId === manager.id ? ' org-selected' : ''}">${orgFichaBotao(manager)}
+                    <div class="flex items-center gap-3 min-w-0"><span class="og-ger-foto shrink-0">${corretorAvatarInner(manager.name,'h-16 w-16','text-sm')}</span><div class="min-w-0"><div class="og-ger-nome">${orgEsc(manager.name)}</div><div class="og-ger-papel">Gerente de Equipe</div></div></div>
+                    <div class="text-center mt-3"><span class="og-chip"><i class="fa-solid fa-people-group"></i>${orgEsc(manager.equipe || 'Sem equipe')}</span></div>
+                    <div class="og-linha"><i class="fa-solid fa-user-group"></i>${brokers.length} ${brokers.length === 1 ? 'Integrante' : 'Integrantes'}</div>
+                    <div class="og-linha" title="${pr.n} de ${pr.total} (gerente incluído) com venda no mês comercial"><i class="fa-solid fa-chart-simple"></i>Produtividade: <b>${pr.pct}%</b></div>
+                    <div class="og-barra"><span style="width:${pr.pct}%;background:${barra}"></span></div>
+                    <div class="flex flex-wrap justify-center gap-1 mt-2">${orgSistemasBadges(manager)}</div>
+                </div>${renderEdit(manager, color)}</article></section>`;
+            }).join('')}</div>${faixa('fa-people-group', 'Composição das equipes')}<div class="org-chart-team-grid">${teams.map(({manager,brokers},i) => {
                 const color = orgCorGerente(manager, i);
-                return `<section class="org-team-group" style="--team-color:${color}"><article class="org-team-card${organogramaSelectedTeamId === manager.id ? ' org-team-selected' : ''}"><button type="button" class="org-team-select" aria-pressed="${organogramaSelectedTeamId === manager.id}" title="Abrir o painel e destacar esta equipe" onclick="selectOrgTeamCard('${orgEsc(manager.id)}')"><span><i class="fa-solid fa-users mr-1.5"></i> ${orgEsc(manager.equipe || 'Sem equipe')}</span><span class="org-team-count">${brokers.length}</span></button><div class="text-[10px] text-slate-500 mb-2">${orgEsc(manager.name)}${orgResumoPapeis(brokers)}</div><div class="org-broker-list">${brokers.length ? brokers.map(b=>renderBroker(b,color)).join('') : `<div class="text-[11px] text-slate-500 text-center py-5">${manager.equipe ? 'Nenhum integrante ainda — use "Adicionar corretor" ou "Transferir corretor"' : 'Dê um nome à equipe no cadastro do gerente acima'}</div>`}</div></article></section>`;
+                const gestora = /a$/i.test(String(manager.name).split(' ')[0]) ? 'Gestora' : 'Gestor';
+                const addBtn = isDiretor ? `<button type="button" onclick="orgAdicionarNaEquipe('${orgEsc(manager.id)}')" class="og-add"><i class="fa-solid fa-plus mr-1.5"></i>Adicionar corretor</button>` : '';
+                return `<section class="org-team-group" style="--team-color:${color}"><article class="og-equipe${organogramaSelectedTeamId === manager.id ? ' org-team-selected' : ''}">
+                    <button type="button" class="og-equipe-topo" title="Abrir o painel desta equipe" onclick="selectOrgTeamCard('${orgEsc(manager.id)}')"><i class="fa-solid fa-people-group og-equipe-ico"></i><span class="min-w-0 flex-1 text-left"><span class="og-equipe-nome">${orgEsc(manager.equipe || 'Sem equipe')} (${brokers.length})</span><span class="og-equipe-gestor">${gestora}: ${orgEsc(manager.name)}${orgResumoPapeis(brokers)}</span></span><i class="fa-solid fa-chevron-right text-slate-400 text-xs"></i></button>
+                    <div class="og-membros">${brokers.length ? brokers.map(b => renderBroker(b, color)).join('') : `<div class="og-formacao"><i class="fa-solid fa-people-group"></i>Equipe em formação</div>`}${addBtn}</div>
+                </article></section>`;
             }).join('')}</div>` : '<p class="org-chart-empty text-xs text-slate-500 text-center py-8 px-4 rounded-xl border border-dashed border-slate-700">Adicione gerentes abaixo de você. Eles ficarão alinhados na mesma faixa.</p>';
+            // Barra-resumo da regional (rodapé do organograma)
+            const resumo = document.getElementById('organogramaResumo');
+            if (resumo) {
+                const pessoas = managers.length + totalBrokers;
+                const produtivos = teams.reduce((s, t) => s + prodEquipe(t.manager, t.brokers).n, 0);
+                const ativas = teams.filter(t => t.brokers.length).length;
+                const item = (ico, cor, val, rot) => `<div class="og-resumo-item"><i class="fa-solid ${ico} ${cor}"></i><div><b>${val}</b><span>${rot}</span></div></div>`;
+                resumo.innerHTML = managers.length ? `<div class="og-resumo"><div class="og-resumo-titulo"><i class="fa-solid fa-bullseye"></i><span>Visão geral<br>da regional</span></div>
+                    ${item('fa-people-group', 'text-sky-400', pessoas, 'Pessoas na operação')}
+                    ${item('fa-circle-check', 'text-emerald-400', ativas, ativas === 1 ? 'Equipe ativa' : 'Equipes ativas')}
+                    ${item('fa-chart-simple', 'text-amber-400', (pessoas ? Math.round(produtivos / pessoas * 100) : 0) + '%', 'Taxa de produtividade')}
+                    ${item('fa-clock', 'text-amber-400', teams.length - ativas, teams.length - ativas === 1 ? 'Equipe em formação' : 'Equipes em formação')}
+                    <button type="button" onclick="switchView('visao')" class="og-resumo-btn"><i class="fa-solid fa-chart-column mr-2"></i>Ver Performance da Regional<i class="fa-solid fa-arrow-right ml-2"></i></button></div>` : '';
+            }
+            const stEq = document.getElementById('orgStatEquipes'); if (stEq) stEq.textContent = managers.length;
             const sync = document.getElementById('organogramaSyncLabel'); if (sync) sync.textContent = `${managers.length + totalBrokers} pessoas ativas exibidas`;
             renderOrgInativos(inativos);
             const box = document.getElementById('orgTransferirBox'); if (box && !box.classList.contains('hidden')) renderOrgTransferir();
+        }
+        // "+ Adicionar corretor" dentro do card da equipe: já deixa o cadastro apontado pra ela.
+        function orgAdicionarNaEquipe(managerId) {
+            if (!isDiretor) return;
+            const role = document.getElementById('orgNewRole');
+            if (role) { role.value = 'Corretor'; updateOrgParentOptions('Corretor'); }
+            const parent = document.getElementById('orgNewParent'); if (parent) parent.value = managerId;
+            const alvo = document.getElementById('orgNewNameFree');
+            if (alvo) { alvo.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => alvo.focus(), 250); }
+            const g = organograma.find(n => n.id === managerId);
+            if (g) showToast(`Escolha a pessoa ou digite o nome — vai para a equipe ${g.equipe || g.name}.`);
         }
         function selectOrgTeamCard(id) {
             organogramaSelectedTeamId = id;
