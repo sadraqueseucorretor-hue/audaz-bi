@@ -418,6 +418,7 @@
 
             if (activeView === 'calendar') renderCalendarTab();   // Atualiza a produção ou previsão no Calendário
             if (activeView === 'organograma') renderOrganograma();
+            if (activeView === 'visao') renderVisaoGeral();
             renderFiltersSummary();
             renderCorretorCards();
             ajustarBlocosEquipe();
