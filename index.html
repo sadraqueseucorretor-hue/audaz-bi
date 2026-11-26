@@ -41,7 +41,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 
-        <link rel="stylesheet" href="./audaz-bi.css?v=org-dinamico-20261126">
+        <link rel="stylesheet" href="./audaz-bi.css?v=visao-20261126">
 </head>
 <body class="text-slate-100 min-h-screen overflow-x-hidden">
 
@@ -150,6 +150,9 @@
 
                     <!-- Navegação Executiva: fixa no topo, funciona mesmo com a sidebar oculta -->
                     <nav class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 gap-0.5 shrink-0">
+                        <button onclick="switchView('visao')" id="navLinkVisao" title="Visão Geral da regional" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                            <i class="fa-solid fa-house text-amber-400"></i><span class="hidden lg:inline">Visão Geral</span>
+                        </button>
                         <button onclick="switchView('organograma')" id="navLinkOrganograma" title="Organograma da equipe" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-sitemap text-amber-400"></i><span class="hidden lg:inline">Equipe</span>
                         </button>
@@ -1151,6 +1154,8 @@
                     <div id="quickRankingsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"></div>
                 </section>
 
+<section id="visaoSection" class="hidden"><div id="visaoRoot" class="vg-root space-y-4"></div></section>
+
 <section id="organogramaSection" class="hidden space-y-5">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div><h2 class="text-lg font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-sitemap text-amber-400"></i> Organograma da Equipe</h2><p class="text-xs text-slate-500 mt-1">Regional → Gerentes → Corretores</p></div>
@@ -1968,10 +1973,11 @@
     </div>
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
-    <script src="./audaz-bi-core.js?v=org-dinamico-20261126"></script>
-    <script src="./audaz-bi-data.js?v=org-dinamico-20261126"></script>
-    <script src="./audaz-bi-filters.js?v=funil-atualizar-20261111"></script>
+    <script src="./audaz-bi-core.js?v=visao-20261126"></script>
+    <script src="./audaz-bi-data.js?v=visao-20261126"></script>
+    <script src="./audaz-bi-filters.js?v=visao-20261126"></script>
     <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
+    <script src="./audaz-bi-visao.js?v=visao-20261126"></script>
     <script src="./audaz-bi-calendar.js?v=visita-confere-20261113"></script>
     <script src="./audaz-bi-notas.js?v=notas-20261031b"></script>
     <script src="./audaz-bi-calc.js?v=calc-20261031"></script>
