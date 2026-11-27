@@ -150,7 +150,7 @@
 
                     <!-- Navegação Executiva: fixa no topo, funciona mesmo com a sidebar oculta -->
                     <nav class="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800 gap-0.5 shrink-0">
-                        <button onclick="switchView('visao')" id="navLinkVisao" title="Visão Geral da regional" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
+                        <button onclick="switchView('visao')" id="navLinkVisao" style="display:none" title="Visão Geral da regional" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
                             <i class="fa-solid fa-house text-amber-400"></i><span class="hidden lg:inline">Visão Geral</span>
                         </button>
                         <button onclick="switchView('organograma')" id="navLinkOrganograma" title="Organograma da equipe" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-400 hover:text-slate-200">
@@ -1974,8 +1974,8 @@
     </div>
 
     <!-- Lógica do BI separada do documento para facilitar manutenção. -->
-    <script src="./audaz-bi-core.js?v=org-neon-20261126"></script>
-    <script src="./audaz-bi-data.js?v=visao-20261126"></script>
+    <script src="./audaz-bi-core.js?v=visao-diretor-20261127"></script>
+    <script src="./audaz-bi-data.js?v=visao-diretor-20261127"></script>
     <script src="./audaz-bi-filters.js?v=visao-20261126"></script>
     <script src="./audaz-bi-analytics.js?v=equipes-ordenar-20261108"></script>
     <script src="./audaz-bi-visao.js?v=visao-20261126"></script>
