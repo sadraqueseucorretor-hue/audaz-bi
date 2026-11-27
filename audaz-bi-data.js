@@ -3127,7 +3127,11 @@
             if (b) b.classList.toggle('hidden', soUma);
         }
 
+        // Visão Geral é só pra quem tem login de diretor; quem não tem abre/fica no Organograma (Equipe).
+        let visaoInicialAutomatica = false;
         function switchView(viewName) {
+            if (viewName === 'visao' && !isDiretor) viewName = 'organograma';
+            if (viewName !== 'organograma') visaoInicialAutomatica = false;
             activeView = viewName;
             // O Mapa de Calor só existe nas views "dashboard" e "calendar" (é inline no painel) —
             // redesenhá-lo ao entrar em Rankings/Corretor/Plantões era ~12ms jogados fora em TODA
@@ -3747,7 +3751,7 @@
             try {
                 const qs = new URLSearchParams(location.search);
                 if (qs.get('tela') === '1' || location.hash === '#tela') setTimeout(() => switchView('tela'), 0);
-                else switchView('visao');
+                else { visaoInicialAutomatica = !isDiretor; switchView('visao'); }
             } catch (e) {}
             // Celular/tablet (12/10/2026): a barra lateral ocupava a 1ª tela inteira e empurrava o
             // "estou batendo?" pra baixo — agora começa escondida em telas < 1024px (abre no ☰),
@@ -3814,6 +3818,13 @@
                     firebase.auth().onAuthStateChanged(function (user) {
                         isDiretor = !!user;
                         updateAuthUI(user);
+                        const navVisao = document.getElementById('navLinkVisao');
+                        if (navVisao) navVisao.style.display = user ? '' : 'none';
+                        if (appBooted) {
+                            if (user && activeView === 'organograma' && visaoInicialAutomatica) switchView('visao');
+                            else if (!user && activeView === 'visao') switchView('organograma');
+                            else if (activeView === 'organograma') renderOrganograma();
+                        }
                         iniciarContatosNuvem(user);
                         if (typeof iniciarDadosCorretoresNuvem === 'function') iniciarDadosCorretoresNuvem(user);
                         startProspeccaoSync();
