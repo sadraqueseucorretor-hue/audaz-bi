@@ -497,7 +497,7 @@
                     ${item('fa-circle-check', 'text-emerald-400', ativas, ativas === 1 ? 'Equipe ativa' : 'Equipes ativas')}
                     ${item('fa-chart-simple', 'text-amber-400', (pessoas ? Math.round(produtivos / pessoas * 100) : 0) + '%', 'Taxa de produtividade')}
                     ${item('fa-clock', 'text-amber-400', teams.length - ativas, teams.length - ativas === 1 ? 'Equipe em formação' : 'Equipes em formação')}
-                    <button type="button" onclick="switchView('visao')" class="og-resumo-btn"><i class="fa-solid fa-chart-column mr-2"></i>Ver Performance da Regional<i class="fa-solid fa-arrow-right ml-2"></i></button></div>` : '';
+                    ${isDiretor ? `<button type="button" onclick="switchView('visao')" class="og-resumo-btn"><i class="fa-solid fa-chart-column mr-2"></i>Ver Performance da Regional<i class="fa-solid fa-arrow-right ml-2"></i></button>` : ''}</div>` : '';
             }
             const stEq = document.getElementById('orgStatEquipes'); if (stEq) stEq.textContent = managers.length;
             const sync = document.getElementById('organogramaSyncLabel'); if (sync) sync.textContent = `${managers.length + totalBrokers} pessoas ativas exibidas`;
